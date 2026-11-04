@@ -1,0 +1,86 @@
+// Time stamps in status.yaml are BC time, UTC−7 all year, written "2026-11-04T16:30-07:00" (a note's key can also be a
+// date alone, "2026-11-04", which counts as the start of that day). Everything here works on those strings.
+
+const OFFSET = -7 * 60; // minutes from UTC
+const QUARTER = 15 * 60 * 1000;
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+// the site's titles abbreviate months AP style: "Oct.", "Nov.", but "May", "June", "July"
+const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
+
+const pad = (n) => String(n).padStart(2, "0");
+
+/** A Date shifted so its UTC fields read as BC time. */
+const bc = (date) => new Date(date.getTime() + OFFSET * 60 * 1000);
+
+/** Whether a key is a date alone. */
+export const isDateOnly = (key) => /^\d{4}-\d\d-\d\d$/.test(key);
+
+/** A key as a Date ("2026-11-04" is the start of that day, BC time). */
+export function parseKey(key) {
+  return new Date(isDateOnly(key) ? `${key}T00:00-07:00` : key);
+}
+
+/** A Date as a full key, "2026-11-04T16:30-07:00". */
+export function toKey(date) {
+  const d = bc(date);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(
+    d.getUTCMinutes(),
+  )}-07:00`;
+}
+
+/** The BC calendar day of a key or Date, "2026-11-04". */
+export function dayOf(keyOrDate) {
+  const d = bc(typeof keyOrDate === "string" ? parseKey(keyOrDate) : keyOrDate);
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+}
+
+/** Now, rounded to the nearest quarter hour, as a full key. */
+export function nowKey() {
+  return toKey(new Date(Math.round(Date.now() / QUARTER) * QUARTER));
+}
+
+/** Today's BC date, "2026-11-04". */
+export const todayKey = () => dayOf(new Date());
+
+/** A key moved by some minutes (a date-only key moves by whole days, given as minutes). */
+export function shiftKey(key, minutes) {
+  const t = new Date(parseKey(key).getTime() + minutes * 60 * 1000);
+  return isDateOnly(key) ? dayOf(t) : toKey(t);
+}
+
+/** "4:30 p.m." */
+export function clock(key) {
+  const d = bc(parseKey(key));
+  const h = d.getUTCHours();
+  return `${h % 12 || 12}:${pad(d.getUTCMinutes())} ${h < 12 ? "a.m." : "p.m."}`;
+}
+
+/** "Wednesday, Nov. 4, 2026" */
+export function longDate(key) {
+  const d = bc(parseKey(key));
+  return `${WEEKDAYS[d.getUTCDay()]}, ${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+
+/** "Wed, Nov. 4, 2026", short enough for a field */
+export function shortDate(key) {
+  return longDate(key).replace(/^(\w{3})\w*/, "$1");
+}
+
+/** "Wed, Nov. 4, 2026 · 4:30 p.m.", or the date alone for a date-only key */
+export function stamp(key) {
+  return isDateOnly(key) ? shortDate(key) : `${shortDate(key)} · ${clock(key)}`;
+}
+
+/** "4:30 p.m. today", "4:30 p.m. yesterday" or "4:30 p.m. on Nov. 2, 2026", as the progress card words it. */
+export function asOf(key) {
+  if (!key) return "";
+  const day = dayOf(key),
+    today = todayKey(),
+    yesterday = dayOf(new Date(Date.now() - 24 * 3600 * 1000));
+  if (day === today) return `${clock(key)} today`;
+  if (day === yesterday) return `${clock(key)} yesterday`;
+  return `${clock(key)} on ${longDate(key).replace(/^\w+, /, "")}`;
+}
+
+/** Compare two keys by time: negative when a is earlier. */
+export const compareKeys = (a, b) => parseKey(a) - parseKey(b);

@@ -1,0 +1,130 @@
+# Clayton Clipper status. The site reads it (src/lib/status.js); running the deploy workflow by hand or through the API updates
+# it (see .github/workflows/deploy.yml). Times are BC time (UTC−7), rounded to the nearest quarter hour.
+updated: 2026-11-02T20:30-07:00
+# the span the gantry is working on (Clayton Clipper span numbers, 3-104)
+span: 37
+# whether that span is complete (or at least hung)
+# Track completed spans instead of current gantry position so the drawn guideway actually looks like a bar graph.
+complete: true
+# every note, newest first. A note is its time stamp (the time of the update that added it) and its title, then its summary,
+# the main text, indented under it. The title is not shown on a status update ("" for none, and the slug comes from the time
+# stamp); a post leads with it. It is also the update's `?post=` slug on
+# Trackside, as a slug (clipper-completes-span-36, "Clayton Clipper" becomes "Clipper", and is dropped from the date titles): to keep the anchor when the title is edited, add `slug: words-here`
+# under the note (the oldest note with a given title keeps the plain words, a later one gets -2). The progress card shows
+# the newest note's summary, or its
+# newest follow-up's if it has any (an empty summary shows none):
+#   - 2026-10-31T14:00-07:00: "Clayton Clipper completes span 36"
+#     summary: "Span 36 is complete."
+# A note can be a post instead of a status update: "post: true" under it. A post leads with its title on Trackside, with
+# just its date under it (its key can be a date alone, "2026-11-01"), and never shows on the progress card.
+#     post: true
+# a photo, indented under it, with its own caption:
+#     photo:
+#       file: span-36.jpg (in public/images/sorry-im-a-shitty-photographer/)
+#       caption: "What the photo shows"
+# more blocks, paragraphs and photos, indented under it (the card shows only the summary; Trackside shows it all):
+#     block:
+#       - "A second paragraph"
+#       - photo:
+#           file: span-36-close-up.jpg
+#           caption: "What the photo shows"
+# and follow-ups, indented under it, each with its own summary, photo and block like a note (no comments thread or entry of
+# their own; set `updated` to the newest). The card shows only the newest follow-up's summary:
+#     follow-up:
+#       - 2026-10-31T11:45-07:00:
+#           summary: "What changed"
+#           photo:
+#             file: span-36-later.jpg
+#             caption: "What the photo shows"
+#           block:
+#             - "Another paragraph"
+notes:
+  - 2026-11-03T07:15-07:00: "Clayton Clipper construction update for Tuesday, Nov. 3, 2026"
+    summary: "Both precast girders for span 34 were installed overnight by mobile cranes. The Clayton Clipper is beginning the move to the next span."
+    follow-up:
+      - 2026-11-03T13:30-07:00:
+          summary: "The Clayton Clipper has moved to span 37."
+      - 2026-11-03T20:30-07:00:
+          summary: "All the segments for span 37 are now in place."
+  - 2026-11-02T09:15-07:00: "Clayton Clipper construction update for Monday, Nov. 2, 2026"
+    summary: "The Night Shift must’ve worked Sunday night. Span 36 is fully glued. Crews have begun post-tensioning."
+    follow-up:
+      - 2026-11-02T17:45-07:00:
+          summary: "Post-tensioning is done on span 36, and the cables are down. The Clayton Clipper isn't going anywhere yet: all 12 hangers are still up."
+          block:
+            - "Two precast concrete girders, which are probably for span 34, are sitting behind the guideway in the recently built construction yard. The black paint on their ends means Dywidag has finished post-tensioning them too. I expect them to go in tonight or tomorrow night."
+      - 2026-11-02T20:30-07:00:
+          summary: "The eastbound mainline girder for span 34 is in place. Six out of twelve hangers are down from the gantry."
+  - 2026-11-01: "The curious case of Clayton Clipper span 50"
+    summary: "While tracing the guideway near Highway 15, I noticed one pillar appears to have been shifted west, making span 50 noticeably longer than the surrounding spans. There's also a concrete pad almost exactly where the pillar seems like it would have gone."
+    post: true
+    photo:
+      file: 2026-11-01-span-50-pad.jpg
+      caption: "I noticed this concrete pad while riding my bike through the area. It sits almost exactly where I would have expected a pillar if span 50 had been spaced more evenly."
+    block:
+      - "Most of the guideway follows a pretty regular pattern, so span 50 stood out right away. The concrete pad makes me wonder if they needed temporary support there during construction but couldn't place a permanent foundation in that location."
+      - "My completely non-engineer theories range from a major buried utility, to some other underground constraint, to a previously undiscovered entrance to Fraggle Rock."
+      - "Does anyone know why the pillar was shifted west and span 50 ended up so much longer than usual?"
+  - 2026-10-31T15:15-07:00: "Surrey Sprinter hangs its first span past Green Timbers"
+    summary: "Reporting from the bike at the other end of the line: the Surrey Sprinter has hung all the segments for its first span after leaving Green Timbers Station."
+    photo:
+      file: 2026-10-31-sprinter-green-timbers.jpg
+      caption: "The Surrey Sprinter over 140 St and Fraser Highway, with its first span past Green Timbers Station hung below it."
+    block:
+      - "From here to the end of the Expo Line is only 12 more spans. The Sprinter is responsible for seven of them. The rest will be built by cranes."
+    follow-up:
+      - 2026-10-31T16:15-07:00:
+          summary: "Rode past the Clayton Clipper on the way home: the crews have packed up for the Sunday shutdown, and the gantry is sitting quietly over span 36 until Monday. Nothing moving out there but the ghosts. Happy Halloween!"
+      - 2026-10-31T15:45-07:00:
+          summary: "The Fleetwood Flyer has been parked at 152 St since finishing its run a few weeks ago. The walkways are off its trusses, but with no big cranes on site, nobody seems in a hurry to take it apart."
+  - 2026-10-31T14:00-07:00: "Clayton Clipper completes span 36; tulip at 70/71 built"
+    summary: "Check-in from the bike: all the segments are hung and span 36 is marked as complete. Now pedalling west of 176 St to see what the rest of the line is up to."
+    block:
+      - "The long-missing tulip where spans 70 and 71 meet, by the golf course, has finally been built. It was the last of the driven foundations. From 71/72 on, they switched to bored foundations."
+      - photo:
+          file: 2026-10-31-tulip-70-71.jpg
+          caption: "The new tulip where spans 70 and 71 meet, wrapped in an orange tarp: propane heaters blow warm air inside so the concrete can cure in the cold weather. That's my Kona Unit X in front, photographed drive side out, of course."
+      - "If you know the story behind this pillar, let me know in the comments."
+  - 2026-10-31T09:30-07:00: "Clayton Clipper: only three segments hung for span 36"
+    summary: "Only three segments have been hung for span 36. I'm guessing the night crew took Friday night off."
+    photo:
+      file: 2026-10-31-piper-and-toby.jpg
+      caption: "My two trusty assistants on our way to look at cranes. Piper on the left is a four-year-old Bernedoodle. Toby on the right is an 11-year-old mini Australian Shepherd."
+    follow-up:
+      - 2026-10-31T11:45-07:00:
+          summary: "Six segments have been hung. There is a long line of semi trucks carrying the rest of the segments."
+  - 2026-10-30T12:45-07:00: "Clayton Clipper construction update for Friday, Oct. 30, 2026"
+    summary: "The Clayton Clipper has started moving its supports, getting ready to move from span 35 to span 36."
+    follow-up:
+      - 2026-10-30T20:45-07:00:
+          summary: "The Clayton Clipper has moved to span 36."
+  - 2026-10-29T06:45-07:00: "Clayton Clipper finishes hanging span 35; new girder arrives"
+    summary: "All segments for span 35 are hung. A new precast girder arrived at the construction yard overnight. It will likely be installed in span 34, along with the girder that was already on site."
+    follow-up:
+      - 2026-10-29T18:30-07:00:
+          summary: "Span 35's segments are glued, and Dywidag is post-tensioning now. The night shift should finish it. That makes the Clayton Clipper one-third done: 35 of 105 spans."
+  - 2026-10-26T20:00-07:00: "Clayton Clipper construction update for Monday, Oct. 26, 2026"
+    summary: "The Clayton Clipper is about to lift the last segment for span 34."
+    photo:
+      file: 2026-10-26-clipper-span-34-night.jpg
+      caption: "The Clayton Clipper all lit up for the night shift, about to lift span 34's last segment. Proof that even I get lucky with a camera now and then."
+  - 2026-10-23T16:30-07:00: "Clayton Clipper construction update for Friday, Oct. 23, 2026"
+    summary: "Span 33 is hung and glued, and marked as complete."
+    photo:
+      file: 2026-10-23-clipper-span-33.jpg
+      caption: "The Clayton Clipper with span 33 hung and glued below it."
+  - 2026-10-15T17:15-07:00: "Clayton Clipper crosses span 31's double precast girders"
+    summary: "After being stuck in the same place for over a month, the Clayton Clipper finally made it across the double precast girders at span 31."
+    photo:
+      file: 2026-10-15-clipper-crosses-span-31.jpg
+      caption: "The Clayton Clipper, finally on the move again: across span 31 and ready to start lifting segments for span 32."
+  - 2026-10-13T23:45-07:00: "How a Clayton Clipper sketch became a whole website"
+    summary: "This is where it all started: a late-night project on Oct 13. I sketched the guideway past the South Fraser Maintenance and Storage Facility by hand from my walks with Piper and Toby, then brought it into Claude. It was a prediction: from the patterns in the beam connection points and the temporary wooden platforms, seen from the ground and in drone videos I found on YouTube, I could picture where a crane-lifted girder would go and what the gantry would build. No aerial photos, no website, just boxes, lines and a lot of squinting."
+    photo:
+      file: 2026-10-13-first-drawing.jpg
+      caption: "The earliest version I still have, from soon after the hand drawing went into Claude on Oct 13, 2026: eleven gantry spans to go, a handful of precast girders done, and labels that only made sense to me."
+    block:
+      - "The plan was simple: post diagram updates to the SkyscraperPage forum every couple of weeks, showing actual progress and a refined prediction of what the Clayton Clipper would build. Then I started fixing it. The spans got traced against high-resolution aerial imagery, the supports got matched to within about a foot, and the drawing grew from one stretch by the SFMSF to the Clipper's whole route."
+      - "The turning point was almost an accident. I asked Claude to make me a better viewer for the SVG, and it threw in checkboxes for every layer in the drawing without being asked. I started customizing them, then kept going, and eventually decided to see if I could get the whole thing onto GitHub. On Oct 28 it became a small website: a live map, a progress card counting the Clipper's spans, and a status file behind it all. A few days later it had comments, photos, this Trackside page and its own address."
+      - "The coolest part is how I run it. From the Claude app, I can post updates, change features and fix code while I'm out on my bike or walking the dogs. Then, when I get back to my computer, Claude Code does the heavy lifting."
+      - "Not bad for something that started as a few boxes on a screen. If you've been following along, thanks for reading, and let me know in the comments what you'd like to see next."

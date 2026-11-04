@@ -1,6 +1,7 @@
 // Tailwind for React Native (twrnc). The colours are the site's (src/app.css in molund/omc5), in a light and a dark set
 // under the same names, so `tw\`bg-panel text-ink\`` works in both: useTw() hands out the set for the viewer's theme.
 import { createContext, useContext } from "react";
+import { Platform } from "react-native";
 import { create } from "twrnc";
 
 const light = {
@@ -46,9 +47,10 @@ const dark = {
   code: "#1a1f24",
 };
 
+// the web takes a CSS font stack; iOS takes one font's name (Menlo is on every iPhone)
 const fontFamily = {
-  sans: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
-  mono: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace',
+  sans: Platform.select({ web: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif', default: "System" }),
+  mono: Platform.select({ web: 'ui-monospace, "SF Mono", Menlo, Consolas, monospace', default: "Menlo" }),
 };
 
 const make = (colors) => create({ theme: { extend: { colors, fontFamily } } });

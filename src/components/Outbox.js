@@ -2,7 +2,7 @@
 // Push and Refresh save a request into the desk's outbox, which wakes the Claude Code session that watches the desk
 // (see services/outbox.js). The desk reloads when that session publishes the new copy.
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
@@ -100,7 +100,10 @@ export function Outbox() {
               kind="link"
               small
               title="Refresh from main"
-              onPress={() => setConfirm(confirm === "refresh" ? null : "refresh")}
+              // on the phone the desk reads main itself; in the Claude app it asks Claude Code to
+              onPress={() =>
+                Platform.OS === "web" ? setConfirm(confirm === "refresh" ? null : "refresh") : desk.reload()
+              }
             />
           )
         }

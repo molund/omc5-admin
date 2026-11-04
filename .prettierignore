@@ -1,0 +1,4 @@
+dist/
+package-lock.json
+# verbatim copies from molund/omc5, read by the tests
+test/fixtures/

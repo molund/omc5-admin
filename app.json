@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Status Desk",
+    "slug": "omc5-admin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios"],
+    "ios": {
+      "bundleIdentifier": "ca.olund.statusdesk",
+      "supportsTablet": false
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose photos to add to an update."
+        }
+      ]
+    ]
+  }
+}

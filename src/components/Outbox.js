@@ -2,11 +2,12 @@
 // Push and Refresh save a request into the desk's outbox, which wakes the Claude Code session that watches the desk
 // (see services/outbox.js). The desk reloads when that session publishes the new copy.
 import { useState } from "react";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
 import { asOf, toKey } from "../lib/time.js";
+import { copyText } from "../platform/clipboard";
 import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
 
 const KIND = {
@@ -16,16 +17,6 @@ const KIND = {
   "followup-edit": "Follow-up edit",
   blog: "Blog",
 };
-
-/** Copies text inside the press, as the frame requires; false when the clipboard refuses. */
-async function copy(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 /** What went wrong, the platform's own words, and the request to send by hand. */
 function Failure({ error, onCopied }) {
@@ -52,7 +43,7 @@ function Failure({ error, onCopied }) {
             <Button
               small
               title="Copy the request"
-              onPress={() => copy(error.manual).then((ok) => onCopied(ok ? true : "failed"))}
+              onPress={() => copyText(error.manual).then((ok) => onCopied(ok ? true : "failed"))}
             />
           </Row>
           {error.copied === "failed" && (
@@ -109,7 +100,10 @@ export function Outbox() {
               kind="link"
               small
               title="Refresh from main"
-              onPress={() => setConfirm(confirm === "refresh" ? null : "refresh")}
+              // on the phone the desk reads main itself; in the Claude app it asks Claude Code to
+              onPress={() =>
+                Platform.OS === "web" ? setConfirm(confirm === "refresh" ? null : "refresh") : desk.reload()
+              }
             />
           )
         }

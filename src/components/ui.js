@@ -1,7 +1,7 @@
 // The desk's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
 import { Pressable, Switch, Text, TextInput, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { Icon } from "./Icon"; // Icon.web.js here, Icon.native.js in a native build
+import { Icon } from "./Icon";
 
 /** A white panel with a hairline border. */
 export function Panel({ children, style, tone }) {
@@ -167,6 +167,9 @@ export function Field({ value, onChangeText, placeholder, multiline, mono, small
       placeholderTextColor={colors.mute}
       multiline={multiline}
       autoFocus={autoFocus}
+      // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
+      autoCapitalize={mono ? "none" : "sentences"}
+      autoCorrect={!mono}
       style={[
         tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink ${small ? "text-xs" : "text-sm"}`,
         mono && tw`font-mono`,

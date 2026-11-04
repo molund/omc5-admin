@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "./theme/tw.js";
-import { useScheme } from "./platform/scheme.web.js";
+import { Frame } from "./platform/Frame";
+import { useScheme } from "./platform/scheme";
 import { DeskProvider, useDesk } from "./state/desk.js";
-import { load, save } from "./platform/storage.web.js";
+import { load, save } from "./platform/storage";
 import { Segmented, Body, Notice, Button } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
@@ -99,7 +100,9 @@ export default function App() {
   return (
     <ThemeContext.Provider value={themes[scheme] ?? themes.light}>
       <DeskProvider>
-        <Desk />
+        <Frame>
+          <Desk />
+        </Frame>
       </DeskProvider>
     </ThemeContext.Provider>
   );

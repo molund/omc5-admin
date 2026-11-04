@@ -57,7 +57,9 @@ Trackside, the progress card, the sitemap or the giscus comments (the same as th
 ## Layout
 
 ```
-index.js                     React Native entry (AppRegistry)
+index.js                     the native entry (iOS): Expo's registerRootComponent
+index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
+app.json                     the Expo app config
 src/App.js                   the four modes, the review, the outbox
 src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
@@ -81,7 +83,7 @@ expo-image-picker for photos). Nothing else changes.
 ## Build
 
 ```
-npm install          # .npmrc sets legacy-peer-deps: react-native-web stands in for react-native
+npm install
 npm test
 node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 ```
@@ -89,3 +91,33 @@ node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 Then publish `dist/index.html` as the artifact page, with `app.js`, `status.yaml`, `copy.json` and
 `tools/apply-changes.mjs` beside it. Its one capability is `artifact` (the desk saves its
 outbox into itself). The source is published with it under `source/`.
+
+## On an iPhone
+
+It's an Expo project (React Native on iOS). With Xcode installed and an iPhone in Developer Mode, plugged in:
+
+```
+npm install
+npm run ios          # expo run:ios: builds with Xcode and installs on the phone
+```
+
+Sign in with an Apple ID under Xcode's signing settings the first time. With a free Apple ID the app has to be rebuilt every
+7 days.
+
+What works on the phone:
+
+- All four modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
+- Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 75, which drops the
+  original's metadata.
+- The desk's copy of `status.yaml` is read from main on GitHub (the repo is public, so no token): at main's latest commit,
+  kept for when the phone is offline. "Refresh from main" reads it again.
+- Light and dark follow the phone's setting.
+
+What doesn't yet: **pushing**. The Claude app version saves its changes into an outbox for a Claude Code session; the phone
+has no such session, so Push fails with a message and offers the request to copy and send by hand. Pushing from the phone
+will be an SSH git push to `molund/omc5`, in a native module (not written yet).
+
+Each platform need has one file per platform in `src/platform/` and `src/components/Icon.*`: the app imports it without an
+extension, and the web build (esbuild) picks `.web.js` while Expo's Metro picks `.native.js`.
+
+`npm run ios` has not been run yet. The iOS bundle itself is checked with `npx expo export --platform ios`.

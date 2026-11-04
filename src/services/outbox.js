@@ -3,8 +3,9 @@
 // Saving republishes the artifact, which wakes the Claude Code session that watches it. That session syncs with main,
 // applies each change with tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the
 // desk with copy.json and pushed.json, and clears the outbox.
-import { capability } from "../platform/claude.web.js";
-import { toBlob } from "../platform/photos.web.js";
+import { Platform } from "react-native";
+import { capability } from "../platform/claude";
+import { toBlob } from "../platform/photos";
 import { photosOf } from "../lib/changes.js";
 
 export class DeskError extends Error {
@@ -91,7 +92,9 @@ async function send(req, files, hasPhotos) {
   if (!artifact)
     throw new DeskError(
       "no_artifact",
-      "This view of the desk can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand.",
+      Platform.OS === "web"
+        ? "This view of the desk can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand."
+        : "The phone can't push to main yet. Copy the request and send it to Claude Code by hand.",
       'claude.use("artifact") resolved null',
       manual(req, hasPhotos),
     );

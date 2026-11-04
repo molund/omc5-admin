@@ -1,4 +1,7 @@
 dist/
 package-lock.json
+.expo/
+ios/
+android/
 # verbatim copies from molund/omc5, read by the tests
 test/fixtures/

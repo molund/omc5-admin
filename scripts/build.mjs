@@ -14,7 +14,7 @@ const config = JSON.parse(readFileSync(`${root}desk.config.json`, "utf8"));
 mkdirSync(`${root}dist/tools`, { recursive: true });
 
 await build({
-  entryPoints: [`${root}index.js`],
+  entryPoints: [`${root}index.web.js`],
   bundle: true,
   minify: true,
   format: "iife",

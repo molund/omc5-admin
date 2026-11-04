@@ -5,8 +5,8 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { applyAll, applyChange, commitMessage, photosOf } from "../lib/changes.js";
 import { parseStatus } from "../lib/statusFile.js";
-import { ownFile } from "../platform/claude.web.js";
-import { load, save } from "../platform/storage.web.js";
+import { ownFile } from "../platform/claude";
+import { load, save } from "../platform/storage";
 
 const DeskContext = createContext(null);
 export const useDesk = () => useContext(DeskContext);

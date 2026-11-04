@@ -15,9 +15,29 @@ const bc = (date) => new Date(date.getTime() + OFFSET * 60 * 1000);
 /** Whether a key is a date alone. */
 export const isDateOnly = (key) => /^\d{4}-\d\d-\d\d$/.test(key);
 
-/** A key as a Date ("2026-11-04" is the start of that day, BC time). */
+const KEY = /^(\d{4})-(\d\d)-(\d\d)(?:T(\d\d):(\d\d)(?::(\d\d)(?:\.(\d+))?)?(Z|[+-]\d\d:?\d\d)?)?$/;
+
+/**
+ * A key as a Date ("2026-11-04" is the start of that day, BC time). Read here rather than by the JavaScript engine's own date
+ * parser, which isn't the same everywhere (iOS's Hermes, say). A time without a zone is BC time too.
+ * @returns {Date} An invalid Date (NaN) if the key isn't a date or date and time.
+ */
 export function parseKey(key) {
-  return new Date(isDateOnly(key) ? `${key}T00:00-07:00` : key);
+  const m = KEY.exec(String(key).trim());
+  if (!m) return new Date(NaN);
+  const [, y, mo, d, h = "0", mi = "0", sec = "0", fraction = "0", zone] = m;
+  const ms = Number(fraction.padEnd(3, "0").slice(0, 3));
+  const [year, month, day, hour, minute, second] = [y, mo, d, h, mi, sec].map(Number);
+  const inRange = month >= 1 && month <= 12 && hour < 24 && minute < 60 && second < 60;
+  // a day that doesn't exist (Feb. 30) would roll into the next month
+  if (!inRange || new Date(Date.UTC(year, month - 1, day)).getUTCDate() !== day) return new Date(NaN);
+  let offset = OFFSET;
+  if (zone === "Z") offset = 0;
+  else if (zone) {
+    const digits = zone.slice(1).replace(":", "");
+    offset = (zone[0] === "-" ? -1 : 1) * (Number(digits.slice(0, 2)) * 60 + Number(digits.slice(2)));
+  }
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second, ms) - offset * 60 * 1000);
 }
 
 /** A Date as a full key, "2026-11-04T16:30-07:00". */

@@ -101,5 +101,23 @@ npm install
 npm run ios          # expo run:ios: builds with Xcode and installs on the phone
 ```
 
-Sign in with an Apple ID under Xcode's signing settings the first time. (The iOS-only parts, the native files for storage,
-photos and so on, are still to come: see the `*.web.js` files in `src/platform/`.)
+Sign in with an Apple ID under Xcode's signing settings the first time. With a free Apple ID the app has to be rebuilt every
+7 days.
+
+What works on the phone:
+
+- All four modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
+- Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 75, which drops the
+  original's metadata.
+- The desk's copy of `status.yaml` is read from main on GitHub (the repo is public, so no token): at main's latest commit,
+  kept for when the phone is offline. "Refresh from main" reads it again.
+- Light and dark follow the phone's setting.
+
+What doesn't yet: **pushing**. The Claude app version saves its changes into an outbox for a Claude Code session; the phone
+has no such session, so Push fails with a message and offers the request to copy and send by hand. Pushing from the phone
+will be an SSH git push to `molund/omc5`, in a native module (not written yet).
+
+Each platform need has one file per platform in `src/platform/` and `src/components/Icon.*`: the app imports it without an
+extension, and the web build (esbuild) picks `.web.js` while Expo's Metro picks `.native.js`.
+
+`npm run ios` has not been run yet. The iOS bundle itself is checked with `npx expo export --platform ios`.

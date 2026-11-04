@@ -1,6 +1,5 @@
-// The React Native entry. On the web (the Claude app), react-native-web draws the app into #root.
-import { AppRegistry } from "react-native";
-import App from "./src/App.js";
+// The native entry (iOS): Expo draws the app. On the web, index.web.js is used instead.
+import { registerRootComponent } from "expo";
+import App from "./src/App";
 
-AppRegistry.registerComponent("StatusDesk", () => App);
-AppRegistry.runApplication("StatusDesk", { rootTag: document.getElementById("root") });
+registerRootComponent(App);

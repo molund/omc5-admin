@@ -57,7 +57,9 @@ Trackside, the progress card, the sitemap or the giscus comments (the same as th
 ## Layout
 
 ```
-index.js                     React Native entry (AppRegistry)
+index.js                     the native entry (iOS): Expo's registerRootComponent
+index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
+app.json                     the Expo app config
 src/App.js                   the four modes, the review, the outbox
 src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
@@ -81,7 +83,7 @@ expo-image-picker for photos). Nothing else changes.
 ## Build
 
 ```
-npm install          # .npmrc sets legacy-peer-deps: react-native-web stands in for react-native
+npm install
 npm test
 node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 ```
@@ -89,3 +91,15 @@ node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 Then publish `dist/index.html` as the artifact page, with `app.js`, `status.yaml`, `copy.json` and
 `tools/apply-changes.mjs` beside it. Its one capability is `artifact` (the desk saves its
 outbox into itself). The source is published with it under `source/`.
+
+## On an iPhone
+
+It's an Expo project (React Native on iOS). With Xcode installed and an iPhone in Developer Mode, plugged in:
+
+```
+npm install
+npm run ios          # expo run:ios: builds with Xcode and installs on the phone
+```
+
+Sign in with an Apple ID under Xcode's signing settings the first time. (The iOS-only parts, the native files for storage,
+photos and so on, are still to come: see the `*.web.js` files in `src/platform/`.)

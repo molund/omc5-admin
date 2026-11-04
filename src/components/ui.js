@@ -1,7 +1,7 @@
 // The desk's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
 import { Pressable, Switch, Text, TextInput, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { Icon } from "./Icon"; // Icon.web.js here, Icon.native.js in a native build
+import { Icon } from "./Icon";
 
 /** A white panel with a hairline border. */
 export function Panel({ children, style, tone }) {

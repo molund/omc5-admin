@@ -3,8 +3,8 @@
 // Saving republishes the artifact, which wakes the Claude Code session that watches it. That session syncs with main,
 // applies each change with tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the
 // desk with copy.json and pushed.json, and clears the outbox.
-import { capability } from "../platform/claude.web.js";
-import { toBlob } from "../platform/photos.web.js";
+import { capability } from "../platform/claude";
+import { toBlob } from "../platform/photos";
 import { photosOf } from "../lib/changes.js";
 
 export class DeskError extends Error {

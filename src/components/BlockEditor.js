@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { pickPhoto, preparePhoto } from "../platform/photos.web.js";
+import { pickPhoto, preparePhoto } from "../platform/photos";
 import { slugify } from "../lib/titles.js";
 import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
 

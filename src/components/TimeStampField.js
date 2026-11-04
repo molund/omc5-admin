@@ -10,19 +10,38 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note }) 
   const now = dateOnly ? todayKey() : nowKey();
   return (
     <Panel>
-      <Label right={value !== now && <Button kind="grey" small title={dateOnly ? "Today" : "Now"} onPress={() => onChange(now)} />}>
+      <Label
+        right={
+          value !== now && <Button kind="grey" small title={dateOnly ? "Today" : "Now"} onPress={() => onChange(now)} />
+        }
+      >
         {label}
       </Label>
       <Row>
         <Body style={tw`font-semibold`}>{longDate(value)}</Body>
-        <Stepper label="Day" value="Day" onMinus={() => onChange(shiftKey(value, -1440))} onPlus={() => onChange(shiftKey(value, 1440))} />
+        <Stepper
+          label="Day"
+          value="Day"
+          onMinus={() => onChange(shiftKey(value, -1440))}
+          onPlus={() => onChange(shiftKey(value, 1440))}
+        />
       </Row>
       {!dateOnly && (
         <Row>
           <Body style={tw`font-semibold`}>{clock(value)}</Body>
           <View style={tw`flex-row gap-2`}>
-            <Stepper label="Hour" value="Hour" onMinus={() => onChange(shiftKey(value, -60))} onPlus={() => onChange(shiftKey(value, 60))} />
-            <Stepper label="Minutes" value=":15" onMinus={() => onChange(shiftKey(value, -15))} onPlus={() => onChange(shiftKey(value, 15))} />
+            <Stepper
+              label="Hour"
+              value="Hour"
+              onMinus={() => onChange(shiftKey(value, -60))}
+              onPlus={() => onChange(shiftKey(value, 60))}
+            />
+            <Stepper
+              label="Minutes"
+              value=":15"
+              onMinus={() => onChange(shiftKey(value, -15))}
+              onPlus={() => onChange(shiftKey(value, 15))}
+            />
           </View>
         </Row>
       )}

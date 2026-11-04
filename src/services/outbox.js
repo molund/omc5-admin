@@ -50,9 +50,18 @@ function explain(e, req, hasPhotos) {
   const text = manual(req, hasPhotos);
   switch (e?.code) {
     case "conflict":
-      return new DeskError(e.code, "The desk was updated while you worked, and it's reloading. Push again once it has.", detail);
+      return new DeskError(
+        e.code,
+        "The desk was updated while you worked, and it's reloading. Push again once it has.",
+        detail,
+      );
     case "too_large":
-      return new DeskError(e.code, "The photos are too big to send together. Push fewer changes at a time.", detail, text);
+      return new DeskError(
+        e.code,
+        "The photos are too big to send together. Push fewer changes at a time.",
+        detail,
+        text,
+      );
     case "rate_limited":
       return new DeskError(e.code, "The desk saved too often just now. Wait a minute, then push again.", detail);
     case "not_writer":
@@ -68,7 +77,12 @@ function explain(e, req, hasPhotos) {
         text,
       );
     default:
-      return new DeskError(e?.code ?? "unknown", "The request wasn't saved. Try again, or send it by hand.", detail, text);
+      return new DeskError(
+        e?.code ?? "unknown",
+        "The request wasn't saved. Try again, or send it by hand.",
+        detail,
+        text,
+      );
   }
 }
 
@@ -100,7 +114,11 @@ export async function requestPush(changes, photos) {
     for (const b of photosOf(c)) {
       if (!b.photoId) continue; // already on the site
       const p = photos[b.photoId];
-      if (!p) throw new DeskError("photo_missing", `The photo for ${b.file} isn't on this device any more. Remove it and add it again.`);
+      if (!p)
+        throw new DeskError(
+          "photo_missing",
+          `The photo for ${b.file} isn't on this device any more. Remove it and add it again.`,
+        );
       const path = `outbox/photos/${b.file}`;
       files[path] = { content: await toBlob(p.dataUrl), contentType: "image/jpeg" };
       list.push({ file: b.file, path });

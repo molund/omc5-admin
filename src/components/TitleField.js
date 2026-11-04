@@ -24,7 +24,15 @@ export function TitleField({ kind, stamp, title, onChange, notes, retitles = {},
   const slugs = slugsOf(notes);
   return (
     <Panel>
-      <Label right={!title.trim() || isDateTitle(title) ? null : <Body small mute>{title.trim().length}/60</Body>}>
+      <Label
+        right={
+          !title.trim() || isDateTitle(title) ? null : (
+            <Body small mute>
+              {title.trim().length}/60
+            </Body>
+          )
+        }
+      >
         {kind === "blog" ? "Title · leads the post" : "Title"}
       </Label>
       <Field
@@ -68,8 +76,8 @@ export function TitleField({ kind, stamp, title, onChange, notes, retitles = {},
       {advice.retitle.map((n) => (
         <View key={n.key} style={tw`gap-1.5 rounded-md border border-dashed border-line p-2.5`}>
           <Body small>
-            The {clock(n.key)} update has the date title. Give it a headline too, so the two don't share one. Its address
-            stays ?post={slugs.get(n.key)}.
+            The {clock(n.key)} update has the date title. Give it a headline too, so the two don't share one. Its
+            address stays ?post={slugs.get(n.key)}.
           </Body>
           <Field
             small

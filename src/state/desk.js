@@ -89,7 +89,9 @@ export function DeskProvider({ children }) {
         const id = newId();
         setChanges((cs) => [...cs, { ...change, id, message, savedAt: new Date().toISOString() }]);
         // its photos belong to the change now, not a draft
-        const ids = photosOf(change).map((b) => b.photoId).filter(Boolean);
+        const ids = photosOf(change)
+          .map((b) => b.photoId)
+          .filter(Boolean);
         if (ids.length)
           setPhotos((ps) => {
             const out = { ...ps };

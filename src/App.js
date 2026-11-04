@@ -22,7 +22,12 @@ const MODES = [
     about: "Position only: the span and Complete, with a time stamp.",
   },
   { value: "update", label: "Update", screen: UpdateScreen, about: "A status update. Its summary goes on the card." },
-  { value: "followup", label: "Follow-up", screen: FollowUpScreen, about: "Add to an update or blog post, or edit a follow-up." },
+  {
+    value: "followup",
+    label: "Follow-up",
+    screen: FollowUpScreen,
+    about: "Add to an update or blog post, or edit a follow-up.",
+  },
   { value: "blog", label: "Blog", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
 ];
 
@@ -77,11 +82,11 @@ function Desk() {
           )}
           {/* the screen stays mounted under the review, so saving can clear its draft */}
           <View style={[tw`gap-3`, review && { display: "none" }]}>
-              <Segmented options={MODES} value={mode} onChange={setMode} />
-              <Body small mute>
-                {current.about}
-              </Body>
-              <Screen key={mode} onReview={(change, opts = {}) => setReview({ change, ...opts })} />
+            <Segmented options={MODES} value={mode} onChange={setMode} />
+            <Body small mute>
+              {current.about}
+            </Body>
+            <Screen key={mode} onReview={(change, opts = {}) => setReview({ change, ...opts })} />
           </View>
         </>
       )}

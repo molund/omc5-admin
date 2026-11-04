@@ -82,7 +82,10 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
 export function Segmented({ options, value, onChange, small }) {
   const { tw, colors } = useTw();
   return (
-    <View accessibilityRole="tablist" style={tw`flex-row overflow-hidden rounded-md border border-button-line bg-button-bg`}>
+    <View
+      accessibilityRole="tablist"
+      style={tw`flex-row overflow-hidden rounded-md border border-button-line bg-button-bg`}
+    >
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -97,8 +100,12 @@ export function Segmented({ options, value, onChange, small }) {
               on && tw`bg-accent`,
             ]}
           >
-            {o.icon && <Icon name={o.icon} color={on ? colors["accent-ink"] : colors["button-ink"]} size={small ? 14 : 16} />}
-            <Text style={tw`${small ? "text-xs" : "text-sm"} font-semibold ${on ? "text-accent-ink" : "text-button-ink"}`}>
+            {o.icon && (
+              <Icon name={o.icon} color={on ? colors["accent-ink"] : colors["button-ink"]} size={small ? 14 : 16} />
+            )}
+            <Text
+              style={tw`${small ? "text-xs" : "text-sm"} font-semibold ${on ? "text-accent-ink" : "text-button-ink"}`}
+            >
               {o.label}
             </Text>
           </Pressable>
@@ -190,7 +197,11 @@ export function Row({ children, style }) {
 export function Link({ href, title }) {
   const { tw } = useTw();
   return (
-    <Text href={href} hrefAttrs={{ target: "_blank", rel: "noopener" }} style={tw`px-1 py-1 text-xs font-semibold text-accent underline`}>
+    <Text
+      href={href}
+      hrefAttrs={{ target: "_blank", rel: "noopener" }}
+      style={tw`px-1 py-1 text-xs font-semibold text-accent underline`}
+    >
       {title}
     </Text>
   );

@@ -39,7 +39,9 @@ export function UpdateScreen({ onReview }) {
   const problems = [
     ...titleProblems("update", d.time, title, notes, d.retitles),
     ...blockProblems(d.blocks),
-    ...(taken ? ["There's already an entry at this time stamp (a position's note to self, say). Move it a quarter hour."] : []),
+    ...(taken
+      ? ["There's already an entry at this time stamp (a position's note to self, say). Move it a quarter hour."]
+      : []),
   ];
   const change = {
     kind: "update",
@@ -64,7 +66,9 @@ export function UpdateScreen({ onReview }) {
         kind="update"
         stamp={d.time}
         title={title}
-        onChange={(t) => update(t === dateTitle(d.time) ? { title: "", titleSet: false } : { title: t, titleSet: true })}
+        onChange={(t) =>
+          update(t === dateTitle(d.time) ? { title: "", titleSet: false } : { title: t, titleSet: true })
+        }
         notes={notes}
         retitles={d.retitles}
         onRetitle={(retitles) => update({ retitles })}

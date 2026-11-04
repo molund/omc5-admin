@@ -69,7 +69,12 @@ test("the desk reads every note the site does", async () => {
 });
 
 test("move changes only the three header lines", async () => {
-  const { text, hunks } = applyChange(BASE, { kind: "move", time: "2026-11-04T11:15-07:00", span: 38, complete: false });
+  const { text, hunks } = applyChange(BASE, {
+    kind: "move",
+    time: "2026-11-04T11:15-07:00",
+    span: 38,
+    complete: false,
+  });
   assert.equal(hunks.length, 3);
   assert.equal(text.split("\n").length, BASE.split("\n").length);
   const s = await site(text);
@@ -79,7 +84,10 @@ test("move changes only the three header lines", async () => {
   const card = cardFor(text);
   assert.equal(card.text, "");
   assert.equal(card.button, "trackside");
-  assert.equal(commitMessage({ kind: "move", span: 38, complete: false, time: T }, BASE), "Move the Clayton Clipper to span 38");
+  assert.equal(
+    commitMessage({ kind: "move", span: 38, complete: false, time: T }, BASE),
+    "Move the Clayton Clipper to span 38",
+  );
 });
 
 test("update adds a note the site reads, with its photo and blocks", async () => {
@@ -129,7 +137,13 @@ test("a second note on a day retitles the first and keeps its address", async ()
 
 test("follow-ups: added to a note with a list, to one without, and edited", async () => {
   // the Nov. 3 note has two follow-ups
-  const add = { kind: "followup", noteKey: "2026-11-03T07:15-07:00", time: "2026-11-03T22:00-07:00", blocks: blocks.slice(0, 3), gantry: null };
+  const add = {
+    kind: "followup",
+    noteKey: "2026-11-03T07:15-07:00",
+    time: "2026-11-03T22:00-07:00",
+    blocks: blocks.slice(0, 3),
+    gantry: null,
+  };
   let s = await site(applyChange(BASE, add).text);
   assert.equal(s.followUps.length, 3);
   assert.equal(s.followUps[0].summary, blocks[0].text);
@@ -138,8 +152,21 @@ test("follow-ups: added to a note with a list, to one without, and edited", asyn
   assert.equal(cardFor(applyChange(BASE, add).text).text, blocks[0].text);
 
   // a new update has none yet
-  const withNote = applyChange(BASE, { kind: "update", time: T, span: 38, complete: false, title: dateTitle(T), blocks }).text;
-  const fu = { kind: "followup", noteKey: T, time: "2026-11-04T20:45-07:00", blocks: [{ type: "summary", text: "Five segments are hung for span 38." }], gantry: { span: 38, complete: false } };
+  const withNote = applyChange(BASE, {
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: false,
+    title: dateTitle(T),
+    blocks,
+  }).text;
+  const fu = {
+    kind: "followup",
+    noteKey: T,
+    time: "2026-11-04T20:45-07:00",
+    blocks: [{ type: "summary", text: "Five segments are hung for span 38." }],
+    gantry: { span: 38, complete: false },
+  };
   const withFu = applyChange(withNote, fu).text;
   s = await site(withFu);
   assert.equal(s.followUps.length, 1);
@@ -147,7 +174,13 @@ test("follow-ups: added to a note with a list, to one without, and edited", asyn
   assert.equal(s.block.length, 2, "the note's own blocks are untouched");
 
   // edit it, moving its time: the card follows
-  const edit = { kind: "followup-edit", noteKey: T, fuKey: "2026-11-04T20:45-07:00", time: "2026-11-04T21:00-07:00", blocks: [{ type: "summary", text: "Six segments are hung for span 38." }] };
+  const edit = {
+    kind: "followup-edit",
+    noteKey: T,
+    fuKey: "2026-11-04T20:45-07:00",
+    time: "2026-11-04T21:00-07:00",
+    blocks: [{ type: "summary", text: "Six segments are hung for span 38." }],
+  };
   const edited = applyChange(withFu, edit).text;
   s = await site(edited);
   assert.equal(s.followUps.length, 1);
@@ -157,8 +190,20 @@ test("follow-ups: added to a note with a list, to one without, and edited", asyn
 });
 
 test("a blog post is dated, filed below the day's updates and leaves the card alone", async () => {
-  const withNote = applyChange(BASE, { kind: "update", time: T, span: 38, complete: false, title: dateTitle(T), blocks }).text;
-  const blog = { kind: "blog", date: "2026-11-04", title: "How the Clayton Clipper moves between spans", blocks: blocks.slice(0, 2) };
+  const withNote = applyChange(BASE, {
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: false,
+    title: dateTitle(T),
+    blocks,
+  }).text;
+  const blog = {
+    kind: "blog",
+    date: "2026-11-04",
+    title: "How the Clayton Clipper moves between spans",
+    blocks: blocks.slice(0, 2),
+  };
   const { text } = applyChange(withNote, blog);
   const s = await site(text);
   const post = s.history.find((h) => h.post);
@@ -173,11 +218,30 @@ test("a blog post is dated, filed below the day's updates and leaves the card al
 test("changes rebase onto a newer main and report what no longer fits", async () => {
   const changes = [
     { id: "1", kind: "move", time: "2026-11-04T11:15-07:00", span: 38, complete: false },
-    { id: "2", kind: "followup", noteKey: "2026-11-03T07:15-07:00", time: "2026-11-04T12:00-07:00", blocks: [{ type: "summary", text: "Moved." }], gantry: null },
-    { id: "3", kind: "followup-edit", noteKey: "2026-11-03T07:15-07:00", fuKey: "2026-11-03T09:99-07:00", time: "2026-11-03T10:00-07:00", blocks: [{ type: "summary", text: "x" }] },
+    {
+      id: "2",
+      kind: "followup",
+      noteKey: "2026-11-03T07:15-07:00",
+      time: "2026-11-04T12:00-07:00",
+      blocks: [{ type: "summary", text: "Moved." }],
+      gantry: null,
+    },
+    {
+      id: "3",
+      kind: "followup-edit",
+      noteKey: "2026-11-03T07:15-07:00",
+      fuKey: "2026-11-03T09:99-07:00",
+      time: "2026-11-03T10:00-07:00",
+      blocks: [{ type: "summary", text: "x" }],
+    },
   ];
   // main gained a note in the meantime
-  const main = applyChange(BASE, { kind: "blog", date: "2026-11-04", title: "Something new", blocks: [{ type: "summary", text: "New." }] }).text;
+  const main = applyChange(BASE, {
+    kind: "blog",
+    date: "2026-11-04",
+    title: "Something new",
+    blocks: [{ type: "summary", text: "New." }],
+  }).text;
   const { text, results } = applyAll(main, changes);
   assert.equal(results.get("1").ok, true);
   assert.equal(results.get("2").ok, true);
@@ -193,7 +257,13 @@ test("a position with a note to self makes an entry the site never shows", async
   const t = "2026-11-04T12:30-07:00";
   const plain = applyChange(BASE, { kind: "move", time: t, span: 38, complete: false });
   assert.equal(plain.text.split("\n").length, BASE.split("\n").length, "no note to self, no entry");
-  const { text, hunks } = applyChange(BASE, { kind: "move", time: t, span: 38, complete: false, noteToSelf: "Ask about the\n girders" });
+  const { text, hunks } = applyChange(BASE, {
+    kind: "move",
+    time: t,
+    span: 38,
+    complete: false,
+    noteToSelf: "Ask about the\n girders",
+  });
   assert.equal(hunks.length, 4);
   const lines = text.split("\n");
   const at = lines.indexOf("notes:");
@@ -202,7 +272,10 @@ test("a position with a note to self makes an entry the site never shows", async
   // the site: the same updates, the same latest, the same threads, the same card
   const b = await site(text);
   assert.equal(b.history.length, a.history.length);
-  assert.deepEqual(b.history.map((h) => h.slug), a.history.map((h) => h.slug));
+  assert.deepEqual(
+    b.history.map((h) => h.slug),
+    a.history.map((h) => h.slug),
+  );
   assert.equal(b.latest.slug, a.latest.slug);
   assert.equal(b.note, a.note);
   const card = cardFor(text);
@@ -211,15 +284,33 @@ test("a position with a note to self makes an entry the site never shows", async
   assert.equal(card.button, "trackside");
   // it doesn't count as an update on its day
   const day = "2026-11-04T08:00-07:00";
-  const after = applyChange(text, { kind: "update", time: day, span: 38, complete: false, title: dateTitle(day), blocks });
+  const after = applyChange(text, {
+    kind: "update",
+    time: day,
+    span: 38,
+    complete: false,
+    title: dateTitle(day),
+    blocks,
+  });
   assert.equal(titleAdvice("update", day, dateTitle(day), parseStatus(text).notes).sameDay.length, 0);
   assert.equal((await site(after.text)).latest.title, dateTitle(day));
-  assert.match(commitMessage({ kind: "move", span: 38, complete: false, time: t, noteToSelf: "x" }, BASE), /^Move the Clayton Clipper to span 38 and add a note to self$/);
+  assert.match(
+    commitMessage({ kind: "move", span: 38, complete: false, time: t, noteToSelf: "x" }, BASE),
+    /^Move the Clayton Clipper to span 38 and add a note to self$/,
+  );
 });
 
 test("a note to self on an entry: edited in place, removed, one line", async () => {
   const nov3 = "2026-11-03T07:15-07:00";
-  const set = (text, to) => applyChange(text, { kind: "followup", noteKey: nov3, time: "2026-11-04T09:00-07:00", gantry: null, blocks: [{ type: "summary", text: "s" }], memo: { noteKey: nov3, text: to } }).text;
+  const set = (text, to) =>
+    applyChange(text, {
+      kind: "followup",
+      noteKey: nov3,
+      time: "2026-11-04T09:00-07:00",
+      gantry: null,
+      blocks: [{ type: "summary", text: "s" }],
+      memo: { noteKey: nov3, text: to },
+    }).text;
   const one = set(BASE, "First");
   const two = set(one.replace(/\n      - 2026-11-04T09:00-07:00:\n          summary: "s"/, ""), "Second");
   assert.equal(two.split("\n").filter((l) => l.includes("note-to-self")).length, 1);
@@ -228,19 +319,30 @@ test("a note to self on an entry: edited in place, removed, one line", async () 
 
 test("update, blog and follow-up changes carry a note to self for their entry", async () => {
   const upd = applyChange(BASE, {
-    kind: "update", time: T, span: 38, complete: false, title: dateTitle(T), blocks,
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: false,
+    title: dateTitle(T),
+    blocks,
     memo: { noteKey: T, text: "Check the photo credit" },
   }).text;
   assert.equal(parseStatus(upd).notes[0].fields.memo, "Check the photo credit");
   assert.equal((await site(upd)).note, blocks[0].text);
   const blog = applyChange(upd, {
-    kind: "blog", date: "2026-11-04", title: "How the Clayton Clipper moves", blocks: blocks.slice(0, 1),
+    kind: "blog",
+    date: "2026-11-04",
+    title: "How the Clayton Clipper moves",
+    blocks: blocks.slice(0, 1),
     memo: { noteKey: "2026-11-04", text: "Draft: ask Piper" },
   }).text;
   assert.equal(parseStatus(blog).notes.find((n) => n.key === "2026-11-04").fields.memo, "Draft: ask Piper");
   // a follow-up edits its parent's note to self, and has none of its own
   const fu = applyChange(upd, {
-    kind: "followup", noteKey: T, time: "2026-11-04T20:45-07:00", gantry: null,
+    kind: "followup",
+    noteKey: T,
+    time: "2026-11-04T20:45-07:00",
+    gantry: null,
     blocks: [{ type: "summary", text: "Five segments are hung." }],
     memo: { noteKey: T, text: "Updated after the follow-up" },
   }).text;

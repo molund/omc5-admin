@@ -23,10 +23,17 @@ import { compareKeys, clock, shortDate, longDate } from "./time.js";
 
 const DATE_TITLE = /^Clayton Clipper construction update for /;
 /** "Nov. 4", for commit messages */
-const monthDay = (key) => longDate(key).replace(/^\w+, /, "").replace(/, \d{4}$/, "");
+const monthDay = (key) =>
+  longDate(key)
+    .replace(/^\w+, /, "")
+    .replace(/, \d{4}$/, "");
 /** How a commit message names a note. */
 const nameOf = (key, title) =>
-  !title ? `the ${monthDay(key)} update` : DATE_TITLE.test(title) ? `the ${monthDay(key)} construction update` : `"${title}"`;
+  !title
+    ? `the ${monthDay(key)} update`
+    : DATE_TITLE.test(title)
+      ? `the ${monthDay(key)} construction update`
+      : `"${title}"`;
 
 export class Conflict extends Error {}
 
@@ -58,11 +65,7 @@ function fieldLines(blocks, n, extra = []) {
     out.push(`${sp(n)}block:`);
     for (const b of rest.slice(i)) {
       if (b.type === "photo")
-        out.push(
-          `${sp(n + 2)}- photo:`,
-          `${sp(n + 6)}file: ${b.file}`,
-          `${sp(n + 6)}caption: ${q(b.caption)}`,
-        );
+        out.push(`${sp(n + 2)}- photo:`, `${sp(n + 6)}file: ${b.file}`, `${sp(n + 6)}caption: ${q(b.caption)}`);
       else out.push(`${sp(n + 2)}- ${q(b.text)}`);
     }
   }
@@ -109,7 +112,9 @@ function setHeader(doc, values) {
 /** Sets, changes or removes an entry's note to self: one line, right under its key line. */
 function setMemo(doc, noteKey, text) {
   const note = findNote(doc.parsed, noteKey);
-  const clean = String(text ?? "").replace(/\s+/g, " ").trim();
+  const clean = String(text ?? "")
+    .replace(/\s+/g, " ")
+    .trim();
   const line = `    note-to-self: ${q(clean)}`;
   if (note.memoLine >= 0) {
     if (!clean) doc.replace(note.memoLine, 1, []);
@@ -129,7 +134,9 @@ function insertNote(doc, key, lines) {
   if (parsed.notes.some((n) => n.key === key)) throw new Conflict(`status.yaml already has a note at ${key}.`);
   // newest first: before the first note that is older
   const next = parsed.notes.find((n) => compareKeys(n.key, key) < 0);
-  const at = next ? next.start : (parsed.notes.length ? parsed.notes[parsed.notes.length - 1].end : parsed.notesLine) + 1;
+  const at = next
+    ? next.start
+    : (parsed.notes.length ? parsed.notes[parsed.notes.length - 1].end : parsed.notesLine) + 1;
   doc.replace(at, 0, lines);
 }
 
@@ -230,7 +237,9 @@ export function commitMessage(change, before) {
       return `Update the progress time to ${clock(change.time)} on ${shortDate(change.time)}${memo}`;
     }
     case "update":
-      return DATE_TITLE.test(change.title) ? `Add ${nameOf(change.time, change.title)}` : `Add the update "${change.title}"`;
+      return DATE_TITLE.test(change.title)
+        ? `Add ${nameOf(change.time, change.title)}`
+        : `Add the update "${change.title}"`;
     case "blog":
       return `Add the blog post "${change.title}"`;
     case "followup":

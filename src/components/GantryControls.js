@@ -50,7 +50,9 @@ export function GantryFold({ value, current, onChange, offLabel }) {
       <View style={tw`gap-1`}>
         <GantryControls value={value} current={current} onChange={onChange} />
         <Row style={tw`justify-end`}>
-          {changed && offLabel && <Button kind="link" small title="Leave the gantry as it is" onPress={() => onChange(current)} />}
+          {changed && offLabel && (
+            <Button kind="link" small title="Leave the gantry as it is" onPress={() => onChange(current)} />
+          )}
           <Button kind="link" small title="Done" onPress={() => setOpen(false)} />
         </Row>
       </View>

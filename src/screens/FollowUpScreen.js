@@ -18,14 +18,22 @@ import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
 const noteName = (n) =>
-  n.title && !isDateTitle(n.title) ? n.title : n.fields.summary.length > 90 ? `${n.fields.summary.slice(0, 88)}…` : n.fields.summary;
+  n.title && !isDateTitle(n.title)
+    ? n.title
+    : n.fields.summary.length > 90
+      ? `${n.fields.summary.slice(0, 88)}…`
+      : n.fields.summary;
 
 /** A follow-up's fields as blocks, for editing. */
 function blocksOf(fields) {
   const out = [{ type: "summary", text: fields.summary }];
   if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
   fields.block.forEach((b, i) =>
-    out.push(b.photo ? { type: "photo", file: b.photo.file, caption: b.photo.caption } : { type: "text", text: b.text, k: `e${i}` }),
+    out.push(
+      b.photo
+        ? { type: "photo", file: b.photo.file, caption: b.photo.caption }
+        : { type: "text", text: b.text, k: `e${i}` },
+    ),
   );
   return out;
 }
@@ -77,7 +85,9 @@ export function FollowUpScreen({ onReview }) {
   return (
     <View style={tw`gap-3`}>
       <Panel>
-        <Label right={<Button kind="link" small title={picking ? "Close" : "Change"} onPress={() => setPicking(!picking)} />}>
+        <Label
+          right={<Button kind="link" small title={picking ? "Close" : "Change"} onPress={() => setPicking(!picking)} />}
+        >
           {note.fields.post ? "Blog post" : "Update"}
         </Label>
         {!picking && (
@@ -122,7 +132,12 @@ export function FollowUpScreen({ onReview }) {
                 editing
               </Body>
             ) : (
-              <Button kind="link" small title="Edit" onPress={() => start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields) })} />
+              <Button
+                kind="link"
+                small
+                title="Edit"
+                onPress={() => start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields) })}
+              />
             )}
           </Row>
         ))}

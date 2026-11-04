@@ -9,7 +9,13 @@ import { requestPush, requestRefresh } from "../services/outbox.js";
 import { asOf, toKey } from "../lib/time.js";
 import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
 
-const KIND = { move: "Position", update: "Update", followup: "Follow-up", "followup-edit": "Follow-up edit", blog: "Blog" };
+const KIND = {
+  move: "Position",
+  update: "Update",
+  followup: "Follow-up",
+  "followup-edit": "Follow-up edit",
+  blog: "Blog",
+};
 
 /** Copies text inside the press, as the frame requires; false when the clipboard refuses. */
 async function copy(text) {
@@ -34,17 +40,31 @@ function Failure({ error, onCopied }) {
       ) : null}
       {error.manual && (
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
-          <Body small>By hand: copy the request and paste it into the "Status.yaml block editor" chat in Claude Code.</Body>
+          <Body small>
+            By hand: copy the request and paste it into the "Status.yaml block editor" chat in Claude Code.
+          </Body>
           <Row style={tw`justify-end`}>
             {error.copied === true && (
               <Body small mute>
                 Copied
               </Body>
             )}
-            <Button small title="Copy the request" onPress={() => copy(error.manual).then((ok) => onCopied(ok ? true : "failed"))} />
+            <Button
+              small
+              title="Copy the request"
+              onPress={() => copy(error.manual).then((ok) => onCopied(ok ? true : "failed"))}
+            />
           </Row>
           {error.copied === "failed" && (
-            <Field multiline small mono value={error.manual} onChangeText={() => {}} label="The request" style={tw`min-h-40`} />
+            <Field
+              multiline
+              small
+              mono
+              value={error.manual}
+              onChangeText={() => {}}
+              label="The request"
+              style={tw`min-h-40`}
+            />
           )}
         </View>
       )}
@@ -85,7 +105,12 @@ export function Outbox() {
         right={
           !p &&
           !sending && (
-            <Button kind="link" small title="Refresh from main" onPress={() => setConfirm(confirm === "refresh" ? null : "refresh")} />
+            <Button
+              kind="link"
+              small
+              title="Refresh from main"
+              onPress={() => setConfirm(confirm === "refresh" ? null : "refresh")}
+            />
           )
         }
       >
@@ -95,7 +120,9 @@ export function Outbox() {
         {copyLine}
       </Body>
       {!desk.kept && (
-        <Notice tone="problem">This device isn't keeping the desk's changes (storage is off or full). Push before closing.</Notice>
+        <Notice tone="problem">
+          This device isn't keeping the desk's changes (storage is off or full). Push before closing.
+        </Notice>
       )}
 
       {desk.changes.length ? (
@@ -138,12 +165,21 @@ export function Outbox() {
           </Body>
           <Row style={tw`justify-end`}>
             <Button small title="Cancel" onPress={() => setConfirm(null)} />
-            <Button small kind="green" title={confirm === "push" ? "Push to main" : "Refresh"} onPress={() => go(confirm)} />
+            <Button
+              small
+              kind="green"
+              title={confirm === "push" ? "Push to main" : "Refresh"}
+              onPress={() => go(confirm)}
+            />
           </Row>
         </View>
       )}
 
-      {sending && <Body small mute>Sending…</Body>}
+      {sending && (
+        <Body small mute>
+          Sending…
+        </Body>
+      )}
       {p && (
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
           <Body small>

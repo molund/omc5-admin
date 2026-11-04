@@ -9,7 +9,12 @@ export function CardPreview({ card, label = "The card will show" }) {
   return (
     <View style={tw`gap-1.5`}>
       <Label>{label}</Label>
-      <View style={[tw`gap-2 self-start rounded-lg border border-line bg-panel px-3.5 pb-3.5 pt-3`, { width: 240, maxWidth: "100%" }]}>
+      <View
+        style={[
+          tw`gap-2 self-start rounded-lg border border-line bg-panel px-3.5 pb-3.5 pt-3`,
+          { width: 240, maxWidth: "100%" },
+        ]}
+      >
         <View style={tw`flex-row items-center gap-2`}>
           <Body style={tw`font-bold italic`}>Clayton Clipper</Body>
           <Body small mute style={tw`text-xs font-bold uppercase tracking-widest`}>

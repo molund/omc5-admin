@@ -26,7 +26,9 @@ export function MoveScreen({ onReview }) {
     <View style={tw`gap-3`}>
       <GantryControls value={d} current={head} onChange={(g) => update(g)} />
       <TimeStampField value={d.time} onChange={(time) => update({ time })} />
-      {compareKeys(d.time, head.updated) < 0 && <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>}
+      {compareKeys(d.time, head.updated) < 0 && (
+        <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>
+      )}
       <NoteToSelf
         value={memo}
         onChange={(m) => update({ memo: m })}
@@ -34,7 +36,12 @@ export function MoveScreen({ onReview }) {
       />
       <CardPreview card={cardFor(preview.text)} />
       {taken && <Notice tone="problem">There's already an entry at this time stamp. Move it a quarter hour.</Notice>}
-      <Button kind="green" title="Review the position" disabled={taken} onPress={() => onReview(change, { after: reset })} />
+      <Button
+        kind="green"
+        title="Review the position"
+        disabled={taken}
+        onPress={() => onReview(change, { after: reset })}
+      />
     </View>
   );
 }

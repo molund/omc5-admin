@@ -6,12 +6,12 @@ A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a 
 
 ## Modes
 
-| Mode          | What it writes                                                                                              | The card                                           |
-| ------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| **Position**  | `updated`, `span`, `complete`                                                                               | no text, a Trackside button                        |
-| **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                | the summary, Comments                              |
-| **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments                  |
-| **Blog**      | a note keyed by date alone, with `post: true`                                                               | unchanged                                          |
+| Mode          | What it writes                                                                                               | The card                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------- |
+| **Position**  | `updated`, `span`, `complete`                                                                                | no text, a Trackside button       |
+| **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                 | the summary, Comments             |
+| **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments |
+| **Blog**      | a note keyed by date alone, with `post: true`                                                                | unchanged                         |
 
 The card column follows the card's new rule: an entry shows on the card only when its time stamp equals `updated`. That
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's
@@ -47,6 +47,7 @@ Trackside, the progress card, the sitemap or the giscus comments (the same as th
 
   The desk reloads with the new copy and drops the changes listed in `pushed.json`. A change that no longer fits main (its
   update is gone, say) is skipped and stays in the list, marked.
+
 - **Refresh from main** saves a refresh request the same way. Waiting changes stay on top of the new copy.
 - If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into
   that chat.

@@ -82,7 +82,11 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
   function photoName() {
     const taken = filesIn(desk.parsed);
     for (const b of blocks) if (b.file) taken.add(b.file);
-    const words = slugify(nameHint || "photo").split("-").slice(0, 6).join("-") || "photo";
+    const words =
+      slugify(nameHint || "photo")
+        .split("-")
+        .slice(0, 6)
+        .join("-") || "photo";
     let name = `${day}-${words}.jpg`,
       i = 2;
     while (taken.has(name)) name = `${day}-${words}-${i++}.jpg`;
@@ -113,14 +117,26 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
           return (
             <Panel key="summary">
               <Label>{summaryLabel}</Label>
-              <Field multiline value={b.text} onChangeText={(text) => set(i, { text })} placeholder="What happened, in a sentence or two" label="Summary" />
+              <Field
+                multiline
+                value={b.text}
+                onChangeText={(text) => set(i, { text })}
+                placeholder="What happened, in a sentence or two"
+                label="Summary"
+              />
             </Panel>
           );
         if (b.type === "text")
           return (
             <Panel key={b.k ?? `t${i}`}>
               <Label right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}>Paragraph</Label>
-              <Field multiline value={b.text} onChangeText={(text) => set(i, { text })} placeholder="Another paragraph" label={`Paragraph ${i}`} />
+              <Field
+                multiline
+                value={b.text}
+                onChangeText={(text) => set(i, { text })}
+                placeholder="Another paragraph"
+                label={`Paragraph ${i}`}
+              />
             </Panel>
           );
         const p = b.photoId ? desk.photos[b.photoId] : null;
@@ -137,7 +153,9 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
             ) : (
               <View style={tw`items-center justify-center rounded-md border border-dashed border-line bg-code py-6`}>
                 <Body small mute>
-                  {b.photoId ? "This photo isn't on this device any more. Remove it and add it again." : "Already on the site"}
+                  {b.photoId
+                    ? "This photo isn't on this device any more. Remove it and add it again."
+                    : "Already on the site"}
                 </Body>
               </View>
             )}
@@ -177,7 +195,13 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
           style={tw`flex-1`}
           onPress={() => onChange([...blocks, { type: "text", text: "", k: `t${Date.now().toString(36)}` }])}
         />
-        <Button kind="dashed" title={busy ? "Resizing…" : "+ Photo"} disabled={busy} style={tw`flex-1`} onPress={addPhoto} />
+        <Button
+          kind="dashed"
+          title={busy ? "Resizing…" : "+ Photo"}
+          disabled={busy}
+          style={tw`flex-1`}
+          onPress={addPhoto}
+        />
       </View>
     </View>
   );

@@ -180,6 +180,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
                   value={b.file.replace(/\.jpg$/, "")}
                   onChangeText={(t) => set(i, { file: `${cleanName(t) || "photo"}.jpg` })}
                   label="File name"
+                  noPrompt
                   style={tw`py-1`}
                 />
               </View>

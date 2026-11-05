@@ -161,9 +161,21 @@ export function Toggle({ value, onChange, label }) {
 
 /**
  * A text field, with an icon over its top right corner that copies an AI prompt for its text. `writes` is what the prompt
- * asks for ("a blog intro paragraph"); without it, the text for the field by its name.
+ * asks for ("a blog intro paragraph"); without it, the text for the field by its name. `noPrompt` leaves the icon off.
  */
-export function Field({ value, onChangeText, placeholder, multiline, mono, small, autoFocus, label, style, writes }) {
+export function Field({
+  value,
+  onChangeText,
+  placeholder,
+  multiline,
+  mono,
+  small,
+  autoFocus,
+  label,
+  style,
+  writes,
+  noPrompt,
+}) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
   const name = label ?? placeholder;
@@ -176,16 +188,18 @@ export function Field({ value, onChangeText, placeholder, multiline, mono, small
   }
   return (
     <>
-      <View style={tw`flex-row justify-end`}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Copy an AI prompt for ${name}`}
-          onPress={copyPrompt}
-          style={({ hovered }) => [tw`h-7 w-7 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
-        >
-          <Icon name={copied ? "check" : "sparkle"} color={copied ? colors.green : colors.mute} />
-        </Pressable>
-      </View>
+      {!noPrompt && (
+        <View style={tw`flex-row justify-end`}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Copy an AI prompt for ${name}`}
+            onPress={copyPrompt}
+            style={({ hovered }) => [tw`h-7 w-7 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
+          >
+            <Icon name={copied ? "check" : "sparkle"} color={copied ? colors.green : colors.mute} />
+          </Pressable>
+        </View>
+      )}
       {copied === false && (
         <View style={tw`gap-1.5`}>
           <Notice tone="problem">The copy was refused here. Select the prompt below and copy it by hand.</Notice>

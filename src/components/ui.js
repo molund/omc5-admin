@@ -1,6 +1,6 @@
 // The desk's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
 import { useState } from "react";
-import { Pressable, Switch, Text, TextInput, View } from "react-native";
+import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { copyText } from "../platform/clipboard";
 import { writingPrompt } from "../lib/writingPrompt.js";
@@ -261,13 +261,15 @@ export function Row({ children, style }) {
   return <View style={[tw`flex-row flex-wrap items-center justify-between gap-2`, style]}>{children}</View>;
 }
 
-/** A real link (an <a> on the web), which opens in a new tab. */
+/** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser). */
 export function Link({ href, title }) {
   const { tw } = useTw();
   return (
     <Text
       href={href}
       hrefAttrs={{ target: "_blank", rel: "noopener" }}
+      // on the web the <a> does it; the phone has no <a>, so it opens the URL itself
+      onPress={Platform.OS === "web" ? undefined : () => Linking.openURL(href)}
       style={tw`px-1 py-1 text-xs font-semibold text-accent underline`}
     >
       {title}

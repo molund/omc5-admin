@@ -12,10 +12,33 @@ A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a 
 | **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                 | the summary, Comments             |
 | **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments |
 | **Blog**      | a note keyed by date alone, with `post: true`                                                                | unchanged                         |
+| **Entries**   | changes or deletes anything already saved (below)                                                            | follows the change                |
 
 The card column follows the card's new rule: an entry shows on the card only when its time stamp equals `updated`. That
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's
 latest text.
+
+## Changing what's saved
+
+The **Entries** tab lists every update, blog post, follow-up and position record, newest first (a position record is a
+`desk.yaml` entry with no post at its time stamp, or a note with no summary). Tap one to edit or delete it. An edit or delete
+is an ordinary change: it's reviewed, waits in the list, becomes one commit, and can be discarded until it's pushed.
+
+- **Time stamps:** locked on updates and blog posts, because the site builds their comment thread's title and page anchor
+  from them. To really move one, delete it and post it again. A follow-up can still be moved: its comments are its parent's.
+- **Addresses:** the site works out `?post=` addresses from titles, and a repeated title gets `-2` by age. An edit or delete
+  that would change any note's address writes a `slug:` that keeps it.
+- **The card:** deleting what the card shows moves `updated` back to the newest time left (a status update, a follow-up or a
+  position, not a blog post). Span and Complete don't change; use Position for those.
+- **Steps:** the slider holds the furthest step an entry reports, and any other steps it has stay listed, each with a Remove
+  button, so editing an entry's words costs the velocity nothing. Deleting an entry takes its `desk.yaml` record with it.
+- **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address stops
+  working. Photo files stay in the repo, whether a photo is removed or its post deleted, because the site's landing check
+  doesn't let the desk delete photos. A published photo's file name can't be edited, for the same reason.
+
+A **waiting change** can be reopened with Edit in the waiting list, or by tapping it under Entries. It opens in its usual
+editor and keeps its place in the list, so its commit does too. The draft isn't saved: Cancel, or closing the app, leaves the
+change as it was. Deletes have nothing to edit, only Discard.
 
 ## desk.yaml: notes to self, gantry steps and the velocity
 
@@ -68,14 +91,16 @@ index.js                     the native entry (iOS): Expo's registerRootComponen
 index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
 app.json                     the Expo app config
 assets/icon.png              the app icon: the site's favicon (public/favicon.ico in molund/omc5) on its background colour
-src/App.js                   the four modes, the review, the outbox
-src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen, SettingsScreen (the gear: the token)
+src/App.js                   the modes, the review, the outbox
+src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen, EntriesScreen,
+                             SettingsScreen (the gear: the token)
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
-                             TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox
+                             TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox, EntryEditor (a saved
+                             entry), WaitingEditor (a waiting change)
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
                              in), deskFile and deskChanges (desk.yaml), stages (the cycle's steps and the rules that find
                              them), velocity, titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints,
-                             writingPrompt (the AI prompt a field's icon copies)
+                             writingPrompt (the AI prompt a field's icon copies), entries (the Entries list, reopening)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
 src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox
 src/services/stageAI.js      "Ask Claude" for the gantry steps in a piece of text (the Claude app only)
@@ -122,7 +147,7 @@ Sign in with an Apple ID under Xcode's signing settings the first time. With a f
 
 What works on the phone:
 
-- All four modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
+- All the modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
 - Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 75, which drops the
   original's metadata.
 - The desk's copy of `status.yaml` is read from main on GitHub (the repo is public, so no token): at main's latest commit,

@@ -1,4 +1,4 @@
-// Clipper Status Desk: a little CMS for the Clayton Clipper site's status.yaml, in four modes.
+// Clipper Status Desk: a little CMS for the Clayton Clipper site's status.yaml: four modes to add, and Entries to change.
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "./theme/tw.js";

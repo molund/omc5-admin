@@ -29,8 +29,8 @@ function Chip({ label, on, fixed, onPress }) {
   );
 }
 
-/** The stages a change will carry: Mike's pick, or what the rules found in the text. */
-export const chosenStages = (value, text) => value ?? stagesIn(text);
+/** The stages a change will carry: Mike's pick, or the furthest step the rules found in the text. */
+export const chosenStages = (value, text) => value ?? stagesIn(text).slice(-1);
 
 /**
  * @param {object} props
@@ -51,7 +51,7 @@ export function StagePicker({ text, value, onChange, auto = [], span }) {
     canAskClaude().then(setClaude);
   }, []);
 
-  const toggle = (s) => onChange(chosen.includes(s) ? chosen.filter((x) => x !== s) : [...chosen, s]);
+  const pick = (s) => onChange(chosen.includes(s) ? [] : [s]);
   async function ask() {
     setAsking(true);
     setProblem(null);
@@ -76,7 +76,7 @@ export function StagePicker({ text, value, onChange, auto = [], span }) {
             label={STAGE_LABELS[s]}
             on={auto.includes(s) || chosen.includes(s)}
             fixed={auto.includes(s)}
-            onPress={() => toggle(s)}
+            onPress={() => pick(s)}
           />
         ))}
       </View>
@@ -85,7 +85,7 @@ export function StagePicker({ text, value, onChange, auto = [], span }) {
         {value === undefined
           ? found.length
             ? "Picked from what you wrote. Tap to change."
-            : "Nothing found in what you wrote. Tap any step it reports."
+            : "Nothing found in what you wrote. Tap the step it reports."
           : "Your pick."}{" "}
         They go in desk.yaml, for the velocity.
       </Body>

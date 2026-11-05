@@ -6,7 +6,7 @@ import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
 import { BeforeChange, DeskProvider, useDesk } from "./state/desk.js";
 import { load, save } from "./platform/storage";
-import { Segmented, Body, Notice, Button } from "./components/ui.js";
+import { Segmented, Body, Notice, Button, Link } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
 import { VelocityPanel } from "./components/VelocityPanel.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
@@ -35,12 +35,6 @@ const MODES = [
     about: "Add to an update or blog post, or edit a follow-up.",
   },
   { value: "blog", label: "Blog", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
-  {
-    value: "entries",
-    label: "Entries",
-    screen: EntriesScreen,
-    about: "Everything saved so far. Open one to change it.",
-  },
 ];
 
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
@@ -63,6 +57,7 @@ function Desk() {
     setReview(null);
     setReopenId(change.id);
   };
+  const [entries, setEntries] = useState(false); // the Entries page, apart from the tabs
   const current = MODES.find((m) => m.value === mode) ?? MODES[0];
   const Screen = current.screen;
 
@@ -140,11 +135,35 @@ function Desk() {
               </BeforeChange>
             ) : (
               <>
-                <Segmented options={MODES} value={mode} onChange={setMode} />
-                <Body small mute>
-                  {current.about}
-                </Body>
-                <Screen key={mode} onReview={startReview} onEditWaiting={reopen} />
+                {entries ? (
+                  <View style={tw`gap-1`}>
+                    <Link title="← Back to adding something new" onPress={() => setEntries(false)} />
+                    <Body small mute>
+                      Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry
+                      step or note to self, or to delete it. Each change gets a review first, and nothing reaches the
+                      site until you push. Anything still waiting to push can be changed here too.
+                    </Body>
+                  </View>
+                ) : (
+                  <>
+                    <Segmented options={MODES} value={mode} onChange={setMode} />
+                    <Body small mute>
+                      {current.about}
+                    </Body>
+                    <View style={tw`gap-0.5`}>
+                      <Link title="Edit or delete what's already saved" onPress={() => setEntries(true)} />
+                      <Body small mute>
+                        Fix the title, text, photos, gantry step or note to self of any update, blog post, follow-up or
+                        position record, or delete it.
+                      </Body>
+                    </View>
+                  </>
+                )}
+                {entries ? (
+                  <EntriesScreen onReview={startReview} onEditWaiting={reopen} />
+                ) : (
+                  <Screen key={mode} onReview={startReview} />
+                )}
               </>
             )}
           </View>

@@ -12,7 +12,6 @@ A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a 
 | **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                 | the summary, Comments             |
 | **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments |
 | **Blog**      | a note keyed by date alone, with `post: true`                                                                | unchanged                         |
-| **Entries**   | changes or deletes anything already saved (below)                                                            | follows the change                |
 
 The card column follows the card's new rule: an entry shows on the card only when its time stamp equals `updated`. That
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's
@@ -20,7 +19,7 @@ latest text.
 
 ## Changing what's saved
 
-The **Entries** tab lists every update, blog post, follow-up and position record, newest first (a position record is a
+The **Entries** page, reached by the link under the tabs, lists every update, blog post, follow-up and position record, newest first (a position record is a
 `desk.yaml` entry with no post at its time stamp, or a note with no summary). Tap one to edit or delete it. An edit or delete
 is an ordinary change: it's reviewed, waits in the list, becomes one commit, and can be discarded until it's pushed.
 
@@ -91,7 +90,7 @@ index.js                     the native entry (iOS): Expo's registerRootComponen
 index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
 app.json                     the Expo app config
 assets/icon.png              the app icon: the site's favicon (public/favicon.ico in molund/omc5) on its background colour
-src/App.js                   the modes, the review, the outbox
+src/App.js                   the modes, the link to Entries, the review, the outbox
 src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen, EntriesScreen,
                              SettingsScreen (the gear: the token)
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,

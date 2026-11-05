@@ -1,6 +1,6 @@
 // Entries: everything already saved, newest first. Tap one to change or delete it. Either way it's an ordinary change, so
 // nothing leaves the site until it's pushed, and it can be discarded until then. What's being edited is its own draft, so
-// opening an entry never touches a half-written new post on another tab.
+// opening an entry never touches a half-written new post on a tab.
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";

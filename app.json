@@ -9,6 +9,7 @@
     "platforms": ["ios", "web"],
     "ios": {
       "bundleIdentifier": "ca.olund.statusdesk",
+      "appleTeamId": "V48HX32QF2",
       "supportsTablet": false
     },
     "plugins": [

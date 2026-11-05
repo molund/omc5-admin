@@ -8,7 +8,7 @@ import { build } from "esbuild";
 import prettier from "prettier";
 import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
 import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
-import { slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
+import { slugsOf, titleAdvice, dateTitle, headlineFrom } from "../src/lib/titles.js";
 import { cardFor } from "../src/lib/card.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -447,4 +447,26 @@ test("deleting a follow-up: one of several, the last one, and the one the card s
     ),
     true,
   );
+});
+
+test("a default headline: the summary's first sentence, under 60 characters, naming the gantry of a span", () => {
+  const cases = [
+    ["The Clayton Clipper has moved to span 37.", "The Clayton Clipper has moved to span 37"],
+    ["Span 36 is fully glued. Crews have begun post-tensioning.", "Clayton Clipper: span 36 is fully glued"],
+    ["All segments for span 35 are hung.", "Clayton Clipper: all segments for span 35 are hung"],
+    ["Crews started at 8 a.m. on 176 St. today.", "Crews started at 8 a.m. on 176 St. today"],
+    [
+      "The Clayton Clipper is about to lift the last segment for span 37 this morning.",
+      "The Clayton Clipper is about to lift the last segment",
+    ],
+    ["The Surrey Sprinter hung its first segment for span 2.", "The Surrey Sprinter hung its first segment for span 2"],
+    ["", ""],
+  ];
+  for (const [summary, want] of cases) assert.equal(headlineFrom(summary), want, summary);
+  for (const n of parseStatus(BASE).notes) {
+    const h = headlineFrom(n.fields.summary);
+    assert.ok(h.length < 60, h);
+    assert.ok(!/[.!?,;:]$/.test(h), h);
+    if (/\bspans? \d+/i.test(h)) assert.match(h, /Clipper|Sprinter|Flyer/, h);
+  }
 });

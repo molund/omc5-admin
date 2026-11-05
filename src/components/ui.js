@@ -1,5 +1,5 @@
 // The desk's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
-import { useState } from "react";
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { copyText } from "../platform/clipboard";
@@ -159,8 +159,45 @@ export function Toggle({ value, onChange, label }) {
   );
 }
 
+// Which box is zoomed: one at most. A tap anywhere outside it turns it off, but a swipe doesn't, because a box that changes
+// size stops the page mid-scroll.
+const ZoomContext = createContext({ active: null, setActive: () => {}, inside: { current: null } });
+const SWIPE = 10;
+
+/** Around the whole desk. On the phone it sees every tap; on the web, the zoomed box listens to the document itself. */
+export function ZoomScope({ children }) {
+  const [active, setActive] = useState(null);
+  const inside = useRef(null); // the box this touch is on, set by the box as the touch passes through it
+  const start = useRef(null);
+  const value = useMemo(() => ({ active, setActive, inside }), [active]);
+  const touches =
+    Platform.OS === "web"
+      ? {}
+      : {
+          onTouchStart: (e) => {
+            start.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY };
+          },
+          onTouchEnd: (e) => {
+            const on = inside.current;
+            inside.current = null;
+            const moved =
+              !start.current ||
+              Math.hypot(e.nativeEvent.pageX - start.current.x, e.nativeEvent.pageY - start.current.y) > SWIPE;
+            if (!moved) setActive((a) => (a === on ? a : null));
+          },
+          onTouchCancel: () => {
+            inside.current = null;
+          },
+        };
+  return (
+    <ZoomContext.Provider value={value}>
+      <View {...touches}>{children}</View>
+    </ZoomContext.Provider>
+  );
+}
+
 /**
- * A text field, with an icon over its top right corner that copies an AI prompt for its text. `writes` is what the prompt
+ * A text field, with icons over its top right corner: one that zooms the box, and one that copies an AI prompt for its text. `writes` is what the prompt
  * asks for ("a blog intro paragraph"); without it, the text for the field by its name. `noPrompt` leaves the icon off.
  */
 export function Field({
@@ -179,6 +216,26 @@ export function Field({
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
+  const zoom = useContext(ZoomContext);
+  const id = useId();
+  const zoomed = zoom.active === id;
+  const box = useRef(null);
+  const input = useRef(null);
+  const [restHeight, setRestHeight] = useState(null);
+  // on the web, a click outside the box; the phone's taps go through ZoomScope
+  useEffect(() => {
+    if (!zoomed || Platform.OS !== "web") return undefined;
+    const outside = (e) => {
+      if (!box.current?.contains(e.target)) zoom.setActive(null);
+    };
+    document.addEventListener("click", outside, true);
+    return () => document.removeEventListener("click", outside, true);
+  }, [zoomed]);
+  const toggleZoom = () => {
+    zoom.setActive(zoomed ? null : id);
+    if (!zoomed) input.current?.focus();
+  };
+  const size = small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 };
   const name = label ?? placeholder;
   const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value);
   async function copyPrompt() {
@@ -187,10 +244,23 @@ export function Field({
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(null), 1500);
   }
-  return (
+  const body = (
     <>
       {!noPrompt && (
-        <View style={tw`flex-row justify-end`}>
+        <View style={tw`flex-row justify-end gap-1`}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Zoom ${name}`}
+            accessibilityState={{ selected: zoomed }}
+            onPress={toggleZoom}
+            style={({ hovered }) => [
+              tw`h-7 w-7 items-center justify-center rounded-md`,
+              zoomed && tw`bg-accent`,
+              hovered && tw`opacity-80`,
+            ]}
+          >
+            <Icon name={zoomed ? "zoomOut" : "zoomIn"} color={zoomed ? colors["accent-ink"] : colors.mute} />
+          </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Copy an AI prompt for ${name}`}
@@ -210,6 +280,8 @@ export function Field({
         </View>
       )}
       <TextInput
+        ref={input}
+        onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
         accessibilityLabel={name}
         value={value}
         onChangeText={onChangeText}
@@ -226,15 +298,33 @@ export function Field({
         secureTextEntry={secure}
         style={[
           tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink`,
-          // one size, focused or not: a box that changes size stops the page mid-scroll
-          small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 },
+          // one size, focused or not, unless it's zoomed: a box that changes size by itself stops the page mid-scroll
+          size,
           mono && tw`font-mono`,
           multiline && tw`min-h-20`,
           { outlineColor: colors.accent },
           style,
+          zoomed && {
+            fontSize: size.fontSize * 1.5,
+            lineHeight: size.lineHeight && size.lineHeight * 1.5,
+            // at least twice as tall, but free to grow on the phone; the web's box can't grow by itself, so it's set
+            ...(restHeight && { minHeight: restHeight * 2, ...(Platform.OS === "web" && { height: restHeight * 2 }) }),
+          },
         ]}
       />
     </>
+  );
+  if (noPrompt) return body;
+  return (
+    <View
+      ref={box}
+      style={tw`gap-2.5`}
+      onTouchEnd={() => {
+        zoom.inside.current = id;
+      }}
+    >
+      {body}
+    </View>
   );
 }
 

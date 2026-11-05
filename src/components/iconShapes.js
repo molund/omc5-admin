@@ -9,6 +9,15 @@ export const ICONS = {
   ],
   // "copy a prompt for an AI"
   sparkle: [["path", { d: "M10 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4", fill: "none" }]],
+  // make a text box bigger, and back
+  zoomIn: [
+    ["circle", { cx: 10.5, cy: 10.5, r: 7, fill: "none" }],
+    ["path", { d: "M21 21l-5.5-5.5M10.5 7.5v6M7.5 10.5h6", fill: "none" }],
+  ],
+  zoomOut: [
+    ["circle", { cx: 10.5, cy: 10.5, r: 7, fill: "none" }],
+    ["path", { d: "M21 21l-5.5-5.5M7.5 10.5h6", fill: "none" }],
+  ],
   // Settings
   gear: [
     ["circle", { cx: 12, cy: 12, r: 3, fill: "none" }],

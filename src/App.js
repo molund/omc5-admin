@@ -6,7 +6,7 @@ import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
 import { BeforeChange, DeskProvider, useDesk } from "./state/desk.js";
 import { load, save } from "./platform/storage";
-import { Segmented, Body, Notice, Button, Link } from "./components/ui.js";
+import { Segmented, Body, Notice, Button, Link, ZoomScope } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
 import { VelocityPanel } from "./components/VelocityPanel.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
@@ -168,7 +168,9 @@ export default function App() {
     <ThemeContext.Provider value={themes[scheme] ?? themes.light}>
       <DeskProvider>
         <Frame>
-          <Desk />
+          <ZoomScope>
+            <Desk />
+          </ZoomScope>
         </Frame>
       </DeskProvider>
     </ThemeContext.Provider>

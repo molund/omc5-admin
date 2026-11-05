@@ -65,7 +65,8 @@ src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScree
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
                              TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
-                             in), titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints
+                             in), titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints,
+                             writingPrompt (the AI prompt a field's icon copies)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
 src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox
 src/platform/*.web.js        the web half of each platform need: storage, photos, theme, Claude capabilities

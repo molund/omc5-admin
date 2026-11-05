@@ -5,7 +5,7 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "platforms": ["ios"],
+    "platforms": ["ios", "web"],
     "ios": {
       "bundleIdentifier": "ca.olund.statusdesk",
       "supportsTablet": false

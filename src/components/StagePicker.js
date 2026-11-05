@@ -7,8 +7,11 @@ import { STAGES, STAGE_LABELS, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { Body, Button, Label, Panel, Row, Stepper } from "./ui.js";
 
-/** The stages a change will carry: Mike's pick, or the furthest step the rules found in the text. */
-export const chosenStages = (value, text) => value ?? stagesIn(text).slice(-1);
+/** The stages a change will carry: one at most, the furthest of Mike's pick, Claude's answer or what the rules found. */
+export const chosenStages = (value, text) => {
+  const stages = value ?? stagesIn(text);
+  return STAGES.filter((s) => stages.includes(s)).slice(-1);
+};
 
 /**
  * @param {object} props

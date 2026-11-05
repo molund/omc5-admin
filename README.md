@@ -61,7 +61,7 @@ index.js                     the native entry (iOS): Expo's registerRootComponen
 index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
 app.json                     the Expo app config
 src/App.js                   the four modes, the review, the outbox
-src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen
+src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen, SettingsScreen (the gear: the token)
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
                              TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
@@ -69,10 +69,14 @@ src/lib/                     plain JS, no React: statusFile (reads status.yaml w
                              writingPrompt (the AI prompt a field's icon copies)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
 src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox
-src/platform/*.web.js        the web half of each platform need: storage, photos, theme, Claude capabilities
+src/services/github.js       the phone's push: one commit per change on the desk branch, and following it onto main
+src/services/phonePush.js    Face ID, the token from the Keychain, then github.js
+src/platform/*.web.js        the web half of each platform need: storage, photos, theme, Claude capabilities, secrets
+                             (the GitHub token: none on the web, the Keychain on the phone)
 src/theme/tw.js              twrnc with the site's colours, light and dark under the same names
 tools/apply-changes.mjs      the push session's CLI around src/lib/changes.js
 test/changes.test.mjs        each kind of change, read back with the site's own reader
+test/github.test.mjs         the phone's push, against a fake GitHub
 web/index.html               the artifact's page
 scripts/build.mjs            esbuild: dist/index.html, dist/app.js, dist/tools/apply-changes.mjs
 desk.config.json             the artifact's URL and the repo
@@ -114,11 +118,32 @@ What works on the phone:
   kept for when the phone is offline. "Refresh from main" reads it again.
 - Light and dark follow the phone's setting.
 
-What doesn't yet: **pushing**. The Claude app version saves its changes into an outbox for a Claude Code session; the phone
-has no such session, so Push fails with a message and offers the request to copy and send by hand. Pushing from the phone
-will be an SSH git push to `molund/omc5`, in a native module (not written yet).
+- **Pushing**, straight to GitHub with a fine-grained token (below).
+
+### Pushing from the phone
+
+The phone pushes with Mike's fine-grained GitHub token: repository `molund/omc5` only, **Contents: read and write**, nothing
+else (not Workflows), with an expiry date. Paste it under the gear (Settings); "Check and save" refuses a classic token,
+checks the token can see the repo and reads when it expires. It's kept in the iPhone's Keychain (expo-secure-store), on
+this device only (not in iCloud Keychain or backups), saved so that reading it needs Face ID. The desk keeps only its last
+four characters and expiry date, to show; it warns a week before the token expires.
+
+Push asks for Face ID, then, through GitHub's API:
+
+1. reads main's `status.yaml` at main's latest commit;
+2. applies each waiting change to it, in order, with `src/lib/changes.js` (a change that no longer fits is skipped and stays
+   waiting), and makes each its own commit with its photos, by "Mike Olund (Status Desk)";
+3. points the `desk` branch at the last commit.
+
+The site's "Land Status Desk changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the commits
+only change `status.yaml` and add photos (JPEG, at most 800 px wide, no metadata), formats and builds the site, moves main up
+to them and deploys. The desk follows that run (the repo is public, so no token or Face ID); when it succeeds it drops the
+changes and reads main again, and when it fails it keeps them and links to the run.
+
+The token can write any file in the repo apart from workflows; the workflow is what limits a push to `status.yaml` and
+photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the token on GitHub.
 
 Each platform need has one file per platform in `src/platform/` and `src/components/Icon.*`: the app imports it without an
 extension, and the web build (esbuild) picks `.web.js` while Expo's Metro picks `.native.js`.
 
-`npm run ios` has not been run yet. The iOS bundle itself is checked with `npx expo export --platform ios`.
+`npm run ios` has not been run yet, so Face ID and the Keychain haven't been tried on a phone. The iOS bundle itself is checked with `npx expo export --platform ios`.

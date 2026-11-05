@@ -12,6 +12,12 @@
     },
     "plugins": [
       [
+        "expo-secure-store",
+        {
+          "faceIDPermission": "Confirm it's you before pushing to GitHub."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Choose photos to add to an update."

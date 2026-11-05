@@ -12,11 +12,38 @@ import { Label } from "./ui.js";
 const LOGO = "https://clayton-clipper.olund.ca/images/logo.png";
 const PROGRESS = "#8473a8"; // PROGRESS_COLOUR in the site's src/lib/layerSwitches.js
 const GOLD = "#b8944a"; // the word beside the logo (.eyebrow span in the site's src/app.css)
+// how far up each figure's box its dots sit, so that the big figure's and the small ones' fall on one line
+const BIG_DROP = 2;
+const SMALL_DROP = 2;
+
+/** A figure with the site's dotted line under it. It's a row of dots, not a text underline, so every figure's sits the same. */
+function Figure({ children, textStyle, color, drop }) {
+  return (
+    <View>
+      <Text style={textStyle}>{children}</Text>
+      <View
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: drop,
+          height: 1.5,
+          flexDirection: "row",
+          gap: 1.5,
+          overflow: "hidden",
+        }}
+      >
+        {Array.from({ length: 20 }, (_, i) => (
+          <View key={i} style={{ width: 1.5, height: 1.5, borderRadius: 1, backgroundColor: color }} />
+        ))}
+      </View>
+    </View>
+  );
+}
 
 function Card({ card }) {
   const { tw, colors } = useTw();
   const [logoFailed, setLogoFailed] = useState(false);
-  const figure = { textDecorationLine: "underline", textDecorationStyle: "dotted", textDecorationColor: colors.mute };
   const when = cardAsOf(card.updated);
   return (
     <View
@@ -41,13 +68,19 @@ function Card({ card }) {
       <View style={tw`absolute right-1.5 top-1.5 p-1`}>
         <Icon name="close" color={colors.mute} size={18} />
       </View>
-      <Text style={tw`mb-2 mt-0.5 text-base text-mute`}>
-        <Text style={[tw`text-3xl font-semibold text-ink`, figure]}>{card.span ?? "–"}</Text>
-        {"  (+"}
-        <Text style={[tw`font-semibold text-ink`, figure]}>{card.ahead}</Text>
-        {") / "}
-        <Text style={[tw`font-semibold text-ink`, figure]}>{card.total}</Text>
-      </Text>
+      <View style={tw`mb-2 mt-0.5 flex-row flex-wrap items-baseline`}>
+        <Figure textStyle={tw`text-3xl font-semibold text-ink`} color={colors.mute} drop={BIG_DROP}>
+          {card.span ?? "–"}
+        </Figure>
+        <Text style={tw`text-base text-mute`}>{"  (+"}</Text>
+        <Figure textStyle={tw`text-base font-semibold text-ink`} color={colors.mute} drop={SMALL_DROP}>
+          {card.ahead}
+        </Figure>
+        <Text style={tw`text-base text-mute`}>{") / "}</Text>
+        <Figure textStyle={tw`text-base font-semibold text-ink`} color={colors.mute} drop={SMALL_DROP}>
+          {card.total}
+        </Figure>
+      </View>
       <View style={tw`h-6 overflow-hidden rounded-md bg-line`}>
         <View style={[tw`h-full rounded-md`, { width: `${card.percent}%`, backgroundColor: PROGRESS }]} />
         <View
@@ -56,9 +89,9 @@ function Card({ card }) {
             { width: `${card.percent}%`, minWidth: 48 },
           ]}
         >
-          <Text style={[tw`text-xs font-semibold`, figure, { color: "#ffffff", textDecorationColor: "#ffffff" }]}>
+          <Figure textStyle={[tw`text-xs font-semibold`, { color: "#ffffff" }]} color="#ffffff" drop={0}>
             {Math.round(card.percent)}%
-          </Text>
+          </Figure>
         </View>
       </View>
       {when ? <Text style={tw`mt-2 text-xs text-mute`}>As of {when}</Text> : null}

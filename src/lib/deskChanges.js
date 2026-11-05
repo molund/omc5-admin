@@ -7,7 +7,7 @@
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
 // and, without asking, every move of the gantry is logged: a new span is "arrived", a span marked complete is "hung".
 import { parseStatus, headerOf } from "./statusFile.js";
-import { formatDesk, moveEntry, parseDesk, setEntry } from "./deskFile.js";
+import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStages, setEntry } from "./deskFile.js";
 import { applyChange, Conflict } from "./changes.js";
 
 /** The steps a move of the gantry logs by itself: from the position before to the one after. */
@@ -70,6 +70,14 @@ export function applyDeskChange(deskText, change, statusBefore) {
       break;
     case "blog":
       break;
+    case "note-edit":
+      if (change.stages) entries = replaceStages(entries, change.noteKey, change.stages, head.span);
+      break;
+    case "note-delete": {
+      const note = parseStatus(statusBefore).notes.find((n) => n.key === change.noteKey);
+      entries = removeEntries(entries, [change.noteKey, ...(note?.followUps.map((f) => f.key) ?? [])]);
+      break;
+    }
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
@@ -85,7 +93,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
  * @throws {Conflict} when the change no longer fits status.yaml.
  */
 export function applyBoth(files, change) {
-  const s = applyChange(files.status, change);
+  const s = applyChange(files.status, change, { deskKeys: parseDesk(files.desk).map((e) => e.key) });
   const d = applyDeskChange(files.desk, change, files.status);
   return { status: s.text, desk: d.text, hunks: s.hunks, deskHunks: d.hunks };
 }

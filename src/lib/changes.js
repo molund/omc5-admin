@@ -7,6 +7,8 @@
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
 //   { id, kind: "followup-edit", noteKey, fuKey, time, blocks }
 //   { id, kind: "blog",          date, title, blocks }
+//   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
+//   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
@@ -16,6 +18,7 @@
 
 import { parseStatus, headerOf } from "./statusFile.js";
 import { compareKeys, clock, shortDate, longDate } from "./time.js";
+import { slugsOf } from "./titles.js";
 
 const DATE_TITLE = /^Clayton Clipper construction update for /;
 /** "Nov. 4", for commit messages */
@@ -125,12 +128,67 @@ function insertNote(doc, key, lines) {
 
 const later = (a, b) => (!b || compareKeys(a, b) >= 0 ? a : b);
 
+/** A note's own part (up to `follow-up:`) with new text. Its `slug:`, `post:`, any `note-to-self:` and comments stay. */
+function editNote(doc, note, title, blocks) {
+  let last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
+  while (last > note.start && doc.lines[last].trim() === "") last--;
+  const own = doc.lines.slice(note.start + 1, last + 1);
+  const kept = (l) => /^ {4}(slug|post|note-to-self):/.test(l) || /^\s*#/.test(l);
+  const at = own.findIndex((l) => /^ {4}summary:/.test(l));
+  const [summary, ...rest] = fieldLines(blocks, 4);
+  const lines = [
+    title === note.title ? doc.lines[note.start] : `  - ${note.key}: ${q(title)}`,
+    ...own.filter((l, i) => kept(l) && i < at),
+    summary,
+    ...own.filter((l, i) => kept(l) && i > at),
+    ...rest,
+  ];
+  const count = last - note.start + 1;
+  if (lines.join("\n") !== doc.lines.slice(note.start, last + 1).join("\n")) doc.replace(note.start, count, lines);
+}
+
+/** Takes lines out, and the blank lines after them, so the file never has two blank lines in a row. */
+function removeLines(doc, start, end) {
+  while (doc.lines[end + 1] === "" && end + 2 < doc.lines.length) end++;
+  doc.replace(start, end - start + 1, []);
+}
+
+/** The site works out addresses from titles, so an edit or delete can shift them: any that moved gets its old one back. */
+function keepAddresses(doc, before) {
+  for (let i = 0; i < before.size; i++) {
+    const notes = doc.parsed.notes;
+    const after = slugsOf(notes);
+    const moved = notes.find((n) => !n.fields.slug && before.has(n.key) && after.get(n.key) !== before.get(n.key));
+    if (!moved) return;
+    doc.replace(moved.start + 1, 0, [`    slug: ${before.get(moved.key)}`]);
+  }
+}
+
+/**
+ * When what the card showed is gone, `updated` goes back to the newest time left: a status update, a follow-up or a
+ * record in desk.yaml (a position). Blog posts never set it. With nothing left, it stays. Span and complete don't change.
+ */
+function fallBack(doc, removed, updated, deskKeys) {
+  if (!removed.includes(updated)) return;
+  const { notes } = doc.parsed;
+  const left = [
+    ...notes.filter((n) => !n.fields.post).map((n) => n.key),
+    ...notes.flatMap((n) => n.followUps.map((f) => f.key)),
+    ...deskKeys,
+  ].filter((k) => k.includes("T") && !removed.includes(k));
+  const newest = left.reduce((a, b) => (a && compareKeys(a, b) >= 0 ? a : b), null);
+  if (newest) setHeader(doc, { updated: newest });
+}
+
 /**
  * Applies one change to the file's text.
+ * @param {string} text
+ * @param {object} change
+ * @param {{ deskKeys?: string[] }} [context] desk.yaml's time stamps, for where `updated` goes back to after a delete.
  * @returns {{ text: string, hunks: object[] }}
  * @throws {Conflict} when the change no longer fits the file.
  */
-export function applyChange(text, change) {
+export function applyChange(text, change, { deskKeys = [] } = {}) {
   const doc = new Doc(text);
   const head = headerOf(doc.parsed);
   switch (change.kind) {
@@ -173,6 +231,21 @@ export function applyChange(text, change) {
       doc.replace(fu.start, fu.end - fu.start + 1, followUpLines(change.time, change.blocks));
       // it was the card's newest word: the card follows its new time
       if (change.fuKey === head.updated && change.time !== change.fuKey) setHeader(doc, { updated: change.time });
+      break;
+    }
+    case "note-edit": {
+      const addresses = slugsOf(doc.parsed.notes);
+      editNote(doc, findNote(doc.parsed, change.noteKey), change.title, change.blocks);
+      keepAddresses(doc, addresses);
+      break;
+    }
+    case "note-delete": {
+      const addresses = slugsOf(doc.parsed.notes);
+      const note = findNote(doc.parsed, change.noteKey);
+      removeLines(doc, note.start, note.end);
+      addresses.delete(note.key);
+      keepAddresses(doc, addresses);
+      fallBack(doc, [note.key, ...note.followUps.map((f) => f.key)], head.updated, deskKeys);
       break;
     }
     default:
@@ -227,6 +300,10 @@ export function commitMessage(change, before) {
       return `Add a follow-up to ${named}`;
     case "followup-edit":
       return `Edit the ${clock(change.fuKey)} follow-up to ${named}`;
+    case "note-edit":
+      return `Edit ${named}`;
+    case "note-delete":
+      return `Delete ${named}`;
     default:
       return "Update status.yaml";
   }

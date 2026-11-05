@@ -5,8 +5,9 @@ import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import prettier from "prettier";
 import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
-import { parseStatus, newestFirst } from "../src/lib/statusFile.js";
+import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
 import { slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
 import { cardFor } from "../src/lib/card.js";
 
@@ -37,6 +38,17 @@ let n = 0;
 async function site(text) {
   globalThis.__STATUS = text;
   return (await import(`./.out/site-status.mjs?${n++}`)).status;
+}
+
+/** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
+function blocksOf(fields) {
+  const out = [{ type: "summary", text: fields.summary }];
+  if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
+  for (const b of fields.block)
+    out.push(
+      b.photo ? { type: "photo", file: b.photo.file, caption: b.photo.caption } : { type: "text", text: b.text },
+    );
+  return out;
 }
 
 const T = "2026-11-04T16:30-07:00";
@@ -250,4 +262,144 @@ test("changes rebase onto a newer main and report what no longer fits", async ()
   assert.ok(s.history.some((h) => h.title === "Something new"));
   assert.equal(s.followUps.length, 3);
   writeFileSync(here("./.out/rebased.yaml"), text);
+});
+
+const noteEdit = (n) => ({
+  kind: "note-edit",
+  noteKey: n.key,
+  title: n.title,
+  blocks: blocksOf(n.fields),
+});
+const prettyYaml = (text) => prettier.check(text, { parser: "yaml", printWidth: 120 });
+
+test("editing a note without changing it changes nothing, for every note", () => {
+  for (const n of parseStatus(BASE).notes) {
+    const r = applyChange(BASE, noteEdit(n));
+    assert.deepEqual(r.hunks, [], n.key);
+    assert.equal(r.text, BASE);
+  }
+});
+
+test("editing a note changes its text and keeps its follow-ups, address and time stamp", async () => {
+  const before = parseStatus(BASE);
+  const n = before.notes.find((x) => x.followUps.length);
+  const address = slugsOf(before.notes).get(n.key);
+  const r = applyChange(BASE, {
+    ...noteEdit(n),
+    title: "A better headline",
+    blocks: [{ type: "summary", text: "New words." }],
+  });
+  const after = parseStatus(r.text);
+  const m = after.notes.find((x) => x.key === n.key);
+  assert.equal(m.title, "A better headline");
+  assert.equal(m.fields.summary, "New words.");
+  assert.equal(m.fields.slug, address, "its address is pinned");
+  assert.deepEqual(
+    m.followUps.map((f) => f.fields),
+    n.followUps.map((f) => f.fields),
+  );
+  assert.equal(slugsOf(after.notes).get(n.key), address);
+  assert.equal(headerOf(after).updated, headerOf(before).updated);
+  const s = await site(r.text);
+  assert.ok(s.history.some((h) => h.summary === "New words."));
+});
+
+test("editing a blog post keeps it a post", () => {
+  const n = parseStatus(BASE).notes.find((x) => x.fields.post);
+  const r = applyChange(BASE, { ...noteEdit(n), blocks: [{ type: "summary", text: "Rewritten." }] });
+  const m = parseStatus(r.text).notes.find((x) => x.key === n.key);
+  assert.equal(m.fields.post, true);
+  assert.equal(m.fields.summary, "Rewritten.");
+});
+
+test("deleting a note takes its follow-ups, and the file stays formatted and readable", async () => {
+  const n = parseStatus(BASE).notes.find((x) => x.followUps.length);
+  const r = applyChange(BASE, { kind: "note-delete", noteKey: n.key });
+  const after = parseStatus(r.text);
+  assert.ok(!after.notes.some((x) => x.key === n.key));
+  assert.equal(after.notes.length, parseStatus(BASE).notes.length - 1);
+  assert.ok(!n.followUps.some((f) => r.text.includes(`- ${f.key}:`)));
+  assert.equal(await site(r.text).then((s) => s.history.length), after.notes.length);
+  assert.equal(await prettyYaml(r.text), await prettyYaml(BASE), "as well formatted as the file it came from");
+});
+
+test("deleting every note, one at a time, keeps the file formatted", async () => {
+  let text = BASE;
+  for (const n of parseStatus(BASE).notes) {
+    text = applyChange(text, { kind: "note-delete", noteKey: n.key }).text;
+    assert.equal(await prettyYaml(text), await prettyYaml(BASE), n.key);
+  }
+  assert.equal(parseStatus(text).notes.length, 0);
+});
+
+test("deleting a post keeps the address of another post with the same title", () => {
+  const post = (date) => ({
+    kind: "blog",
+    date,
+    title: "Same words",
+    blocks: [{ type: "summary", text: `Post on ${date}.` }],
+  });
+  const one = applyChange(BASE, post("2026-11-10")).text;
+  const two = applyChange(one, post("2026-11-11")).text;
+  assert.equal(slugsOf(parseStatus(two).notes).get("2026-11-11"), "same-words-2");
+  const r = applyChange(two, { kind: "note-delete", noteKey: "2026-11-10" });
+  assert.equal(slugsOf(parseStatus(r.text).notes).get("2026-11-11"), "same-words-2");
+});
+
+test("deleting what the card shows moves `updated` back, and leaves the span and complete", () => {
+  const add = (text, time) =>
+    applyChange(text, {
+      kind: "update",
+      time,
+      span: 40,
+      complete: true,
+      title: `At ${time}`,
+      blocks: [{ type: "summary", text: "Words." }],
+    }).text;
+  const T1 = "2026-11-20T09:00-07:00";
+  const T2 = "2026-11-21T09:00-07:00";
+  const T3 = "2026-11-20T15:00-07:00";
+  const text = add(add(BASE, T1), T2);
+
+  // to the newest note left
+  let head = headerOf(parseStatus(applyChange(text, { kind: "note-delete", noteKey: T2 }).text));
+  assert.deepEqual(head, { updated: T1, span: 40, complete: true });
+
+  // to a follow-up, when that's newer
+  const withFu = applyChange(text, {
+    kind: "followup",
+    noteKey: T1,
+    time: T3,
+    blocks: [{ type: "summary", text: "Later." }],
+  }).text;
+  const fixed = applyChange(withFu, { kind: "move", time: T2, span: 40, complete: true }).text;
+  assert.equal(headerOf(parseStatus(applyChange(fixed, { kind: "note-delete", noteKey: T2 }).text)).updated, T3);
+
+  // to a position in desk.yaml, when that's newer still
+  const pos = "2026-11-20T18:00-07:00";
+  assert.equal(
+    headerOf(parseStatus(applyChange(text, { kind: "note-delete", noteKey: T2 }, { deskKeys: [pos, T2] }).text))
+      .updated,
+    pos,
+  );
+
+  // and not at all when the card shows something else
+  head = headerOf(parseStatus(applyChange(text, { kind: "note-delete", noteKey: T1 }).text));
+  assert.equal(head.updated, T2);
+});
+
+test("a follow-up waiting on a deleted note is reported, not lost", () => {
+  const n = parseStatus(BASE).notes[0];
+  const { results } = applyAll(BASE, [
+    { id: "a", kind: "note-delete", noteKey: n.key },
+    { id: "b", kind: "followup", noteKey: n.key, time: T, blocks: [{ type: "summary", text: "Too late." }] },
+  ]);
+  assert.equal(results.get("a").ok, true);
+  assert.equal(results.get("b").ok, false);
+});
+
+test("edit and delete have commit messages", () => {
+  const n = parseStatus(BASE).notes.find((x) => x.fields.post);
+  assert.equal(commitMessage(noteEdit(n), BASE), `Edit "${n.title}"`);
+  assert.equal(commitMessage({ kind: "note-delete", noteKey: n.key }, BASE), `Delete "${n.title}"`);
 });

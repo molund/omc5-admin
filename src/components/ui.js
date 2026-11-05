@@ -178,6 +178,10 @@ export function Field({
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
+  // while the field has focus it's twice as tall as at rest and its text 50% larger
+  const [focused, setFocused] = useState(false);
+  const [restHeight, setRestHeight] = useState(null);
+  const text = tw`${small ? "text-xs" : "text-sm"}`;
   const name = label ?? placeholder;
   const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value);
   async function copyPrompt() {
@@ -219,12 +223,20 @@ export function Field({
         // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
         autoCapitalize={mono ? "none" : "sentences"}
         autoCorrect={!mono}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onLayout={(e) => !focused && setRestHeight(e.nativeEvent.layout.height)}
         style={[
           tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink ${small ? "text-xs" : "text-sm"}`,
           mono && tw`font-mono`,
           multiline && tw`min-h-20`,
           { outlineColor: colors.accent },
           style,
+          focused && {
+            fontSize: text.fontSize * 1.5,
+            lineHeight: text.lineHeight && text.lineHeight * 1.5,
+            ...(restHeight && { height: restHeight * 2, minHeight: restHeight * 2 }),
+          },
         ]}
       />
     </>

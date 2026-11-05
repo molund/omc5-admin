@@ -95,8 +95,7 @@ export function stamp(key) {
 export const pageHeading = (key) =>
   `${longDate(key)
     .replace(/^\w+, /, "")
-    .replace("Sept", "Sep")
-    .replace(".", "")} at ${clock(key)}`;
+    .replace(/^([A-Za-z]{3})[a-z]*\.?/, "$1")} at ${clock(key)}`;
 
 /** A moment's BC date without the weekday, "Feb. 3, 2027". */
 export const dateOf = (date) => longDate(dayOf(new Date(date))).replace(/^\w+, /, "");

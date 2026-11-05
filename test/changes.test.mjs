@@ -479,15 +479,11 @@ test("a blog post still needs a title of its own", () => {
   assert.deepEqual(titleAdvice("blog", "2026-11-20", "A title").problems, []);
 });
 
-test("the page heading reads as the site writes it", async () => {
+test("the page heading reads as the site writes it, in every month", async () => {
   globalThis.__STATUS = BASE;
   const { asOf } = await import(`./.out/site-status.mjs?${n++}`);
-  for (const key of [
-    "2026-11-05T10:00-07:00",
-    "2026-05-02T09:30-07:00",
-    "2026-09-30T20:15-07:00",
-    "2027-03-14T00:00-07:00",
-  ]) {
+  for (let m = 1; m <= 12; m++) {
+    const key = `2027-${String(m).padStart(2, "0")}-14T09:30-07:00`;
     const [time, date] = asOf(parseKey(key)).split(" on ");
     assert.equal(pageHeading(key), `${date} at ${time}`, key);
   }

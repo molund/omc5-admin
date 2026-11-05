@@ -179,10 +179,6 @@ export function Field({
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
-  // while the field has focus it's twice as tall as at rest and its text 50% larger
-  const [focused, setFocused] = useState(false);
-  const [restHeight, setRestHeight] = useState(null);
-  const text = tw`${small ? "text-xs" : "text-sm"}`;
   const name = label ?? placeholder;
   const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value);
   async function copyPrompt() {
@@ -228,21 +224,14 @@ export function Field({
         autoCorrect={!mono}
         // a secret (the GitHub token): shown as dots, and kept out of the keyboard's suggestions
         secureTextEntry={secure}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onLayout={(e) => !focused && setRestHeight(e.nativeEvent.layout.height)}
         style={[
-          tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink ${small ? "text-xs" : "text-sm"}`,
+          tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink`,
+          // one size, focused or not: a box that changes size stops the page mid-scroll
+          small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 },
           mono && tw`font-mono`,
           multiline && tw`min-h-20`,
           { outlineColor: colors.accent },
           style,
-          focused && {
-            fontSize: text.fontSize * 1.5,
-            lineHeight: text.lineHeight && text.lineHeight * 1.5,
-            // at least that tall, but free to grow on the phone; the web's box can't grow by itself, so it's set
-            ...(restHeight && { minHeight: restHeight * 2, ...(Platform.OS === "web" && { height: restHeight * 2 }) }),
-          },
         ]}
       />
     </>

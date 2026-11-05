@@ -98,7 +98,8 @@ export function Segmented({ options, value, onChange, small }) {
             accessibilityState={{ selected: on }}
             onPress={() => onChange(o.value)}
             style={[
-              tw`flex-1 flex-row items-center justify-center gap-1.5 ${small ? "py-1" : "py-2"} px-1`,
+              // each as wide as its label, sharing what's left: equal widths don't fit five labels on a phone
+              tw`grow flex-row items-center justify-center gap-1.5 ${small ? "py-1" : "py-2"} px-1`,
               i > 0 && tw`border-l border-button-line`,
               on && tw`bg-accent`,
             ]}

@@ -22,6 +22,11 @@ const KIND = {
   followup: "Follow-up",
   "followup-edit": "Follow-up edit",
   blog: "Blog",
+  "note-edit": "Edit",
+  "note-delete": "Delete",
+  "followup-delete": "Follow-up delete",
+  "desk-edit": "Position record edit",
+  "desk-delete": "Position record delete",
 };
 
 /** What went wrong, the platform's own words, and the request to send by hand. */

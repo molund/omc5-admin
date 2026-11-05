@@ -10,6 +10,8 @@ import { applyBoth, applyDeskChange, autoStages } from "../src/lib/deskChanges.j
 import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
+import { listEntries, waitingAt } from "../src/lib/entries.js";
+import { parseKey } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
@@ -296,4 +298,40 @@ test("a position record can be edited or deleted, and only desk.yaml changes unl
     () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-edit", key, stages: [], noteToSelf: "" }),
     /isn't in desk.yaml/,
   );
+});
+
+test("the Entries list: posts with their follow-ups, and position records, newest first", () => {
+  const parsed = parseStatus(STATUS);
+  const n = parsed.notes.find((x) => x.followUps.length);
+  const alone = "2030-01-01T09:00-07:00";
+  const entries = listEntries(parsed, [
+    { key: alone, span: 50, stages: ["glued"], noteToSelf: "" },
+    { key: n.key, span: 30, stages: ["hung"], noteToSelf: "" },
+    { key: n.followUps[0].key, span: 30, stages: ["glued"], noteToSelf: "" },
+  ]);
+  assert.equal(entries.length, parsed.notes.length + 1, "a record with a post at its time isn't listed twice");
+  assert.deepEqual([entries[0].type, entries[0].key], ["position", alone]);
+  assert.deepEqual(
+    entries.map((e) => e.key),
+    [...entries.map((e) => e.key)].sort((a, b) => parseKey(b) - parseKey(a)),
+  );
+  assert.equal(entries.find((e) => e.key === n.key).followUps.length, n.followUps.length);
+  assert.equal(entries.find((e) => e.type === "blog")?.note.fields.post, true);
+});
+
+test("a note with no summary is listed as a position", () => {
+  const text = STATUS.replace(/^notes:$/m, `notes:\n  - 2030-01-01T09:00-07:00: ""\n    note-to-self: "Just this"`);
+  const [first] = listEntries(parseStatus(text), []);
+  assert.deepEqual([first.type, first.note?.fields.memo], ["position", "Just this"]);
+});
+
+test("what's waiting is found by the time stamp it created", () => {
+  const key = "2030-01-01T09:00-07:00";
+  const changes = [
+    { id: "a", kind: "note-edit", noteKey: key },
+    { id: "b", kind: "move", time: key },
+  ];
+  assert.equal(waitingAt(changes, key).id, "b");
+  assert.equal(waitingAt(changes, "2031-01-01"), undefined);
+  assert.equal(waitingAt([{ id: "c", kind: "blog", date: "2031-01-01" }], "2031-01-01").id, "c");
 });

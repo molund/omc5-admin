@@ -14,6 +14,7 @@ import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
+import { EntriesScreen } from "./screens/EntriesScreen.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
 import { Icon } from "./components/Icon";
 
@@ -33,6 +34,12 @@ const MODES = [
     about: "Add to an update or blog post, or edit a follow-up.",
   },
   { value: "blog", label: "Blog", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
+  {
+    value: "entries",
+    label: "Entries",
+    screen: EntriesScreen,
+    about: "Everything saved so far. Open one to change it.",
+  },
 ];
 
 function Desk() {
@@ -95,6 +102,7 @@ function Desk() {
               <ReviewSheet
                 change={review.change}
                 cardLabel={review.cardLabel}
+                warning={review.warning}
                 onBack={() => setReview(null)}
                 onSave={(message) => {
                   desk.addChange(review.change, message);

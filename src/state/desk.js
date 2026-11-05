@@ -24,7 +24,9 @@ export function DeskProvider({ children }) {
   const [copy, setCopy] = useState({ text: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
-  const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }
+  const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
+  // on the phone, what the desk shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
+  const [tokenInfo, setTokenInfo] = usePersisted("token", null);
 
   // read the copy, and what the last push committed
   const reload = useCallback(async () => {
@@ -110,8 +112,12 @@ export function DeskProvider({ children }) {
         setPhotos((ps) => Object.fromEntries(Object.entries(ps).filter(([id]) => !ids.includes(id) || !ps[id].draft))),
       notePhoto: (id, patch) => setPhotos((ps) => (ps[id] ? { ...ps, [id]: { ...ps[id], ...patch } } : ps)),
       setPush,
+      tokenInfo,
+      setTokenInfo,
+      /** Drops changes that are on main now (pushed from the phone). */
+      dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
-    [copy, working, parsed, changes, photos, push, changesKept, photosKept, reload],
+    [copy, working, parsed, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
   );
   return createElement(DeskContext.Provider, { value }, children);
 }

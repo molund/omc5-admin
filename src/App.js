@@ -1,6 +1,6 @@
 // Clipper Status Desk: a little CMS for the Clayton Clipper site's status.yaml, in four modes.
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "./theme/tw.js";
 import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
@@ -13,6 +13,8 @@ import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
+import { SettingsScreen } from "./screens/SettingsScreen.js";
+import { Icon } from "./components/Icon";
 
 const MODES = [
   {
@@ -33,8 +35,9 @@ const MODES = [
 ];
 
 function Desk() {
-  const { tw } = useTw();
+  const { tw, colors } = useTw();
   const desk = useDesk();
+  const [settings, setSettings] = useState(false);
   const [mode, setModeState] = useState(() => load("mode", "move"));
   const setMode = (m) => {
     setModeState(m);
@@ -46,12 +49,30 @@ function Desk() {
 
   return (
     <View style={[tw`w-full gap-3.5 self-center py-5`, { maxWidth: 640 }]}>
-      <View style={tw`gap-1`}>
-        <Text style={tw`text-xs font-bold uppercase tracking-widest text-mute`}>Clayton Clipper · status.yaml</Text>
-        <Text accessibilityRole="header" style={tw`text-2xl font-bold text-ink`}>
-          Status desk
-        </Text>
+      <View style={tw`flex-row items-end justify-between gap-2`}>
+        <View style={tw`gap-1`}>
+          <Text style={tw`text-xs font-bold uppercase tracking-widest text-mute`}>Clayton Clipper · status.yaml</Text>
+          <Text accessibilityRole="header" style={tw`text-2xl font-bold text-ink`}>
+            {settings ? "Settings" : "Status desk"}
+          </Text>
+        </View>
+        {settings ? (
+          <Button kind="link" title="Done" onPress={() => setSettings(false)} />
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            onPress={() => setSettings(true)}
+            style={({ pressed, hovered }) => [
+              tw`h-10 w-10 items-center justify-center rounded-md border border-button-line bg-button-bg`,
+              (pressed || hovered) && tw`opacity-80`,
+            ]}
+          >
+            <Icon name="gear" color={colors.ink} size={20} />
+          </Pressable>
+        )}
       </View>
+      {settings && <SettingsScreen />}
 
       {desk.error && (
         <View style={tw`gap-2`}>
@@ -61,9 +82,9 @@ function Desk() {
       )}
       {!desk.ready && !desk.error && <Body mute>Reading the desk's copy of status.yaml…</Body>}
 
-      {desk.ready && (
+      {desk.ready && !settings && (
         <>
-          <Outbox />
+          <Outbox onSettings={() => setSettings(true)} />
           {review && (
             <View style={tw`gap-3`}>
               <Text accessibilityRole="header" style={tw`text-lg font-bold text-ink`}>

@@ -1,14 +1,20 @@
 // The desk's copy and its waiting changes: where the copy came from, what's waiting to go to main, and the push.
 // Push and Refresh save a request into the desk's outbox, which wakes the Claude Code session that watches the desk
-// (see services/outbox.js). The desk reloads when that session publishes the new copy.
-import { useState } from "react";
+// (see services/outbox.js). The desk reloads when that session publishes the new copy. On the phone, Push asks for Face ID
+// and goes straight to GitHub (services/phonePush.js); the desk then follows the site's check until main has the changes.
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
-import { asOf, toKey } from "../lib/time.js";
+import { pushFromPhone } from "../services/phonePush.js";
+import { landingStatus } from "../services/github.js";
+import { asOf, dateOf, toKey } from "../lib/time.js";
 import { copyText } from "../platform/clipboard";
-import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
+import { Body, Button, Field, Label, Link, Notice, Panel, Row } from "./ui.js";
+
+const PHONE = Platform.OS !== "web";
+const WEEK = 7 * 24 * 60 * 60 * 1000;
 
 const KIND = {
   move: "Position",
@@ -19,11 +25,16 @@ const KIND = {
 };
 
 /** What went wrong, the platform's own words, and the request to send by hand. */
-function Failure({ error, onCopied }) {
+function Failure({ error, onCopied, onSettings }) {
   const { tw } = useTw();
   return (
     <View style={tw`gap-2`}>
       <Notice tone="problem">{error.message}</Notice>
+      {error.settings && onSettings && (
+        <Row style={tw`justify-end`}>
+          <Button small title="Open Settings" onPress={onSettings} />
+        </Row>
+      )}
       {error.detail ? (
         <Body small mute style={tw`font-mono`}>
           {error.detail}
@@ -64,7 +75,69 @@ function Failure({ error, onCopied }) {
   );
 }
 
-export function Outbox() {
+/** On the phone, after a push: follows the site's "Land Status Desk changes" run until main has the changes. */
+function Landing({ p }) {
+  const { tw } = useTw();
+  const desk = useDesk();
+  const [status, setStatus] = useState({ state: "waiting", url: null });
+  const [problem, setProblem] = useState(null);
+  const final = useRef(false);
+  const tooOld = () => Date.now() - new Date(p.requestedAt) > 10 * 60 * 1000;
+
+  const check = useCallback(
+    async (byHand) => {
+      if (final.current || (!byHand && tooOld())) return;
+      try {
+        const s = await landingStatus(p.head);
+        setProblem(null);
+        setStatus(s);
+        if (s.state === "failed") final.current = true;
+        if (s.state === "landed") {
+          final.current = true;
+          desk.dropChanges(p.ids);
+          desk.setPush(null);
+          desk.reload();
+        }
+      } catch (e) {
+        setProblem(e.message);
+      }
+    },
+    [p.head],
+  );
+  useEffect(() => {
+    check();
+    const timer = setInterval(check, 30 * 1000);
+    return () => clearInterval(timer);
+  }, [check]);
+
+  const when = asOf(toKey(new Date(p.requestedAt)));
+  const text = {
+    waiting: `Pushed to the desk branch ${when}. Waiting for GitHub to start the check.`,
+    running: `Pushed ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
+    failed: "The check failed, so nothing reached main. The changes are still waiting here.",
+  }[status.state];
+  return (
+    <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
+      {status.state === "failed" ? <Notice tone="problem">{text}</Notice> : <Body small>{text}</Body>}
+      {p.skipped?.length > 0 && (
+        <Notice>{`${p.skipped.length === 1 ? "One change" : `${p.skipped.length} changes`} didn't fit main and wasn't pushed. It's still waiting here.`}</Notice>
+      )}
+      {problem && <Notice tone="problem">{problem}</Notice>}
+      {status.state !== "failed" && tooOld() && (
+        <Body small mute>
+          No answer from the check yet.
+        </Body>
+      )}
+      <Row style={tw`justify-end`}>
+        {status.url && <Link href={status.url} title={status.state === "failed" ? "See what failed" : "Watch it"} />}
+        {status.state !== "failed" && <Button small title="Check again" onPress={() => check(true)} />}
+        <Button small title="Stop waiting" onPress={() => desk.setPush(null)} />
+      </Row>
+    </View>
+  );
+}
+
+export function Outbox({ onSettings }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [confirm, setConfirm] = useState(null); // "push" | "refresh"
@@ -78,10 +151,28 @@ export function Outbox() {
     setError(null);
     setSending(true);
     try {
+      if (kind === "push" && PHONE) {
+        const r = await pushFromPhone({ ...desk, changes: fitting });
+        desk.setPush({
+          kind,
+          via: "github",
+          head: r.head,
+          ids: r.pushed,
+          skipped: r.skipped,
+          requestedAt: new Date().toISOString(),
+        });
+        return;
+      }
       const req = kind === "push" ? await requestPush(fitting, desk.photos) : await requestRefresh();
       desk.setPush({ kind, requestId: req.id, ids: req.changes.map((c) => c.id), requestedAt: req.requestedAt });
     } catch (e) {
-      setError({ message: e.message, detail: e.detail ?? "", manual: e.manual ?? null, copied: false });
+      setError({
+        message: e.message,
+        detail: e.detail ?? "",
+        manual: e.manual ?? null,
+        settings: !!e.settings,
+        copied: false,
+      });
     } finally {
       setSending(false);
     }
@@ -152,11 +243,15 @@ export function Outbox() {
       {confirm && (
         <View style={tw`gap-2 rounded-md bg-bg p-2.5`}>
           <Body small>
-            {confirm === "push"
-              ? `This sends ${fitting.length === 1 ? "the change" : `the ${fitting.length} changes`} to Claude Code, which syncs with main first, then commits ${
-                  fitting.length === 1 ? "it" : "each one on its own"
-                } and pushes. The site deploys from main.`
-              : "This asks Claude Code for a fresh copy of main's status.yaml. Waiting changes stay, on top of the new copy."}
+            {confirm === "push" && PHONE
+              ? `After Face ID, this pushes ${fitting.length === 1 ? "the change" : `the ${fitting.length} changes`} to GitHub${
+                  fitting.length === 1 ? "" : ", each as its own commit"
+                }, on top of main. A check there lands ${fitting.length === 1 ? "it" : "them"} on main, and the site deploys.`
+              : confirm === "push"
+                ? `This sends ${fitting.length === 1 ? "the change" : `the ${fitting.length} changes`} to Claude Code, which syncs with main first, then commits ${
+                    fitting.length === 1 ? "it" : "each one on its own"
+                  } and pushes. The site deploys from main.`
+                : "This asks Claude Code for a fresh copy of main's status.yaml. Waiting changes stay, on top of the new copy."}
           </Body>
           <Row style={tw`justify-end`}>
             <Button small title="Cancel" onPress={() => setConfirm(null)} />
@@ -175,7 +270,8 @@ export function Outbox() {
           Sending…
         </Body>
       )}
-      {p && (
+      {p?.via === "github" && <Landing p={p} />}
+      {p && p.via !== "github" && (
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
           <Body small>
             {p.kind === "push"
@@ -189,7 +285,14 @@ export function Outbox() {
         </View>
       )}
 
-      {error && <Failure error={error} onCopied={(copied) => setError({ ...error, copied })} />}
+      {PHONE && desk.tokenInfo?.expiresAt && new Date(desk.tokenInfo.expiresAt) - Date.now() < WEEK && (
+        <Notice tone={new Date(desk.tokenInfo.expiresAt) < Date.now() ? "problem" : "warn"}>
+          {`The GitHub token ${new Date(desk.tokenInfo.expiresAt) < Date.now() ? "expired" : "expires"} on ${dateOf(
+            desk.tokenInfo.expiresAt,
+          )}. Make a new one and paste it in Settings.`}
+        </Notice>
+      )}
+      {error && <Failure error={error} onSettings={onSettings} onCopied={(copied) => setError({ ...error, copied })} />}
       {!p && !sending && desk.changes.length > 0 && (
         <Button
           kind="green"

@@ -175,6 +175,7 @@ export function Field({
   style,
   writes,
   noPrompt,
+  secure,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -223,6 +224,8 @@ export function Field({
         // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
         autoCapitalize={mono ? "none" : "sentences"}
         autoCorrect={!mono}
+        // a secret (the GitHub token): shown as dots, and kept out of the keyboard's suggestions
+        secureTextEntry={secure}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onLayout={(e) => !focused && setRestHeight(e.nativeEvent.layout.height)}

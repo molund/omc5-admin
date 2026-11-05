@@ -91,6 +91,9 @@ export function stamp(key) {
   return isDateOnly(key) ? shortDate(key) : `${shortDate(key)} · ${clock(key)}`;
 }
 
+/** A moment's BC date without the weekday, "Feb. 3, 2027". */
+export const dateOf = (date) => longDate(dayOf(new Date(date))).replace(/^\w+, /, "");
+
 /** "4:30 p.m. today", "4:30 p.m. yesterday" or "4:30 p.m. on Nov. 2, 2026", as the progress card words it. */
 export function asOf(key) {
   if (!key) return "";

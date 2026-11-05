@@ -220,6 +220,8 @@ export function Field({
         placeholder={placeholder}
         placeholderTextColor={colors.mute}
         multiline={multiline}
+        // on the phone a box grows with its text and never scrolls inside itself, so a swipe that starts on one scrolls the page
+        scrollEnabled={!multiline}
         autoFocus={autoFocus}
         // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
         autoCapitalize={mono ? "none" : "sentences"}
@@ -238,7 +240,8 @@ export function Field({
           focused && {
             fontSize: text.fontSize * 1.5,
             lineHeight: text.lineHeight && text.lineHeight * 1.5,
-            ...(restHeight && { height: restHeight * 2, minHeight: restHeight * 2 }),
+            // at least that tall, but free to grow on the phone; the web's box can't grow by itself, so it's set
+            ...(restHeight && { minHeight: restHeight * 2, ...(Platform.OS === "web" && { height: restHeight * 2 }) }),
           },
         ]}
       />

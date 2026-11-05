@@ -8,7 +8,8 @@ import { build } from "esbuild";
 import prettier from "prettier";
 import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
 import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
-import { slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
+import { slugFor, slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
+import { pageHeading, parseKey } from "../src/lib/time.js";
 import { cardFor } from "../src/lib/card.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -122,14 +123,10 @@ test("update adds a note the site reads, with its photo and blocks", async () =>
   assert.equal(card.button, "comments");
 });
 
-test("a second note on a day retitles the first and keeps its address", async () => {
+test("an older waiting update that retitles another note still keeps that note's address", async () => {
   const first = { id: "a", kind: "update", time: T, span: 38, complete: false, title: dateTitle(T), blocks };
   const after = applyChange(BASE, first).text;
   const t2 = "2026-11-04T19:00-07:00";
-  const advice = titleAdvice("update", t2, dateTitle(t2), parseStatus(after).notes);
-  assert.equal(advice.needsHeadline, true);
-  assert.equal(advice.retitle.length, 1);
-  assert.ok(advice.problems.length);
   const oldSlug = slugsOf(parseStatus(after).notes).get(T);
   const second = {
     kind: "update",
@@ -447,4 +444,51 @@ test("deleting a follow-up: one of several, the last one, and the one the card s
     ),
     true,
   );
+});
+
+test("the date title is fine on every update of a day, and the second one's address gets -2", async () => {
+  const add = (text, time) =>
+    applyChange(text, {
+      kind: "update",
+      time,
+      span: 40,
+      complete: false,
+      title: dateTitle(time),
+      blocks: [{ type: "summary", text: `Words at ${time}.` }],
+    }).text;
+  const A = "2026-11-20T09:00-07:00";
+  const B = "2026-11-20T15:00-07:00";
+  assert.deepEqual(titleAdvice("update", B, dateTitle(B)).problems, []);
+  const notes = parseStatus(add(BASE, A)).notes;
+  assert.equal(slugFor(dateTitle(B), B, notes), "construction-update-for-friday-nov-20-2026-2");
+  const text = add(add(BASE, A), B);
+  const slugs = slugsOf(parseStatus(text).notes);
+  assert.equal(slugs.get(A), "construction-update-for-friday-nov-20-2026");
+  assert.equal(slugs.get(B), "construction-update-for-friday-nov-20-2026-2");
+  // and the site agrees
+  const s = await site(text);
+  assert.deepEqual(
+    [A, B].map((k) => s.history.find((h) => h.time.getTime() === parseKey(k).getTime()).slug),
+    [slugs.get(A), slugs.get(B)],
+  );
+});
+
+test("a blog post still needs a title of its own", () => {
+  assert.equal(titleAdvice("blog", "2026-11-20", "").problems.length, 1);
+  assert.equal(titleAdvice("blog", "2026-11-20", dateTitle("2026-11-20")).problems.length, 1);
+  assert.deepEqual(titleAdvice("blog", "2026-11-20", "A title").problems, []);
+});
+
+test("the page heading reads as the site writes it", async () => {
+  globalThis.__STATUS = BASE;
+  const { asOf } = await import(`./.out/site-status.mjs?${n++}`);
+  for (const key of [
+    "2026-11-05T10:00-07:00",
+    "2026-05-02T09:30-07:00",
+    "2026-09-30T20:15-07:00",
+    "2027-03-14T00:00-07:00",
+  ]) {
+    const [time, date] = asOf(parseKey(key)).split(" on ");
+    assert.equal(pageHeading(key), `${date} at ${time}`, key);
+  }
 });

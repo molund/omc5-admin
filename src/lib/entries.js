@@ -79,7 +79,6 @@ export function reopenAs(change, head) {
           title: change.title,
           titleSet: true,
           blocks: change.blocks,
-          retitles: Object.fromEntries((change.retitle ?? []).map((r) => [r.key, r.title])),
           memo: memo ?? "",
           stages,
         },

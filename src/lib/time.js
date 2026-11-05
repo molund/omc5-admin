@@ -91,6 +91,13 @@ export function stamp(key) {
   return isDateOnly(key) ? shortDate(key) : `${shortDate(key)} · ${clock(key)}`;
 }
 
+/** A status update's heading on Trackside, which comes from its time stamp: "Nov 5, 2026 at 10:00 a.m." */
+export const pageHeading = (key) =>
+  `${longDate(key)
+    .replace(/^\w+, /, "")
+    .replace("Sept", "Sep")
+    .replace(".", "")} at ${clock(key)}`;
+
 /** A moment's BC date without the weekday, "Feb. 3, 2027". */
 export const dateOf = (date) => longDate(dayOf(new Date(date))).replace(/^\w+, /, "");
 

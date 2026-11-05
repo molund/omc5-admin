@@ -17,6 +17,17 @@ The card column follows the card's new rule: an entry shows on the card only whe
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's
 latest text.
 
+## Titles
+
+A note stores one title, the value after its time stamp. It's the date title ("Clayton Clipper construction update for
+Thursday, Nov. 5, 2026") unless you write your own, on any update, even with others on its day. What it feeds:
+
+| What                  | Where it comes from                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------------------- |
+| The heading on a page | A status update's time stamp ("Nov 5, 2026 at 10:00 a.m."), never its title; a blog post's title   |
+| The `?post=` address  | The title when the note is saved (`construction-update-for-thursday-nov-5-2026`, then `-2` and on) |
+| The link preview      | The title, as written (Open Graph)                                                                 |
+
 ## Changing what's saved
 
 The **Entries** page, reached by the link under the tabs, lists every update, blog post, follow-up and position record, newest first (a position record is a
@@ -98,7 +109,7 @@ src/components/              ui (panels, buttons, segmented control, fields), Ga
                              entry), WaitingEditor (a waiting change)
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
                              in), deskFile and deskChanges (desk.yaml), stages (the cycle's steps and the rules that find
-                             them), velocity, titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints,
+                             them), velocity, titles (date titles, slugs), time (BC time), card (the card rule), styleHints,
                              writingPrompt (the AI prompt a field's icon copies), entries (the Entries list, reopening)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
 src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox

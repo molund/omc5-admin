@@ -5,11 +5,11 @@ import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
-import { dateTitle, titleAdvice } from "../lib/titles.js";
+import { dateTitle } from "../lib/titles.js";
 import { dayOf, nowKey } from "../lib/time.js";
 import { GantryFold } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
-import { TitleField, retitleList, titleProblems } from "../components/TitleField.js";
+import { TitleField, titleProblems } from "../components/TitleField.js";
 import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
@@ -33,17 +33,15 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         title: "",
         titleSet: false,
         blocks: emptyBlocks(),
-        retitles: {},
         memo: "",
       },
   );
-  // until a title is typed, it follows the rules: the date title for the day's only update, a headline otherwise
-  const auto = titleAdvice("update", d.time, "", notes).sameDay.length ? "" : dateTitle(d.time);
-  const title = d.titleSet ? d.title : auto;
+  // until a title is typed, it's the date title
+  const title = d.titleSet ? d.title : dateTitle(d.time);
   // notes are keyed by time stamp, so two can't share one
   const taken = notes.some((n) => n.key === d.time);
   const problems = [
-    ...titleProblems("update", d.time, title, notes, d.retitles),
+    ...titleProblems("update", d.time, title),
     ...blockProblems(d.blocks),
     ...(taken ? ["There's already an update at this time stamp. Move it a quarter hour."] : []),
   ];
@@ -54,7 +52,6 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     complete: d.complete,
     title: title.trim(),
     blocks: d.blocks,
-    retitle: problems.length ? [] : retitleList(d.time, title, notes, d.retitles),
     memo: { noteKey: d.time, text: d.memo ?? "" },
     stages: chosenStages(d.stages, blockTexts(d.blocks).join("\n")),
   };
@@ -82,8 +79,6 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
           update(t === dateTitle(d.time) ? { title: "", titleSet: false } : { title: t, titleSet: true })
         }
         notes={notes}
-        retitles={d.retitles}
-        onRetitle={(retitles) => update({ retitles })}
       />
       <BlockEditor
         blocks={d.blocks}

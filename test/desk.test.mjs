@@ -423,7 +423,6 @@ test("a waiting change reopens as the draft that makes it again", () => {
     head,
   );
   assert.equal(update.seed.titleSet, true);
-  assert.deepEqual(update.seed.retitles, { k: "Other" });
   // a follow-up that didn't move the gantry starts from where the gantry is
   const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stages: [] }, head);
   assert.deepEqual([fu.seed.span, fu.seed.complete, fu.seed.editing], [37, true, null]);

@@ -71,6 +71,27 @@ export function applyDeskChange(deskText, change, statusBefore) {
     case "followup-delete":
       entries = removeEntries(entries, [change.fuKey]);
       break;
+    case "desk-edit":
+    case "desk-delete": {
+      if (!entries.some((e) => e.key === change.key))
+        throw new Conflict(`The record from ${change.key} isn't in desk.yaml any more.`);
+      if (change.kind === "desk-delete") entries = removeEntries(entries, [change.key]);
+      else {
+        entries = replaceStages(entries, change.key, change.stages, head.span);
+        entries = setEntry(entries, change.key, { noteToSelf: change.noteToSelf });
+      }
+      break;
+    }
+    case "blog":
+      break;
+    case "note-edit":
+      if (change.stages) entries = replaceStages(entries, change.noteKey, change.stages, head.span);
+      break;
+    case "note-delete": {
+      const note = parseStatus(statusBefore).notes.find((n) => n.key === change.noteKey);
+      entries = removeEntries(entries, [change.noteKey, ...(note?.followUps.map((f) => f.key) ?? [])]);
+      break;
+    }
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }

@@ -10,6 +10,8 @@
 //   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //   { id, kind: "followup-delete", noteKey, fuKey }
+//   { id, kind: "desk-edit",     key, stages, noteToSelf }  a record in desk.yaml with no post: only desk.yaml changes
+//   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and complete stay
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
@@ -258,6 +260,11 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       fallBack(doc, [fu.key], head.updated, deskKeys);
       break;
     }
+    case "desk-edit":
+      break;
+    case "desk-delete":
+      fallBack(doc, [change.key], head.updated, deskKeys);
+      break;
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
@@ -316,6 +323,10 @@ export function commitMessage(change, before) {
       return `Delete ${named}`;
     case "followup-delete":
       return `Delete the ${clock(change.fuKey)} follow-up to ${named}`;
+    case "desk-edit":
+      return `Edit the ${clock(change.key)} position record from ${monthDay(change.key)}`;
+    case "desk-delete":
+      return `Delete the ${clock(change.key)} position record from ${monthDay(change.key)}`;
     default:
       return "Update status.yaml";
   }

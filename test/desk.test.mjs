@@ -265,3 +265,35 @@ test("an entry's saved stages load as the arrived and hung it keeps, and one rep
   });
   assert.deepEqual(splitStages(undefined), { kept: [], reported: [] });
 });
+
+test("a position record can be edited or deleted, and only desk.yaml changes unless the card showed it", () => {
+  const key = "2026-11-20T09:00-07:00";
+  const other = "2026-11-19T09:00-07:00";
+  const desk = formatDesk([
+    { key, span: 40, stages: ["arrived", "glued"], noteToSelf: "Old" },
+    { key: other, span: 39, stages: ["hung"], noteToSelf: "" },
+  ]);
+  const shown = STATUS.replace(/^updated: .*$/m, `updated: ${key}`);
+
+  const edited = applyBoth({ status: shown, desk }, { kind: "desk-edit", key, stages: ["arrived"], noteToSelf: "New" });
+  assert.equal(edited.status, shown);
+  const e = parseDesk(edited.desk).find((x) => x.key === key);
+  assert.deepEqual([e.span, e.stages, e.noteToSelf], [40, ["arrived"], "New"]);
+
+  const gone = applyBoth({ status: shown, desk }, { kind: "desk-delete", key });
+  assert.ok(!parseDesk(gone.desk).some((x) => x.key === key));
+  assert.equal(parseStatus(gone.status).header.updated.value, "2026-11-19T09:00-07:00");
+  assert.equal(parseStatus(gone.status).header.span.value, parseStatus(shown).header.span.value);
+
+  const notShown = applyBoth({ status: STATUS, desk }, { kind: "desk-delete", key });
+  assert.equal(notShown.status, STATUS, "the card showed something else");
+
+  assert.throws(
+    () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-delete", key }),
+    /isn't in desk.yaml/,
+  );
+  assert.throws(
+    () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-edit", key, stages: [], noteToSelf: "" }),
+    /isn't in desk.yaml/,
+  );
+});

@@ -63,6 +63,13 @@ export function UpdateScreen({ onReview }) {
     <View style={tw`gap-3`}>
       <GantryFold value={d} current={head} onChange={(g) => update(g)} />
       <TimeStampField value={d.time} onChange={(time) => update({ time })} />
+      <StagePicker
+        text={blockTexts(d.blocks).join("\n")}
+        value={d.stages}
+        onChange={(stages) => update({ stages })}
+        auto={autoStages(head, d)}
+        span={d.span}
+      />
       <TitleField
         kind="update"
         stamp={d.time}
@@ -80,13 +87,6 @@ export function UpdateScreen({ onReview }) {
         summaryLabel="Summary · goes on the card"
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
-      />
-      <StagePicker
-        text={blockTexts(d.blocks).join("\n")}
-        value={d.stages}
-        onChange={(stages) => update({ stages })}
-        auto={autoStages(head, d)}
-        span={d.span}
       />
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />

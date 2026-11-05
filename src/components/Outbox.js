@@ -54,6 +54,7 @@ function Failure({ error, onCopied }) {
               value={error.manual}
               onChangeText={() => {}}
               label="The request"
+              noPrompt
               style={tw`min-h-40`}
             />
           )}

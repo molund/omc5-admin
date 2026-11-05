@@ -159,6 +159,7 @@ export function FollowUpScreen({ onReview }) {
           summaryLabel={note.fields.post ? "Summary" : "Summary · goes on the card"}
           day={dayOf(d.time)}
           nameHint={d.blocks[0].text}
+          followUp
         />
         {!d.editing && <GantryFold value={d} current={head} onChange={(g) => update(g)} offLabel="Gantry unchanged" />}
       </View>

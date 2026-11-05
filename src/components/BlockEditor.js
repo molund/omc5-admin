@@ -6,6 +6,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { pickPhoto, preparePhoto } from "../platform/photos";
 import { slugify } from "../lib/titles.js";
+import { WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
 import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
 
 export const emptyBlocks = () => [{ type: "summary", text: "" }];
@@ -58,8 +59,9 @@ function Handles({ i, n, move, remove }) {
  * @param {string} props.summaryLabel
  * @param {string} props.day "2026-11-04", for photo names
  * @param {string} props.nameHint The title or summary, for photo names
+ * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
  */
-export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
+export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, followUp }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -123,6 +125,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
                 onChangeText={(text) => set(i, { text })}
                 placeholder="What happened, in a sentence or two"
                 label="Summary"
+                writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
               />
             </Panel>
           );
@@ -136,6 +139,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
                 onChangeText={(text) => set(i, { text })}
                 placeholder="Another paragraph"
                 label={`Paragraph ${i}`}
+                writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
               />
             </Panel>
           );
@@ -176,6 +180,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint }) {
                   value={b.file.replace(/\.jpg$/, "")}
                   onChangeText={(t) => set(i, { file: `${cleanName(t) || "photo"}.jpg` })}
                   label="File name"
+                  noPrompt
                   style={tw`py-1`}
                 />
               </View>

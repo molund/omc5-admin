@@ -53,7 +53,7 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel }) {
     <View style={tw`gap-3.5`}>
       <Panel>
         <Label>Commit message</Label>
-        <Field value={message} onChangeText={setMessage} label="Commit message" />
+        <Field value={message} onChangeText={setMessage} label="Commit message" noPrompt />
         <Body small mute>
           One change, one commit. It goes to main when you push.
         </Body>

@@ -33,7 +33,7 @@ ${STYLE_GUIDE}
 
 Use good grammar.
 
-Return it as a code block with no formatting.
+Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
 
 Here's the text:
 

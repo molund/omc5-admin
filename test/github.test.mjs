@@ -218,3 +218,43 @@ test("the landing is followed through the desk workflow's run, without the token
     url: "https://github.com/molund/omc5/actions/runs/1",
   });
 });
+
+test("an edit and a delete push as one commit each, and don't touch any photo", async () => {
+  const notes = parseStatus(BASE).notes;
+  const withPhoto = notes.find((n) => n.fields.photo?.file);
+  const other = notes.find((n) => n.key !== withPhoto.key && n.fields.summary);
+  const gh = fakeGitHub();
+  const r = await pushChanges({
+    token: "github_pat_x",
+    photos: {},
+    changes: [
+      {
+        id: "e1",
+        kind: "note-edit",
+        noteKey: withPhoto.key,
+        title: withPhoto.title,
+        message: "Edit it",
+        blocks: [
+          { type: "summary", text: "New words." },
+          { type: "photo", file: withPhoto.fields.photo.file, caption: withPhoto.fields.photo.caption },
+        ],
+      },
+      { id: "d1", kind: "note-delete", noteKey: other.key, message: "Delete it" },
+    ],
+  });
+  assert.deepEqual(r.pushed, ["e1", "d1"]);
+  assert.deepEqual(r.skipped, []);
+  assert.equal(gh.blobs.size, 0, "no photo uploaded");
+  const paths = gh.calls.filter((c) => c.path === "/git/trees").flatMap((c) => c.body.tree.map((e) => e.path));
+  assert.ok(
+    paths.every((p) => p === "status.yaml" || p === "desk.yaml"),
+    paths.join(),
+  );
+  const last = gh.objects.get(r.head);
+  assert.equal(last.message, "Delete it");
+  assert.equal(gh.objects.get(last.parents[0]).message, "Edit it");
+  const after = parseStatus(gh.files.get(last.tree)["status.yaml"]).notes;
+  assert.ok(!after.some((n) => n.key === other.key));
+  assert.equal(after.find((n) => n.key === withPhoto.key).fields.summary, "New words.");
+  assert.equal(after.find((n) => n.key === withPhoto.key).fields.photo.file, withPhoto.fields.photo.file);
+});

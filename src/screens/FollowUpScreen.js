@@ -10,7 +10,7 @@ import { clock, dayOf, nowKey, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
 import { GantryFold } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
-import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
+import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
@@ -27,20 +27,6 @@ const noteName = (n) =>
     : n.fields.summary.length > 90
       ? `${n.fields.summary.slice(0, 88)}…`
       : n.fields.summary;
-
-/** A follow-up's fields as blocks, for editing. */
-function blocksOf(fields) {
-  const out = [{ type: "summary", text: fields.summary }];
-  if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
-  fields.block.forEach((b, i) =>
-    out.push(
-      b.photo
-        ? { type: "photo", file: b.photo.file, caption: b.photo.caption }
-        : { type: "text", text: b.text, k: `e${i}` },
-    ),
-  );
-  return out;
-}
 
 export function FollowUpScreen({ onReview }) {
   const { tw } = useTw();

@@ -17,6 +17,16 @@ const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const DESK = readFileSync(here("./fixtures/desk.yaml"), "utf8");
 const at = (s) => new Date(s);
+/** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
+function blocksOf(fields) {
+  const out = [{ type: "summary", text: fields.summary }];
+  if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
+  for (const b of fields.block)
+    out.push(
+      b.photo ? { type: "photo", file: b.photo.file, caption: b.photo.caption } : { type: "text", text: b.text },
+    );
+  return out;
+}
 
 test("the rules read Mike's wording", () => {
   const cases = [
@@ -262,7 +272,7 @@ test("a follow-up's stages can be replaced or cleared, and deleting it takes its
 
 test("an entry's saved stages load as the arrived and hung it keeps, and one reported step", () => {
   assert.deepEqual(splitStages(["hung", "glued", "post-tensioned", "arrived"]), {
-    kept: ["arrived", "hung"],
+    kept: ["arrived", "hung", "glued"],
     reported: ["post-tensioned"],
   });
   assert.deepEqual(splitStages(undefined), { kept: [], reported: [] });
@@ -334,4 +344,41 @@ test("what's waiting is found by the time stamp it created", () => {
   assert.equal(waitingAt(changes, key).id, "b");
   assert.equal(waitingAt(changes, "2031-01-01"), undefined);
   assert.equal(waitingAt([{ id: "c", kind: "blog", date: "2031-01-01" }], "2031-01-01").id, "c");
+});
+
+test("an edit of every saved entry, as its editor loads it, changes neither file", () => {
+  const parsed = parseStatus(STATUS);
+  const files = { status: STATUS, desk: DESK };
+  const entries = parseDesk(DESK);
+  const steps = (key) => {
+    const { kept, reported } = splitStages(entries.find((e) => e.key === key)?.stages);
+    return [...kept, ...reported];
+  };
+  for (const n of parsed.notes) {
+    const stages = n.fields.post ? {} : { stages: steps(n.key) };
+    const memo = { noteKey: n.key, text: memoAt(entries, n.key) };
+    const r = applyBoth(files, {
+      kind: "note-edit",
+      noteKey: n.key,
+      title: n.title,
+      blocks: blocksOf(n.fields),
+      memo,
+      ...stages,
+    });
+    assert.equal(r.status, STATUS, n.key);
+    assert.deepEqual(r.deskHunks, [], n.key);
+    for (const f of n.followUps) {
+      const fr = applyBoth(files, {
+        kind: "followup-edit",
+        noteKey: n.key,
+        fuKey: f.key,
+        time: f.key,
+        blocks: blocksOf(f.fields),
+        memo,
+        stages: steps(f.key),
+      });
+      assert.equal(fr.status, STATUS, f.key);
+      assert.deepEqual(fr.deskHunks, [], f.key);
+    }
+  }
 });

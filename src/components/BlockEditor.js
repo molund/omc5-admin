@@ -173,20 +173,29 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
               style={tw`min-h-14`}
             />
             <View style={tw`flex-row items-center gap-2`}>
-              <View style={tw`flex-1`}>
-                <Field
-                  small
-                  mono
-                  value={b.file.replace(/\.jpg$/, "")}
-                  onChangeText={(t) => set(i, { file: `${cleanName(t) || "photo"}.jpg` })}
-                  label="File name"
-                  noPrompt
-                  style={tw`py-1`}
-                />
-              </View>
-              <Body small mute>
-                .jpg{p ? ` · ${p.width} px · ${Math.round(p.bytes / 1024)} KB` : ""}
-              </Body>
+              {/* a photo already on the site keeps its name: renaming it here wouldn't rename the file in the repo */}
+              {b.photoId ? (
+                <>
+                  <View style={tw`flex-1`}>
+                    <Field
+                      small
+                      mono
+                      value={b.file.replace(/\.jpg$/, "")}
+                      onChangeText={(t) => set(i, { file: `${cleanName(t) || "photo"}.jpg` })}
+                      label="File name"
+                      noPrompt
+                      style={tw`py-1`}
+                    />
+                  </View>
+                  <Body small mute>
+                    .jpg{p ? ` · ${p.width} px · ${Math.round(p.bytes / 1024)} KB` : ""}
+                  </Body>
+                </>
+              ) : (
+                <Body small mute style={tw`font-mono`}>
+                  {b.file}
+                </Body>
+              )}
             </View>
             {!b.caption.trim() && <Notice>Every photo gets a caption.</Notice>}
           </Panel>
@@ -217,6 +226,20 @@ export function blockProblems(blocks) {
   const out = [];
   if (!blocks[0]?.text.trim()) out.push("Write the summary.");
   if (blocks.some((b) => b.type === "photo" && !b.caption.trim())) out.push("Every photo needs a caption.");
+  return out;
+}
+
+/** A note's or follow-up's fields as blocks, for editing. */
+export function blocksOf(fields) {
+  const out = [{ type: "summary", text: fields.summary }];
+  if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
+  fields.block.forEach((b, i) =>
+    out.push(
+      b.photo
+        ? { type: "photo", file: b.photo.file, caption: b.photo.caption }
+        : { type: "text", text: b.text, k: `e${i}` },
+    ),
+  );
   return out;
 }
 

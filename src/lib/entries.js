@@ -3,6 +3,7 @@
 // site doesn't show). Plain JS, no React.
 import { compareKeys } from "./time.js";
 import { followUpsNewestFirst } from "./statusFile.js";
+import { STAGE_LABELS } from "./stages.js";
 
 /**
  * @typedef {{ type: "update"|"blog", key: string, note: object, followUps: object[] }
@@ -31,3 +32,13 @@ const createdAt = (c) =>
 
 /** The waiting change that created what's at a time stamp, or undefined: it isn't on the site yet. */
 export const waitingAt = (changes, key) => changes.find((c) => createdAt(c) === key);
+
+/** Text cut to a length, for a list. */
+export const shorten = (s, n = 90) => (s.length > n ? `${s.slice(0, n - 2)}…` : s);
+
+/** How a position record reads: its span, its steps and its note to self. */
+export function positionName({ note, record }) {
+  const steps = (record?.stages ?? []).map((s) => STAGE_LABELS[s]).join(", ");
+  const memo = record?.noteToSelf || note?.fields.memo || "";
+  return [record?.span ? `Span ${record.span}` : "", steps, shorten(memo)].filter(Boolean).join(" · ") || "No details";
+}

@@ -11,6 +11,7 @@
 //     photo:
 //       file: span-36.jpg
 //       caption: "Its own caption, separate from the note"
+// a note to self is in desk.yaml now, not here; this reader skips a `note-to-self:` line all the same, so one is never shown
 // optionally more blocks, paragraphs and photos, indented under it (shown after the summary and its photo on the Trackside page
 // and in its thread; the card shows only the summary):
 //     block:

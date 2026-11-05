@@ -1,0 +1,71 @@
+// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last two spans, the
+// cycles it's from, how long the gantry has been on its span, and how long each stage took where both ends are tagged.
+import { View } from "react-native";
+import { useTw } from "../theme/tw.js";
+import { useDesk } from "../state/desk.js";
+import { stageTimes, WINDOW } from "../lib/velocity.js";
+import { STAGE_LABELS } from "../lib/stages.js";
+import { stamp } from "../lib/time.js";
+import { Body, Label, Panel, Row } from "./ui.js";
+
+const days = (n) => `${n.toFixed(2)} days`;
+const hours = (h) => (h < 48 ? `${Math.round(h * 4) / 4} h` : days(h / 24));
+
+export function VelocityPanel() {
+  const { tw } = useTw();
+  const desk = useDesk();
+  const v = desk.velocity;
+  if (!v) return null;
+  const recent = v.current ? stageTimes(desk.deskEntries).filter((t) => t.span >= v.current.span - WINDOW) : [];
+  return (
+    <Panel>
+      <Label>Velocity</Label>
+      {v.days != null ? (
+        <View style={tw`gap-0.5`}>
+          <Body>
+            <Body style={tw`text-2xl font-bold`}>{v.days.toFixed(2)}</Body> days per span
+          </Body>
+          <Body small mute>
+            {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}, in working time: Saturday night and Sunday's day shift don't count.`}
+          </Body>
+        </View>
+      ) : (
+        <Body small mute>
+          Not enough steps logged yet for a velocity.
+        </Body>
+      )}
+      {v.cycles.map((c) => (
+        <Row key={c.to} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
+          <View style={tw`flex-1 gap-0.5`}>
+            <Body small>{`Span ${c.from} to ${c.to}`}</Body>
+            <Body small mute>
+              {`${c.by === "arrived" ? "Arrival to arrival" : `${STAGE_LABELS[c.by]}, span to span`}: ${stamp(c.start)} to ${stamp(c.end)}`}
+            </Body>
+          </View>
+          <Body small>{days(c.hours / 24)}</Body>
+        </Row>
+      ))}
+      {v.current && (
+        <Row style={tw`border-t border-line pt-2`}>
+          <Body small>{`On span ${v.current.span} since ${stamp(v.current.since)}`}</Body>
+          <Body small>{days(v.current.days)}</Body>
+        </Row>
+      )}
+      {recent.length > 0 && (
+        <View style={tw`gap-1 border-t border-line pt-2`}>
+          <Body small mute>
+            Stages, where both ends are logged
+          </Body>
+          {recent.map((t) => (
+            <Row key={`${t.span}-${t.name}`}>
+              <Body small>{`Span ${t.span}: ${t.name}`}</Body>
+              <Body small mute>
+                {hours(t.hours)}
+              </Body>
+            </Row>
+          ))}
+        </View>
+      )}
+    </Panel>
+  );
+}

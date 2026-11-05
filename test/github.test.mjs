@@ -125,6 +125,11 @@ test("each change is its own commit on top of main, by the Status Desk, and desk
   const once = applyChange(BASE, move).text;
   assert.equal(gh.files.get(first.tree)["status.yaml"], once);
   assert.equal(gh.files.get(last.tree)["status.yaml"], applyChange(once, update).text);
+  // desk.yaml, started on a main without one: the move logs "arrived" at span 38 in the same commit
+  assert.match(
+    gh.files.get(first.tree)["desk.yaml"],
+    /- 2026-11-05T08:30-07:00:\n {6}span: 38\n {6}stages: \[arrived\]/,
+  );
   const photo = gh.files.get(last.tree)["public/images/sorry-im-a-shitty-photographer/2026-11-05-span-38.jpg"];
   assert.deepEqual(photo, { content: PIXEL, encoding: "base64" });
   assert.equal(

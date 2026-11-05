@@ -8,6 +8,7 @@ import { DeskProvider, useDesk } from "./state/desk.js";
 import { load, save } from "./platform/storage";
 import { Segmented, Body, Notice, Button } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
+import { VelocityPanel } from "./components/VelocityPanel.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
 import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
@@ -85,6 +86,7 @@ function Desk() {
       {desk.ready && !settings && (
         <>
           <Outbox onSettings={() => setSettings(true)} />
+          {!review && <VelocityPanel />}
           {review && (
             <View style={tw`gap-3`}>
               <Text accessibilityRole="header" style={tw`text-lg font-bold text-ink`}>

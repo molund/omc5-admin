@@ -1,21 +1,28 @@
-// The push session's half of the desk: applies the desk's changes to status.yaml as it is on main, with the same code the
-// desk uses (src/lib/changes.js), so the result is what the desk showed, on top of anything committed since.
+// The push session's half of the desk: applies the desk's changes to status.yaml and desk.yaml as they are on main, with
+// the same code the desk uses (src/lib/changes.js and src/lib/deskChanges.js), so the result is what the desk showed, on
+// top of anything committed since.
 //
-//   node apply-changes.mjs changes.json status.yaml [--only <id>]
+//   node apply-changes.mjs changes.json status.yaml [desk.yaml] [--only <id>]
 //
-// Prints "APPLIED <id>: <message>" or "CONFLICT <id>: <why>" per change, and exits 2 if any conflicted.
-import { readFileSync, writeFileSync } from "node:fs";
-import { applyChange, Conflict } from "../src/lib/changes.js";
+// desk.yaml is created if it doesn't exist yet. Prints "APPLIED <id>: <message>" or "CONFLICT <id>: <why>" per change, and
+// exits 2 if any conflicted.
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { Conflict } from "../src/lib/changes.js";
+import { applyBoth } from "../src/lib/deskChanges.js";
+import { EMPTY_DESK } from "../src/lib/deskFile.js";
 
 const args = process.argv.slice(2);
-const [json, file] = args;
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
+const [json, file, deskFile = file.replace(/status\.yaml$/, "desk.yaml")] = args.filter(
+  (a, i) => !a.startsWith("--") && args[i - 1] !== "--only",
+);
 if (!json || !file) {
-  console.error("usage: node apply-changes.mjs changes.json status.yaml [--only <id>]");
+  console.error("usage: node apply-changes.mjs changes.json status.yaml [desk.yaml] [--only <id>]");
   process.exit(1);
 }
 const { changes } = JSON.parse(readFileSync(json, "utf8"));
-let text = readFileSync(file, "utf8");
+let status = readFileSync(file, "utf8");
+let desk = existsSync(deskFile) ? readFileSync(deskFile, "utf8") : EMPTY_DESK;
 let conflicts = 0;
 const todo = only ? changes.filter((c) => c.id === only) : changes;
 if (!todo.length) {
@@ -24,7 +31,7 @@ if (!todo.length) {
 }
 for (const c of todo) {
   try {
-    text = applyChange(text, c).text;
+    ({ status, desk } = applyBoth({ status, desk }, c));
     console.log(`APPLIED ${c.id}: ${c.message}`);
   } catch (e) {
     if (!(e instanceof Conflict)) throw e;
@@ -32,5 +39,6 @@ for (const c of todo) {
     console.log(`CONFLICT ${c.id}: ${e.message}`);
   }
 }
-writeFileSync(file, text);
+writeFileSync(file, status);
+writeFileSync(deskFile, desk);
 process.exit(conflicts ? 2 : 0);

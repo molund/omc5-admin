@@ -17,21 +17,27 @@ The card column follows the card's new rule: an entry shows on the card only whe
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's
 latest text.
 
-## Note to self
+## desk.yaml: notes to self, gantry steps and the velocity
 
-Every entry (an update or a blog post) can have one note to self: a `note-to-self:` line right under its key line in
-`status.yaml`. It's only in the repo; the site's reader ignores it, so it never reaches Trackside or the card. It's on all
-four tabs. Update and Blog write the new entry's. Follow-up edits its parent's. Follow-ups and blocks have none. Empty text removes
-the line.
+The desk keeps its own records in `desk.yaml` in molund/omc5, beside `status.yaml`. The site doesn't read it. Entries are
+keyed by time stamps, like the notes, and each can have the span it's about, the steps of the gantry's cycle seen by then
+(`docs/gantry-cycle.md` in molund/omc5) and a note to self. A change writes both files in the same commit.
 
-Position needs none. If you add one, Position creates an entry for it: a note at the position's time stamp, with an empty
-title, no summary and the note to self. The site only shows notes that have a summary, so that entry never appears on
-Trackside, the progress card, the sitemap or the giscus comments (the same as the workflow's `note: "-"`).
+- **Notes to self.** Every entry can have one. Update and Blog write the new entry's; Follow-up edits its parent's; Position
+  writes one at its own time stamp. Empty text removes it.
+- **Gantry steps.** Position, Update and Follow-up have a "Gantry steps" panel. The steps are picked from what you write by
+  rules (`src/lib/stages.js`: "moved to span 38", "fully glued", "started moving its supports" and so on); tap any to change
+  them. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
+  capability). Every move logs "arrived" by itself, and marking a span complete logs "hung", so a missed report doesn't
+  leave a hole.
+- **Velocity.** The panel under the desk copy shows the working days per span over the last two spans, arrival to arrival
+  (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 8 p.m.; how long the gantry has been on its
+  span; and how long each stage took where both its ends are logged (`src/lib/velocity.js`).
 
 ## How it keeps and pushes changes
 
-- **The desk's own copy of status.yaml is its database.** The copy is published with the artifact as `status.yaml`, and
-  `copy.json` says which commit of main it came from.
+- **The desk's own copy of status.yaml and desk.yaml is its database.** The copy is published with the artifact as
+  `status.yaml` and `desk.yaml`, and `copy.json` says which commit of main it came from.
 - **Saving adds a change to a list on this device** (browser storage). Every screen shows the copy with the list applied.
   Drafts and photos are kept there too, until they're pushed.
 - **Push syncs first.** The desk can't reach GitHub or start a Claude Code session itself (the Claude app won't load the
@@ -39,10 +45,11 @@ Trackside, the progress card, the sitemap or the giscus comments (the same as th
   under `outbox/photos/` into the desk's own artifact. That republish wakes the Claude Code session that watches the desk
   (the "Status.yaml block editor" chat), which:
   1. pulls main;
-  2. applies each change, in order, to main's `status.yaml` with `tools/apply-changes.mjs` (the same code as the desk);
+  2. applies each change, in order, to main's `status.yaml` and `desk.yaml` with `tools/apply-changes.mjs` (the same code
+     as the desk);
   3. runs Prettier and `npm run build`, then makes one commit per change, as Mike Olund (Claude app);
   4. pushes;
-  5. republishes the desk with main's new `status.yaml`, `copy.json` (with `handled`: the request's id) and `pushed.json`
+  5. republishes the desk with main's new `status.yaml` and `desk.yaml`, `copy.json` (with `handled`: the request's id) and `pushed.json`
      (the ids it committed), and removes the outbox.
 
   The desk reloads with the new copy and drops the changes listed in `pushed.json`. A change that no longer fits main (its
@@ -66,10 +73,12 @@ src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScree
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,
                              TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
-                             in), titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints,
+                             in), deskFile and deskChanges (desk.yaml), stages (the cycle's steps and the rules that find
+                             them), velocity, titles (date titles, headlines, slugs), time (BC time), card (the card rule), styleHints,
                              writingPrompt (the AI prompt a field's icon copies)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
 src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox
+src/services/stageAI.js      "Ask Claude" for the gantry steps in a piece of text (the Claude app only)
 src/services/github.js       the phone's push: one commit per change on the desk branch, and following it onto main
 src/services/phonePush.js    Face ID, the token from the Keychain, then github.js
 src/platform/*.web.js        the web half of each platform need: storage, photos, theme, Claude capabilities, secrets
@@ -78,6 +87,7 @@ src/theme/tw.js              twrnc with the site's colours, light and dark under
 tools/apply-changes.mjs      the push session's CLI around src/lib/changes.js
 test/changes.test.mjs        each kind of change, read back with the site's own reader
 test/github.test.mjs         the phone's push, against a fake GitHub
+test/desk.test.mjs           the stage rules, desk.yaml and the velocity
 web/index.html               the artifact's page
 scripts/build.mjs            esbuild: dist/index.html, dist/app.js, dist/tools/apply-changes.mjs
 desk.config.json             the artifact's URL and the repo
@@ -94,9 +104,9 @@ npm test
 node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 ```
 
-Then publish `dist/index.html` as the artifact page, with `app.js`, `status.yaml`, `copy.json` and
-`tools/apply-changes.mjs` beside it. Its one capability is `artifact` (the desk saves its
-outbox into itself). The source is published with it under `source/`.
+`desk.yaml` is copied from beside `status.yaml`. Then publish `dist/index.html` as the artifact page, with `app.js`,
+`status.yaml`, `desk.yaml`, `copy.json` and `tools/apply-changes.mjs` beside it. Its capabilities are `artifact` (the desk
+saves its outbox into itself) and `sample` ("Ask Claude"). The source is published with it under `source/`.
 
 ## On an iPhone
 
@@ -131,18 +141,18 @@ four characters and expiry date, to show; it warns a week before the token expir
 
 Push asks for Face ID, then, through GitHub's API:
 
-1. reads main's `status.yaml` at main's latest commit;
+1. reads main's `status.yaml` and `desk.yaml` at main's latest commit;
 2. applies each waiting change to it, in order, with `src/lib/changes.js` (a change that no longer fits is skipped and stays
-   waiting), and makes each its own commit with its photos, by "Mike Olund (Status Desk)";
+   waiting), and makes each its own commit with its photos and `desk.yaml`, by "Mike Olund (Status Desk)";
 3. points the `desk` branch at the last commit.
 
 The site's "Land Status Desk changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the commits
-only change `status.yaml` and add photos (JPEG, at most 800 px wide, no metadata), formats and builds the site, moves main up
+only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 800 px wide, no metadata), formats and builds the site, moves main up
 to them and deploys. The desk follows that run (the repo is public, so no token or Face ID); when it succeeds it drops the
 changes and reads main again, and when it fails it keeps them and links to the run.
 
-The token can write any file in the repo apart from workflows; the workflow is what limits a push to `status.yaml` and
-photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the token on GitHub.
+The token can write any file in the repo apart from workflows; the workflow is what limits a push to `status.yaml`, `desk.yaml`
+and photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the token on GitHub.
 
 Each platform need has one file per platform in `src/platform/` and `src/components/Icon.*`: the app imports it without an
 extension, and the web build (esbuild) picks `.web.js` while Expo's Metro picks `.native.js`.

@@ -22,14 +22,15 @@ async function get(url, accept) {
 let latest = null;
 
 /**
- * main's status.yaml, at the commit main is on now (so a file the API's cache is behind on can't be mixed with a newer
- * commit's name). When GitHub can't be reached, the last copy kept on the phone.
+ * main's status.yaml and desk.yaml, at the commit main is on now (so a file the API's cache is behind on can't be mixed with
+ * a newer commit's name). When GitHub can't be reached, the last copy kept on the phone. A main without desk.yaml has none.
  */
 async function readMain() {
   try {
     const sha = (await get(`${API}/commits/main`, "application/vnd.github.sha")).trim();
     const text = await get(`${API}/contents/status.yaml?ref=${sha}`, "application/vnd.github.raw+json");
-    const copy = { text, meta: { commit: sha, syncedAt: new Date().toISOString() } };
+    const desk = await get(`${API}/contents/desk.yaml?ref=${sha}`, "application/vnd.github.raw+json").catch(() => null);
+    const copy = { text, desk, meta: { commit: sha, syncedAt: new Date().toISOString() } };
     save("copy", copy);
     return copy;
   } catch (e) {
@@ -39,11 +40,16 @@ async function readMain() {
   }
 }
 
-/** The desk's files: status.yaml and copy.json (where it came from). There's no pushed.json on the phone. */
+/** The desk's files: status.yaml, desk.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
 export async function ownFile(path) {
   if (path === "status.yaml") {
     latest = await readMain();
     return latest.text;
+  }
+  if (path === "desk.yaml") {
+    const desk = (latest ?? (await readMain())).desk;
+    if (desk == null) throw new Error("main has no desk.yaml");
+    return desk;
   }
   if (path === "copy.json") return JSON.stringify((latest ?? (await readMain())).meta);
   throw new Error(`${path} isn't on the phone`);

@@ -62,8 +62,18 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel }) {
         <Notice tone="problem">{preview.error}</Notice>
       ) : (
         <View style={tw`gap-1.5`}>
-          <Label>Changes to status.yaml</Label>
-          <Hunks hunks={preview.hunks} />
+          {preview.hunks.length > 0 && (
+            <>
+              <Label>Changes to status.yaml</Label>
+              <Hunks hunks={preview.hunks} />
+            </>
+          )}
+          {preview.deskHunks?.length > 0 && (
+            <>
+              <Label>Changes to desk.yaml</Label>
+              <Hunks hunks={preview.deskHunks} />
+            </>
+          )}
         </View>
       )}
       {!preview.error && <CardPreview card={cardFor(preview.text)} label={cardLabel} />}

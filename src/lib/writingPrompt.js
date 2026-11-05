@@ -25,6 +25,8 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50", like "page 5"; capitalised o
 export function writingPrompt(writes, text) {
   return `Turn this into ${writes}.
 
+This is a factual news report based on an actual site visit. Don't invent any details: use only the facts you're given.
+
 Follow this style guide:
 
 ${STYLE_GUIDE}

@@ -59,37 +59,6 @@ export function slugFor(title, key, notes) {
 }
 
 const GANTRY = /\b(Clayton Clipper|Surrey Sprinter|Fleetwood Flyer|Clipper|Sprinter|Flyer)\b/;
-const NAMES =
-  /^(Clayton|Clipper|Surrey|Sprinter|Fleetwood|Flyer|Highway|Fraser|Green|Timbers|Station|Hillcrest|Street|St|Expo|Line|SkyTrain|Dywidag|Piper|Toby|SFMSF|Langley|Fraggle|Rock|I)$/;
-
-/**
- * The headline a note starts with on a day that can't use the date title, by the rules in molund/omc5's CLAUDE.md: its
- * summary's first sentence, under 60 characters, in its own words. A span gets its gantry's name if the sentence has none.
- * It's a starting point, to edit.
- * @param {string} summary
- * @returns {string} "" with no summary yet.
- */
-export function headlineFrom(summary) {
-  const text = String(summary ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
-  // a sentence ends at a stop before a capital, but not "a.m." or "176 St."
-  const [first] = text.split(/(?<!\b(?:[ap]\.m|St))[.!?]\s+(?=[A-Z"])/);
-  let out = first.replace(/[.!?]+$/, "");
-  if (/\bspans? \d+/i.test(out) && !GANTRY.test(out)) {
-    const word = out.split(/\s+/)[0].replace(/[^A-Za-z]/g, "");
-    out = `Clayton Clipper: ${NAMES.test(word) ? out : out[0].toLowerCase() + out.slice(1)}`;
-  }
-  if (out.length < 60) return out;
-  const cut = out.slice(0, 60);
-  // cut at a word, and not on one that leaves the sentence hanging
-  return cut
-    .slice(0, cut.lastIndexOf(" "))
-    .replace(
-      /(?:[\s,;:–—-]+|\s+(?:a|an|and|are|at|been|but|by|for|from|has|have|in|is|near|of|on|or|the|to|was|were|with))+$/i,
-      "",
-    );
-}
 
 /**
  * What the title field should say about a title.
@@ -119,10 +88,12 @@ export function titleAdvice(kind, key, title, notes) {
     if (/\bspans? \d+/i.test(t) && !GANTRY.test(t))
       warnings.push('Name the gantry the span belongs to, e.g. "Clayton Clipper completes span 36".');
     // sentence case: capitals past the first word, other than names
+    const names =
+      /^(Clayton|Clipper|Surrey|Sprinter|Fleetwood|Flyer|Highway|Fraser|Green|Timbers|Station|Hillcrest|Street|St|Expo|Line|SkyTrain|Dywidag|Piper|Toby|SFMSF|Langley|Fraggle|Rock|I)$/;
     const caps = t
       .split(/\s+/)
       .slice(1)
-      .filter((w) => /^[A-Z][a-z]/.test(w) && !NAMES.test(w.replace(/[^A-Za-z]/g, "")));
+      .filter((w) => /^[A-Z][a-z]/.test(w) && !names.test(w.replace(/[^A-Za-z]/g, "")));
     if (caps.length >= 2) warnings.push(`Titles are in sentence case: check ${caps.slice(0, 3).join(", ")}.`);
   }
   return { sameDay, needsHeadline, retitle, problems, warnings };

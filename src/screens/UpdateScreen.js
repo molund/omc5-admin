@@ -5,7 +5,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
-import { dateTitle, headlineFrom, titleAdvice } from "../lib/titles.js";
+import { dateTitle, titleAdvice } from "../lib/titles.js";
 import { dayOf, nowKey } from "../lib/time.js";
 import { GantryFold } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
@@ -38,9 +38,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
       },
   );
   // until a title is typed, it follows the rules: the date title for the day's only update, a headline otherwise
-  const auto = titleAdvice("update", d.time, "", notes).sameDay.length
-    ? headlineFrom(d.blocks[0].text)
-    : dateTitle(d.time);
+  const auto = titleAdvice("update", d.time, "", notes).sameDay.length ? "" : dateTitle(d.time);
   const title = d.titleSet ? d.title : auto;
   // notes are keyed by time stamp, so two can't share one
   const taken = notes.some((n) => n.key === d.time);

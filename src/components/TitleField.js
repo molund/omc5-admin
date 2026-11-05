@@ -2,12 +2,9 @@
 // headlines, and an earlier date-titled update on that day is offered one too (keeping its address with a slug:).
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { dateTitle, headlineFrom, isDateTitle, slugFor, slugsOf, titleAdvice } from "../lib/titles.js";
+import { dateTitle, isDateTitle, slugFor, slugsOf, titleAdvice } from "../lib/titles.js";
 import { clock } from "../lib/time.js";
 import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
-
-/** The headline for the day's other update: what's been typed, or until then, one from its summary. */
-const retitleOf = (retitles, n) => retitles[n.key] ?? headlineFrom(n.fields.summary);
 
 /**
  * @param {object} props
@@ -85,7 +82,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, retitles = {},
           </Body>
           <Field
             small
-            value={retitleOf(retitles, n)}
+            value={retitles[n.key] ?? ""}
             onChangeText={(t) => onRetitle({ ...retitles, [n.key]: t })}
             placeholder={`A headline for: ${n.fields.summary.slice(0, 60)}…`}
             label={`Headline for the ${clock(n.key)} update`}
@@ -99,7 +96,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, retitles = {},
 /** Whether the title can be saved. */
 export function titleProblems(kind, stamp, title, notes, retitles = {}) {
   const advice = titleAdvice(kind, stamp, title, notes);
-  const missing = advice.retitle.filter((n) => !retitleOf(retitles, n).trim());
+  const missing = advice.retitle.filter((n) => !(retitles[n.key] ?? "").trim());
   return [...advice.problems, ...(missing.length ? ["Give the day's other update a headline too."] : [])];
 }
 
@@ -110,5 +107,5 @@ export const editedTitleProblems = (kind, stamp, title, notes) => titleAdvice(ki
 export function retitleList(stamp, title, notes, retitles = {}) {
   const advice = titleAdvice("update", stamp, title, notes);
   const slugs = slugsOf(notes);
-  return advice.retitle.map((n) => ({ key: n.key, title: retitleOf(retitles, n).trim(), slug: slugs.get(n.key) }));
+  return advice.retitle.map((n) => ({ key: n.key, title: retitles[n.key].trim(), slug: slugs.get(n.key) }));
 }

@@ -60,6 +60,10 @@ export const themes = {
   dark: { tw: make(dark), colors: dark },
 };
 
+// the other one, for the progress card, which is drawn in the opposite theme
+themes.light.inverse = themes.dark;
+themes.dark.inverse = themes.light;
+
 export const ThemeContext = createContext(themes.light);
 
 /** `const { tw, colors } = useTw()` */

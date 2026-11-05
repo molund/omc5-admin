@@ -97,6 +97,17 @@ export const pageHeading = (key) =>
     .replace(/^\w+, /, "")
     .replace(/^([A-Za-z]{3})[a-z]*\.?/, "$1")} at ${clock(key)}`;
 
+/** When the progress card says it's from, as the site words it (asOf(date, true) in its src/lib/status.js). */
+export function cardAsOf(key) {
+  if (!key) return "";
+  const days = (n) => dayOf(new Date(Date.now() - n * 24 * 3600 * 1000));
+  const day = dayOf(key);
+  if (day === days(0)) return `${clock(key)} today`;
+  if (day === days(1)) return `${clock(key)} yesterday`;
+  if (day === days(2)) return `${clock(key)} on ${longDate(key).split(",")[0]}`;
+  return `${clock(key)} on ${pageHeading(key).split(" at ")[0]}`;
+}
+
 /** A moment's BC date without the weekday, "Feb. 3, 2027". */
 export const dateOf = (date) => longDate(dayOf(new Date(date))).replace(/^\w+, /, "");
 

@@ -12,11 +12,14 @@ import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { Button, Notice } from "../components/ui.js";
 
-export function BlogScreen({ onReview }) {
+export function BlogScreen({ onReview, draftKey = "blog", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const notes = desk.parsed.notes;
-  const [d, update, reset] = useDraft("blog", () => ({ date: todayKey(), title: "", blocks: emptyBlocks(), memo: "" }));
+  const [d, update, reset] = useDraft(
+    draftKey,
+    () => seed ?? { date: todayKey(), title: "", blocks: emptyBlocks(), memo: "" },
+  );
   const taken = notes.some((n) => n.key === d.date);
   const problems = [
     ...titleProblems("blog", d.date, d.title, notes),

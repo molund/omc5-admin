@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "./theme/tw.js";
 import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
-import { DeskProvider, useDesk } from "./state/desk.js";
+import { BeforeChange, DeskProvider, useDesk } from "./state/desk.js";
 import { load, save } from "./platform/storage";
 import { Segmented, Body, Notice, Button } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
@@ -15,6 +15,7 @@ import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
 import { EntriesScreen } from "./screens/EntriesScreen.js";
+import { WaitingEditor } from "./components/WaitingEditor.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
 import { Icon } from "./components/Icon";
 
@@ -42,6 +43,9 @@ const MODES = [
   },
 ];
 
+/** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
+const InReview = ({ id, children }) => (id ? <BeforeChange id={id}>{children}</BeforeChange> : children);
+
 function Desk() {
   const { tw, colors } = useTw();
   const desk = useDesk();
@@ -51,7 +55,14 @@ function Desk() {
     setModeState(m);
     save("mode", m);
   };
-  const [review, setReview] = useState(null); // { change, after, cardLabel }
+  const [review, setReview] = useState(null); // { change, after, cardLabel, warning }
+  const [reopenId, setReopenId] = useState(null); // a waiting change being edited
+  const reopened = reopenId ? desk.changes.find((c) => c.id === reopenId) : null;
+  const startReview = (change, opts = {}) => setReview({ change, ...opts });
+  const reopen = (change) => {
+    setReview(null);
+    setReopenId(change.id);
+  };
   const current = MODES.find((m) => m.value === mode) ?? MODES[0];
   const Screen = current.screen;
 
@@ -92,33 +103,50 @@ function Desk() {
 
       {desk.ready && !settings && (
         <>
-          <Outbox onSettings={() => setSettings(true)} />
-          {!review && <VelocityPanel />}
+          <Outbox onSettings={() => setSettings(true)} onEdit={reopen} />
+          {!review && !reopened && <VelocityPanel />}
           {review && (
             <View style={tw`gap-3`}>
               <Text accessibilityRole="header" style={tw`text-lg font-bold text-ink`}>
                 Review
               </Text>
-              <ReviewSheet
-                change={review.change}
-                cardLabel={review.cardLabel}
-                warning={review.warning}
-                onBack={() => setReview(null)}
-                onSave={(message) => {
-                  desk.addChange(review.change, message);
-                  review.after?.();
-                  setReview(null);
-                }}
-              />
+              <InReview id={reopened?.id}>
+                <ReviewSheet
+                  change={review.change}
+                  cardLabel={review.cardLabel}
+                  warning={review.warning}
+                  onBack={() => setReview(null)}
+                  onSave={(message) => {
+                    if (reopened) desk.replaceChange(reopened.id, review.change, message);
+                    else desk.addChange(review.change, message);
+                    review.after?.();
+                    setReview(null);
+                    setReopenId(null);
+                  }}
+                />
+              </InReview>
             </View>
           )}
           {/* the screen stays mounted under the review, so saving can clear its draft */}
           <View style={[tw`gap-3`, review && { display: "none" }]}>
-            <Segmented options={MODES} value={mode} onChange={setMode} />
-            <Body small mute>
-              {current.about}
-            </Body>
-            <Screen key={mode} onReview={(change, opts = {}) => setReview({ change, ...opts })} />
+            {reopened ? (
+              <BeforeChange id={reopened.id}>
+                <WaitingEditor
+                  key={reopened.id}
+                  change={reopened}
+                  onCancel={() => setReopenId(null)}
+                  onReview={startReview}
+                />
+              </BeforeChange>
+            ) : (
+              <>
+                <Segmented options={MODES} value={mode} onChange={setMode} />
+                <Body small mute>
+                  {current.about}
+                </Body>
+                <Screen key={mode} onReview={startReview} onEditWaiting={reopen} />
+              </>
+            )}
           </View>
         </>
       )}

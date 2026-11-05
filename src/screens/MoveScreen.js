@@ -15,11 +15,14 @@ import { NoteToSelf } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStages } from "../components/StagePicker.js";
 import { Button, Notice } from "../components/ui.js";
 
-export function MoveScreen({ onReview }) {
+export function MoveScreen({ onReview, draftKey = "move", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
-  const [d, update, reset] = useDraft("move", () => ({ time: nowKey(), span: head.span, complete: head.complete }));
+  const [d, update, reset] = useDraft(
+    draftKey,
+    () => seed ?? { time: nowKey(), span: head.span, complete: head.complete },
+  );
   const memo = d.memo ?? "";
   const change = {
     kind: "move",

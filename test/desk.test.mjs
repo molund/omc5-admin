@@ -10,7 +10,7 @@ import { applyBoth, applyDeskChange, autoStages } from "../src/lib/deskChanges.j
 import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
-import { listEntries, waitingAt } from "../src/lib/entries.js";
+import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
 import { parseKey } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -381,4 +381,66 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
       assert.deepEqual(fr.deskHunks, [], f.key);
     }
   }
+});
+
+test("a waiting change keeps its place when replaced, and later ones stay on top of the new version", () => {
+  const changes = [
+    { id: "a", kind: "move" },
+    { id: "b", kind: "blog", title: "Old" },
+    { id: "c", kind: "move" },
+  ];
+  const out = replaceChangeIn(changes, "b", { kind: "blog", title: "New" }, "Add it", "now");
+  assert.deepEqual(
+    out.map((c) => c.id),
+    ["a", "b", "c"],
+  );
+  assert.deepEqual(out[1], { kind: "blog", title: "New", id: "b", message: "Add it", savedAt: "now" });
+});
+
+test("a waiting change reopens as the draft that makes it again", () => {
+  const head = { span: 37, complete: true };
+  const blocks = [{ type: "summary", text: "Words." }];
+  const T = "2030-01-01T09:00-07:00";
+  assert.deepEqual(
+    reopenAs({ kind: "move", time: T, span: 38, complete: false, noteToSelf: "m", stages: ["glued"] }, head),
+    {
+      screen: "move",
+      seed: { time: T, span: 38, complete: false, memo: "m", stages: ["glued"] },
+    },
+  );
+  const update = reopenAs(
+    {
+      kind: "update",
+      time: T,
+      span: 38,
+      complete: false,
+      title: "A title",
+      blocks,
+      retitle: [{ key: "k", title: "Other", slug: "s" }],
+      memo: { noteKey: T, text: "m" },
+      stages: [],
+    },
+    head,
+  );
+  assert.equal(update.seed.titleSet, true);
+  assert.deepEqual(update.seed.retitles, { k: "Other" });
+  // a follow-up that didn't move the gantry starts from where the gantry is
+  const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stages: [] }, head);
+  assert.deepEqual([fu.seed.span, fu.seed.complete, fu.seed.editing], [37, true, null]);
+  assert.equal(reopenAs({ kind: "blog", date: "2030-01-01", title: "T", blocks }, head).screen, "blog");
+  // what edits something saved reopens in the entry editor, with its steps split again
+  const edit = reopenAs({ kind: "note-edit", noteKey: T, title: "T", blocks, stages: ["arrived", "glued"] }, head);
+  assert.deepEqual(
+    [edit.screen, edit.target, edit.seed.kept, edit.seed.stages],
+    ["entry", { type: "note", key: T }, ["arrived"], ["glued"]],
+  );
+  assert.equal(reopenAs({ kind: "desk-edit", key: T, stages: [], noteToSelf: "x" }, head).seed.memo, "x");
+  assert.equal(
+    reopenAs({ kind: "followup-edit", noteKey: "n", fuKey: T, time: T, blocks, stages: [] }, head).target.type,
+    "followup",
+  );
+  assert.equal(canReopen({ kind: "note-delete" }), false);
+  assert.equal(canReopen({ kind: "followup-delete" }), false);
+  assert.equal(canReopen({ kind: "desk-delete" }), false);
+  assert.equal(canReopen({ kind: "note-edit" }), true);
 });

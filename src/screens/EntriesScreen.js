@@ -37,17 +37,16 @@ function EntryRow({ type, name, when, waiting, nested, onPress }) {
   );
 }
 
-export function EntriesScreen({ onReview }) {
+export function EntriesScreen({ onReview, onEditWaiting }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [shown, setShown] = useState(PAGE);
   const [d, update, reset] = useDraft("edit", () => ({ target: null }));
-  const [waitingTarget, setWaitingTarget] = useState(null);
   const entries = listEntries(desk.parsed, desk.deskEntries);
 
   const open = (target) => {
     const waiting = waitingAt(desk.changes, target.key);
-    if (waiting) setWaitingTarget({ target, change: waiting });
+    if (waiting) onEditWaiting(waiting);
     else update({ target, ...seedFor(desk, target) });
   };
   const close = () => {
@@ -56,25 +55,6 @@ export function EntriesScreen({ onReview }) {
   };
 
   if (d.target) return <EntryEditor target={d.target} draft={d} update={update} onClose={close} onReview={onReview} />;
-
-  if (waitingTarget)
-    return (
-      <View style={tw`gap-3`}>
-        <Notice>This hasn't been pushed yet. Change it under "Waiting to push" above, or discard it here.</Notice>
-        <View style={tw`flex-row gap-2`}>
-          <Button title="Back" onPress={() => setWaitingTarget(null)} style={tw`flex-1`} />
-          <Button
-            kind="danger"
-            title="Discard the waiting change"
-            style={tw`flex-1`}
-            onPress={() => {
-              desk.removeChange(waitingTarget.change.id);
-              setWaitingTarget(null);
-            }}
-          />
-        </View>
-      </View>
-    );
 
   if (!entries.length) return <Notice>Nothing has been saved yet.</Notice>;
   return (

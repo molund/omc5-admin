@@ -6,6 +6,7 @@ import { createContext, createElement, useCallback, useContext, useEffect, useMe
 import { commitMessage, photosOf } from "../lib/changes.js";
 import { applyAllBoth, applyBoth } from "../lib/deskChanges.js";
 import { EMPTY_DESK, parseDesk } from "../lib/deskFile.js";
+import { replaceChangeIn } from "../lib/entries.js";
 import { velocity } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { ownFile } from "../platform/claude";
@@ -16,11 +17,36 @@ export const useDesk = () => useContext(DeskContext);
 
 const newId = () => `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
+/** State kept on this device under a key; with no key, only for as long as it's on screen. */
 function usePersisted(key, initial) {
-  const [value, setValue] = useState(() => load(key, initial));
+  const [value, setValue] = useState(() => (key ? load(key, initial) : initial));
   const [kept, setKept] = useState(true);
-  useEffect(() => setKept(save(key, value)), [key, value]);
+  useEffect(() => {
+    if (key) setKept(save(key, value));
+  }, [key, value]);
   return [value, setValue, kept];
+}
+
+/** Everything a screen reads from the files, for one state of them. */
+function viewOf(files) {
+  const parsed = parseStatus(files.status);
+  const deskEntries = parseDesk(files.desk);
+  return {
+    text: files.status,
+    deskText: files.desk,
+    parsed,
+    deskEntries,
+    /** What a draft change would do to the files as they stand: { text, hunks, deskText, deskHunks, error }. */
+    preview(change) {
+      try {
+        const r = applyBoth({ status: files.status, desk: files.desk }, change);
+        return { text: r.status, hunks: r.hunks, deskText: r.desk, deskHunks: r.deskHunks, error: null };
+      } catch (e) {
+        return { text: files.status, hunks: [], deskText: files.desk, deskHunks: [], error: e.message };
+      }
+    },
+    suggestMessage: (change) => commitMessage(change, files.status),
+  };
 }
 
 export function DeskProvider({ children }) {
@@ -71,8 +97,21 @@ export function DeskProvider({ children }) {
     () => (copy.text == null ? null : applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK }, changes)),
     [copy.text, copy.desk, changes],
   );
-  const parsed = useMemo(() => (working ? parseStatus(working.status) : null), [working]);
-  const deskEntries = useMemo(() => (working ? parseDesk(working.desk) : []), [working]);
+  const view = useMemo(() => (working ? viewOf(working) : null), [working]);
+  const deskEntries = view?.deskEntries ?? [];
+
+  // its photos belong to the change now, not a draft
+  const keepPhotos = (change) => {
+    const ids = photosOf(change)
+      .map((b) => b.photoId)
+      .filter(Boolean);
+    if (ids.length)
+      setPhotos((ps) => {
+        const out = { ...ps };
+        for (const pid of ids) if (out[pid]) out[pid] = { ...out[pid], draft: false };
+        return out;
+      });
+  };
 
   const value = useMemo(
     () => ({
@@ -80,10 +119,13 @@ export function DeskProvider({ children }) {
       error: copy.error,
       meta: copy.meta,
       base: copy.text,
-      text: working?.status ?? null,
-      deskText: working?.desk ?? null,
-      parsed,
+      text: null,
+      deskText: null,
+      parsed: null,
       deskEntries,
+      preview: () => ({ text: null, hunks: [], deskText: null, deskHunks: [], error: null }),
+      suggestMessage: () => "",
+      ...view,
       /** The gantry's velocity from desk.yaml (lib/velocity.js), with the waiting changes in it. */
       velocity: velocity(deskEntries),
       results: working?.results ?? new Map(),
@@ -92,30 +134,23 @@ export function DeskProvider({ children }) {
       push,
       kept: changesKept && photosKept,
       reload,
-      /** What a draft change would do to the files as they stand: { text, hunks, deskText, deskHunks, error }. */
-      preview(change) {
-        try {
-          const r = applyBoth({ status: working.status, desk: working.desk }, change);
-          return { text: r.status, hunks: r.hunks, deskText: r.desk, deskHunks: r.deskHunks, error: null };
-        } catch (e) {
-          return { text: working?.status, hunks: [], deskText: working?.desk, deskHunks: [], error: e.message };
-        }
+      /** The files as they were just before a waiting change, for changing that change. */
+      before(id) {
+        const i = changes.findIndex((c) => c.id === id);
+        return viewOf(
+          applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK }, i < 0 ? changes : changes.slice(0, i)),
+        );
       },
-      suggestMessage: (change) => commitMessage(change, working?.status),
       addChange(change, message) {
         const id = newId();
         setChanges((cs) => [...cs, { ...change, id, message, savedAt: new Date().toISOString() }]);
-        // its photos belong to the change now, not a draft
-        const ids = photosOf(change)
-          .map((b) => b.photoId)
-          .filter(Boolean);
-        if (ids.length)
-          setPhotos((ps) => {
-            const out = { ...ps };
-            for (const pid of ids) if (out[pid]) out[pid] = { ...out[pid], draft: false };
-            return out;
-          });
+        keepPhotos(change);
         return id;
+      },
+      /** A waiting change, changed: it keeps its place in the list, so its commit keeps its place too. */
+      replaceChange(id, change, message) {
+        setChanges((cs) => replaceChangeIn(cs, id, change, message, new Date().toISOString()));
+        keepPhotos(change);
       },
       removeChange: (id) => setChanges((cs) => cs.filter((c) => c.id !== id)),
       addPhoto(info) {
@@ -132,14 +167,21 @@ export function DeskProvider({ children }) {
       /** Drops changes that are on main now (pushed from the phone). */
       dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
-    [copy, working, parsed, deskEntries, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
+    [copy, working, view, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
   );
   return createElement(DeskContext.Provider, { value }, children);
 }
 
-/** A screen's draft, kept on this device until it's saved as a change. */
+/** Its screens see the files as they were before a waiting change, so that changing it doesn't clash with itself. */
+export function BeforeChange({ id, children }) {
+  const desk = useDesk();
+  const value = useMemo(() => ({ ...desk, ...desk.before(id) }), [desk, id]);
+  return createElement(DeskContext.Provider, { value }, children);
+}
+
+/** A screen's draft, kept on this device until it's saved as a change. With a null key, only while it's on screen. */
 export function useDraft(key, initial) {
-  const [draft, setDraft] = usePersisted(`draft.${key}`, null);
+  const [draft, setDraft] = usePersisted(key ? `draft.${key}` : null, null);
   const value = draft ?? (typeof initial === "function" ? initial() : initial);
   const update = useCallback((patch) => setDraft((d) => ({ ...(d ?? value), ...patch })), [value]);
   const reset = useCallback(() => setDraft(null), []);

@@ -28,7 +28,7 @@ const noteName = (n) =>
       ? `${n.fields.summary.slice(0, 88)}…`
       : n.fields.summary;
 
-export function FollowUpScreen({ onReview }) {
+export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
@@ -44,7 +44,7 @@ export function FollowUpScreen({ onReview }) {
     span: head.span,
     complete: head.complete,
   });
-  const [d, update, reset] = useDraft("followup", () => fresh(first?.key));
+  const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
   if (!note) return <Notice>There are no updates to follow up yet.</Notice>;

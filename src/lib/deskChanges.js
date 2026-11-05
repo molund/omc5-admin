@@ -66,18 +66,11 @@ export function applyDeskChange(deskText, change, statusBefore) {
     }
     case "followup-edit":
       entries = moveEntry(entries, change.fuKey, change.time);
-      if (change.stages?.length) at(change.time, head.span, change.stages);
+      if (change.stages) entries = replaceStages(entries, change.time, change.stages, head.span);
       break;
-    case "blog":
+    case "followup-delete":
+      entries = removeEntries(entries, [change.fuKey]);
       break;
-    case "note-edit":
-      if (change.stages) entries = replaceStages(entries, change.noteKey, change.stages, head.span);
-      break;
-    case "note-delete": {
-      const note = parseStatus(statusBefore).notes.find((n) => n.key === change.noteKey);
-      entries = removeEntries(entries, [change.noteKey, ...(note?.followUps.map((f) => f.key) ?? [])]);
-      break;
-    }
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }

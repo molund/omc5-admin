@@ -17,6 +17,7 @@ import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStages } from "../components/StagePicker.js";
 import { autoStages } from "../lib/deskChanges.js";
 import { memoAt } from "../lib/deskFile.js";
+import { splitStages } from "../lib/stages.js";
 import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
@@ -69,7 +70,15 @@ export function FollowUpScreen({ onReview }) {
   const text = blockTexts(d.blocks).join("\n");
   const withMemo = { memo: { noteKey: note.key, text: memo }, stages: chosenStages(d.stages, text) };
   const change = d.editing
-    ? { kind: "followup-edit", noteKey: note.key, fuKey: d.editing, time: d.time, blocks: d.blocks, ...withMemo }
+    ? {
+        kind: "followup-edit",
+        noteKey: note.key,
+        fuKey: d.editing,
+        time: d.time,
+        blocks: d.blocks,
+        ...withMemo,
+        stages: [...(d.kept ?? []), ...withMemo.stages],
+      }
     : {
         kind: "followup",
         noteKey: note.key,
@@ -140,7 +149,10 @@ export function FollowUpScreen({ onReview }) {
                 kind="link"
                 small
                 title="Edit"
-                onPress={() => start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields) })}
+                onPress={() => {
+                  const { kept, reported } = splitStages(desk.deskEntries.find((e) => e.key === f.key)?.stages);
+                  start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields), kept, stages: reported });
+                }}
               />
             )}
           </Row>
@@ -163,6 +175,8 @@ export function FollowUpScreen({ onReview }) {
           onChange={(stages) => update({ stages })}
           auto={!d.editing && gantryChanged ? autoStages(head, d) : []}
           span={d.editing ? null : d.span}
+          kept={d.editing ? (d.kept ?? []) : []}
+          onKept={(kept) => update({ kept })}
         />
         <BlockEditor
           blocks={d.blocks}

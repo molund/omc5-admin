@@ -403,3 +403,48 @@ test("edit and delete have commit messages", () => {
   assert.equal(commitMessage(noteEdit(n), BASE), `Edit "${n.title}"`);
   assert.equal(commitMessage({ kind: "note-delete", noteKey: n.key }, BASE), `Delete "${n.title}"`);
 });
+
+test("deleting a follow-up: one of several, the last one, and the one the card shows", async () => {
+  const notes = parseStatus(BASE).notes;
+  const many = notes.find((x) => x.followUps.length > 1);
+  const r = applyChange(BASE, { kind: "followup-delete", noteKey: many.key, fuKey: many.followUps[0].key });
+  const after = parseStatus(r.text).notes.find((x) => x.key === many.key);
+  assert.equal(after.followUps.length, many.followUps.length - 1);
+  assert.deepEqual(after.fields, many.fields);
+  assert.equal(await prettyYaml(r.text), await prettyYaml(BASE));
+
+  const one = notes.find((x) => x.followUps.length === 1);
+  const gone = applyChange(BASE, { kind: "followup-delete", noteKey: one.key, fuKey: one.followUps[0].key });
+  const left = parseStatus(gone.text).notes.find((x) => x.key === one.key);
+  assert.equal(left.fuLine, -1, "no empty follow-up: line");
+  assert.equal((await site(gone.text)).history.length, notes.length);
+
+  const fuTime = "2026-11-20T09:00-07:00";
+  const added = applyChange(BASE, {
+    kind: "followup",
+    noteKey: one.key,
+    time: fuTime,
+    blocks: [{ type: "summary", text: "x" }],
+  });
+  const before = headerOf(parseStatus(BASE));
+  const undone = applyChange(added.text, { kind: "followup-delete", noteKey: one.key, fuKey: fuTime });
+  // the fixture's `updated` is older than its newest entry, so it goes back to that entry, not to the old value
+  const newest = "2026-11-03T20:30-07:00";
+  assert.deepEqual(headerOf(parseStatus(undone.text)), { ...before, updated: newest });
+  assert.equal(
+    undone.text,
+    BASE.replace(`updated: ${before.updated}`, `updated: ${newest}`),
+    "the rest goes back exactly",
+  );
+
+  assert.throws(
+    () => applyChange(BASE, { kind: "followup-delete", noteKey: one.key, fuKey: fuTime }),
+    /isn't in status.yaml/,
+  );
+  assert.equal(
+    commitMessage({ kind: "followup-delete", noteKey: one.key, fuKey: one.followUps[0].key }, BASE).startsWith(
+      "Delete the ",
+    ),
+    true,
+  );
+});

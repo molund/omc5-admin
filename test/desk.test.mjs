@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { stagesIn } from "../src/lib/stages.js";
+import { splitStages, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange, autoStages } from "../src/lib/deskChanges.js";
 import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
@@ -232,4 +232,36 @@ test("a stage on an entry with no record yet takes the span in force at that tim
     }).desk,
   );
   assert.equal(out.find((e) => e.key === n.key).span, 3);
+});
+
+test("a follow-up's stages can be replaced or cleared, and deleting it takes its record", () => {
+  const n = parseStatus(STATUS).notes.find((x) => x.followUps.length);
+  const fu = n.followUps[0];
+  const files = {
+    status: STATUS,
+    desk: formatDesk([{ key: fu.key, span: 30, stages: ["arrived", "glued"], noteToSelf: "" }]),
+  };
+  const edit = (stages) => ({
+    kind: "followup-edit",
+    noteKey: n.key,
+    fuKey: fu.key,
+    time: fu.key,
+    blocks: [{ type: "summary", text: "x" }],
+    stages,
+  });
+  assert.deepEqual(parseDesk(applyBoth(files, edit(["arrived", "cables down"])).desk)[0].stages, [
+    "arrived",
+    "cables down",
+  ]);
+  assert.deepEqual(parseDesk(applyBoth(files, edit([])).desk), [], "no stages left and no memo: no record");
+  assert.deepEqual(parseDesk(applyBoth(files, edit(undefined)).desk)[0].stages, ["arrived", "glued"], "left alone");
+  assert.deepEqual(parseDesk(applyBoth(files, { kind: "followup-delete", noteKey: n.key, fuKey: fu.key }).desk), []);
+});
+
+test("an entry's saved stages load as the arrived and hung it keeps, and one reported step", () => {
+  assert.deepEqual(splitStages(["hung", "glued", "post-tensioned", "arrived"]), {
+    kept: ["arrived", "hung"],
+    reported: ["post-tensioned"],
+  });
+  assert.deepEqual(splitStages(undefined), { kept: [], reported: [] });
 });

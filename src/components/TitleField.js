@@ -25,7 +25,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
     <View style={tw`gap-1.5`}>
       <Field
         multiline
-        heading={kind === "blog" ? "Title · heading, link preview and address" : "Title · link preview and address"}
+        heading="Title"
         right={
           !title.trim() || isDateTitle(title) ? null : (
             <Body small mute>
@@ -35,7 +35,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
         }
         value={title}
         onChangeText={(t) => onChange(t.replace(/\n/g, " "))}
-        placeholder={kind === "blog" ? "A title, in sentence case" : "Title"}
+        placeholder={kind === "blog" ? "In sentence case" : "Your own title"}
         label="Title"
         style={tw`min-h-14`}
       />

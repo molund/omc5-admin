@@ -17,7 +17,7 @@ export function NoteToSelf({ value, onChange, where }) {
         heading="Note to self"
         value={value}
         onChangeText={onChange}
-        placeholder="Anything to remember about this one"
+        placeholder="Anything to remember"
         label="Note to self"
         style={tw`min-h-14`}
       />

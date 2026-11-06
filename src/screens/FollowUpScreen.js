@@ -170,7 +170,6 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         <BlockEditor
           blocks={d.blocks}
           onChange={(blocks) => update({ blocks })}
-          summaryLabel={note.fields.post ? "Summary" : "Summary · goes on the card"}
           day={dayOf(d.time)}
           nameHint={d.blocks[0].text}
           followUp

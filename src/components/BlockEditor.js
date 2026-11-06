@@ -96,12 +96,11 @@ function SitePhoto({ file, caption }) {
  * @param {object} props
  * @param {object[]} props.blocks
  * @param {(b: object[]) => void} props.onChange
- * @param {string} props.summaryLabel
  * @param {string} props.day "2026-11-04", for photo names
  * @param {string} props.nameHint The title or summary, for photo names
  * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
  */
-export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, followUp }) {
+export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -160,10 +159,10 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
             <Field
               key="summary"
               multiline
-              heading={summaryLabel}
+              heading="Summary"
               value={b.text}
               onChangeText={(text) => set(i, { text })}
-              placeholder="What happened, in a sentence or two"
+              placeholder="What happened?"
               label="Summary"
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
             />
@@ -177,7 +176,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
               right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}
               value={b.text}
               onChangeText={(text) => set(i, { text })}
-              placeholder="Another paragraph"
+              placeholder="More detail"
               label={`Paragraph ${i}`}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
             />
@@ -207,7 +206,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
               heading="Caption"
               value={b.caption}
               onChangeText={(caption) => set(i, { caption })}
-              placeholder="Caption: what the photo shows"
+              placeholder="What it shows"
               label="Caption"
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}

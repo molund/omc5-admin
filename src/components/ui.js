@@ -199,6 +199,8 @@ export function ZoomScope({ children }) {
 /**
  * A text field, with icons over its top right corner: one that zooms the box, and one that copies an AI prompt for its text. `writes` is what the prompt
  * asks for ("a blog intro paragraph"); without it, the text for the field by its name. `noPrompt` leaves the icon off.
+ * With a `heading`, the field is one box: the title (tap it to type) and the icons share its top line, `right` going before
+ * the icons, and the text goes under them.
  */
 export function Field({
   value,
@@ -213,6 +215,8 @@ export function Field({
   writes,
   noPrompt,
   secure,
+  heading,
+  right,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -220,8 +224,9 @@ export function Field({
   const id = useId();
   const zoomed = zoom.active === id;
   const box = useRef(null);
-  const input = useRef(null);
+  const inputRef = useRef(null);
   const [restHeight, setRestHeight] = useState(null);
+  const [focused, setFocused] = useState(false);
   // on the web, a click outside the box; the phone's taps go through ZoomScope
   useEffect(() => {
     if (!zoomed || Platform.OS !== "web") return undefined;
@@ -233,7 +238,7 @@ export function Field({
   }, [zoomed]);
   const toggleZoom = () => {
     zoom.setActive(zoomed ? null : id);
-    if (!zoomed) input.current?.focus();
+    if (!zoomed) inputRef.current?.focus();
   };
   const size = small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 };
   const name = label ?? placeholder;
@@ -244,85 +249,119 @@ export function Field({
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(null), 1500);
   }
+  const icons = (
+    <>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Zoom ${name}`}
+        accessibilityState={{ selected: zoomed }}
+        onPress={toggleZoom}
+        style={({ hovered }) => [
+          tw`h-7 w-7 items-center justify-center rounded-md`,
+          zoomed && tw`bg-accent`,
+          hovered && tw`opacity-80`,
+        ]}
+      >
+        <Icon name={zoomed ? "zoomOut" : "zoomIn"} color={zoomed ? colors["accent-ink"] : colors.mute} />
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Copy an AI prompt for ${name}`}
+        onPress={copyPrompt}
+        style={({ hovered }) => [tw`h-7 w-7 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
+      >
+        <Icon name={copied ? "check" : "sparkle"} color={copied ? colors.green : colors.mute} />
+      </Pressable>
+    </>
+  );
+  const notice =
+    copied === false ? (
+      <View style={tw`gap-1.5 ${heading ? "px-3" : ""}`}>
+        <Notice tone="problem">The copy was refused here. Select the prompt below and copy it by hand.</Notice>
+        <Text selectable style={tw`rounded-md bg-code p-2.5 font-mono text-xs text-ink`}>
+          {prompt()}
+        </Text>
+      </View>
+    ) : null;
+  const input = (
+    <TextInput
+      ref={inputRef}
+      onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      accessibilityLabel={name}
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor={colors.mute}
+      multiline={multiline}
+      // on the phone a box grows with its text and never scrolls inside itself, so a swipe that starts on one scrolls the page
+      scrollEnabled={!multiline}
+      autoFocus={autoFocus}
+      // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
+      autoCapitalize={mono ? "none" : "sentences"}
+      autoCorrect={!mono}
+      // a secret (the GitHub token): shown as dots, and kept out of the keyboard's suggestions
+      secureTextEntry={secure}
+      style={[
+        // with a heading the box around it has the border, and shows the focus
+        heading
+          ? tw`bg-transparent px-3 pb-2.5 pt-0 text-ink`
+          : tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink`,
+        // one size, focused or not, unless it's zoomed: a box that changes size by itself stops the page mid-scroll
+        size,
+        mono && tw`font-mono`,
+        multiline && tw`min-h-20`,
+        { outlineColor: colors.accent },
+        heading && { outlineStyle: "none" },
+        style,
+        zoomed && {
+          fontSize: size.fontSize * 1.5,
+          lineHeight: size.lineHeight && size.lineHeight * 1.5,
+          // at least twice as tall, but free to grow on the phone; the web's box can't grow by itself, so it's set
+          ...(restHeight && { minHeight: restHeight * 2, ...(Platform.OS === "web" && { height: restHeight * 2 }) }),
+        },
+      ]}
+    />
+  );
+  const touch = {
+    onTouchEnd: () => {
+      zoom.inside.current = id;
+    },
+  };
+  if (heading)
+    return (
+      <View
+        ref={box}
+        style={tw`rounded-lg border bg-panel ${focused || zoomed ? "border-accent" : "border-line"}`}
+        {...touch}
+      >
+        <View style={tw`flex-row items-center gap-1 pl-3 pr-1.5 pt-1.5`}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Type in ${name}`}
+            onPress={() => inputRef.current?.focus()}
+            style={tw`flex-1 py-1`}
+          >
+            <Text style={tw`text-sm font-semibold text-ink`}>{heading}</Text>
+          </Pressable>
+          {right}
+          {!noPrompt && icons}
+        </View>
+        {notice}
+        {input}
+      </View>
+    );
   const body = (
     <>
-      {!noPrompt && (
-        <View style={tw`flex-row justify-end gap-1`}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Zoom ${name}`}
-            accessibilityState={{ selected: zoomed }}
-            onPress={toggleZoom}
-            style={({ hovered }) => [
-              tw`h-7 w-7 items-center justify-center rounded-md`,
-              zoomed && tw`bg-accent`,
-              hovered && tw`opacity-80`,
-            ]}
-          >
-            <Icon name={zoomed ? "zoomOut" : "zoomIn"} color={zoomed ? colors["accent-ink"] : colors.mute} />
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Copy an AI prompt for ${name}`}
-            onPress={copyPrompt}
-            style={({ hovered }) => [tw`h-7 w-7 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
-          >
-            <Icon name={copied ? "check" : "sparkle"} color={copied ? colors.green : colors.mute} />
-          </Pressable>
-        </View>
-      )}
-      {copied === false && (
-        <View style={tw`gap-1.5`}>
-          <Notice tone="problem">The copy was refused here. Select the prompt below and copy it by hand.</Notice>
-          <Text selectable style={tw`rounded-md bg-code p-2.5 font-mono text-xs text-ink`}>
-            {prompt()}
-          </Text>
-        </View>
-      )}
-      <TextInput
-        ref={input}
-        onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
-        accessibilityLabel={name}
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.mute}
-        multiline={multiline}
-        // on the phone a box grows with its text and never scrolls inside itself, so a swipe that starts on one scrolls the page
-        scrollEnabled={!multiline}
-        autoFocus={autoFocus}
-        // a monospaced field is a file name or a command: no capital letters or corrections from the phone's keyboard
-        autoCapitalize={mono ? "none" : "sentences"}
-        autoCorrect={!mono}
-        // a secret (the GitHub token): shown as dots, and kept out of the keyboard's suggestions
-        secureTextEntry={secure}
-        style={[
-          tw`rounded-md border border-line bg-panel px-2.5 py-2 text-ink`,
-          // one size, focused or not, unless it's zoomed: a box that changes size by itself stops the page mid-scroll
-          size,
-          mono && tw`font-mono`,
-          multiline && tw`min-h-20`,
-          { outlineColor: colors.accent },
-          style,
-          zoomed && {
-            fontSize: size.fontSize * 1.5,
-            lineHeight: size.lineHeight && size.lineHeight * 1.5,
-            // at least twice as tall, but free to grow on the phone; the web's box can't grow by itself, so it's set
-            ...(restHeight && { minHeight: restHeight * 2, ...(Platform.OS === "web" && { height: restHeight * 2 }) }),
-          },
-        ]}
-      />
+      {!noPrompt && <View style={tw`flex-row justify-end gap-1`}>{icons}</View>}
+      {notice}
+      {input}
     </>
   );
   if (noPrompt) return body;
   return (
-    <View
-      ref={box}
-      style={tw`gap-2.5`}
-      onTouchEnd={() => {
-        zoom.inside.current = id;
-      }}
-    >
+    <View ref={box} style={tw`gap-2.5`} {...touch}>
       {body}
     </View>
   );

@@ -4,7 +4,8 @@
 import { useTw } from "../theme/tw.js";
 import { dateTitle, isDateTitle, slugFor, titleAdvice } from "../lib/titles.js";
 import { pageHeading } from "../lib/time.js";
-import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
+import { View } from "react-native";
+import { Body, Button, Field, Notice, Row } from "./ui.js";
 
 /**
  * @param {object} props
@@ -21,8 +22,10 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
   const slug = address ?? (title.trim() ? slugFor(title.trim(), stamp, notes) : "");
   const usingDate = isDateTitle(title);
   return (
-    <Panel>
-      <Label
+    <View style={tw`gap-1.5`}>
+      <Field
+        multiline
+        heading={kind === "blog" ? "Title · heading, link preview and address" : "Title · link preview and address"}
         right={
           !title.trim() || isDateTitle(title) ? null : (
             <Body small mute>
@@ -30,22 +33,17 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
             </Body>
           )
         }
-      >
-        {kind === "blog" ? "Title · heading, link preview and address" : "Title · link preview and address"}
-      </Label>
-      {kind === "update" && (
-        <Body small mute>
-          {`Page heading, from the time stamp: ${pageHeading(stamp)}`}
-        </Body>
-      )}
-      <Field
-        multiline
         value={title}
         onChangeText={(t) => onChange(t.replace(/\n/g, " "))}
         placeholder={kind === "blog" ? "A title, in sentence case" : "Title"}
         label="Title"
         style={tw`min-h-14`}
       />
+      {kind === "update" && (
+        <Body small mute>
+          {`Page heading, from the time stamp: ${pageHeading(stamp)}`}
+        </Body>
+      )}
       {slug ? (
         <Body small mute style={tw`font-mono`}>
           ?post={slug}
@@ -71,7 +69,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
       {advice.warnings.map((w) => (
         <Notice key={w}>{w}</Notice>
       ))}
-    </Panel>
+    </View>
   );
 }
 

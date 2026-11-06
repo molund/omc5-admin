@@ -157,31 +157,30 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
       {blocks.map((b, i) => {
         if (b.type === "summary")
           return (
-            <Panel key="summary">
-              <Label>{summaryLabel}</Label>
-              <Field
-                multiline
-                value={b.text}
-                onChangeText={(text) => set(i, { text })}
-                placeholder="What happened, in a sentence or two"
-                label="Summary"
-                writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
-              />
-            </Panel>
+            <Field
+              key="summary"
+              multiline
+              heading={summaryLabel}
+              value={b.text}
+              onChangeText={(text) => set(i, { text })}
+              placeholder="What happened, in a sentence or two"
+              label="Summary"
+              writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
+            />
           );
         if (b.type === "text")
           return (
-            <Panel key={b.k ?? `t${i}`}>
-              <Label right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}>Paragraph</Label>
-              <Field
-                multiline
-                value={b.text}
-                onChangeText={(text) => set(i, { text })}
-                placeholder="Another paragraph"
-                label={`Paragraph ${i}`}
-                writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
-              />
-            </Panel>
+            <Field
+              key={b.k ?? `t${i}`}
+              multiline
+              heading="Paragraph"
+              right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}
+              value={b.text}
+              onChangeText={(text) => set(i, { text })}
+              placeholder="Another paragraph"
+              label={`Paragraph ${i}`}
+              writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
+            />
           );
         const p = b.photoId ? desk.photos[b.photoId] : null;
         return (
@@ -205,6 +204,7 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
             )}
             <Field
               multiline
+              heading="Caption"
               value={b.caption}
               onChangeText={(caption) => set(i, { caption })}
               placeholder="Caption: what the photo shows"

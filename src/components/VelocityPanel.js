@@ -12,7 +12,7 @@ import { clock24, stamp } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
-const hours = (h) => `${Math.round(h * 4) / 4} h`;
+const hours = (h) => `${h.toFixed(2)} h`;
 
 export function VelocityPanel() {
   const { tw } = useTw();

@@ -1,5 +1,6 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last two spans, the
-// cycles it's from, how long the gantry has been on its span, and each step logged, with the time since its span's arrival.
+// cycles it's from, how long the gantry has been on its span, and each step logged, grouped by span, with its time (BC, 24-hour
+// clock) and the working time since its span's arrival.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
 import { View } from "react-native";
@@ -7,7 +8,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { sinceArrival, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { stamp } from "../lib/time.js";
+import { clock24, stamp } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -20,6 +21,13 @@ export function VelocityPanel() {
   const v = desk.velocity;
   if (!v) return null;
   const recent = v.current ? sinceArrival(desk.deskEntries).filter((t) => t.span >= v.current.span - WINDOW) : [];
+  // the steps under their span, in the same order
+  const bySpan = [];
+  for (const t of recent) {
+    if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
+    bySpan.at(-1).steps.push(t);
+  }
+  const num = { fontVariant: ["tabular-nums"] };
   return (
     <Panel>
       <Label
@@ -68,13 +76,23 @@ export function VelocityPanel() {
           <Body small mute>
             Steps logged, in working time since arriving at the span
           </Body>
-          {recent.map((t) => (
-            <Row key={t.key}>
-              <Body small>{`Span ${t.span}: ${STAGE_LABELS[t.stage]}`}</Body>
-              <Body small mute>
-                {hours(t.hours)}
-              </Body>
-            </Row>
+          {bySpan.map((g) => (
+            <View key={g.span} style={tw`gap-0.5 pt-1`}>
+              <Body small style={tw`font-semibold`}>{`Span ${g.span}`}</Body>
+              {g.steps.map((t) => (
+                <View key={t.key} style={tw`flex-row items-baseline gap-2 pl-3`}>
+                  <Body small style={tw`flex-1`}>
+                    {STAGE_LABELS[t.stage]}
+                  </Body>
+                  <Body small mute style={[tw`w-12 text-right`, num]}>
+                    {clock24(t.key)}
+                  </Body>
+                  <Body small mute style={[tw`w-16 text-right`, num]}>
+                    {hours(t.hours)}
+                  </Body>
+                </View>
+              ))}
+            </View>
           ))}
         </View>
       )}

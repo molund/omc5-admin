@@ -68,6 +68,12 @@ export function shiftKey(key, minutes) {
   return isDateOnly(key) ? dayOf(t) : toKey(t);
 }
 
+/** "16:30": a key's BC (Vancouver) time on a 24-hour clock, no date. */
+export function clock24(key) {
+  const d = bc(parseKey(key));
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
+}
+
 /** "4:30 p.m." */
 export function clock(key) {
   const d = bc(parseKey(key));

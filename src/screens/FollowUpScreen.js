@@ -39,6 +39,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
     editing: null,
     memo: undefined, // untouched: the parent's own
     time: nowKey(),
+    manualUntil: null,
     blocks: emptyBlocks(),
     span: head.span,
     complete: head.complete,
@@ -153,6 +154,9 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         <TimeStampField
           value={d.time}
           onChange={(time) => update({ time })}
+          auto={!seed && !d.editing}
+          manualUntil={d.manualUntil}
+          onManual={(manualUntil) => update({ manualUntil })}
           note={d.editing ? "Moving it changes only its own time stamp." : undefined}
         />
         <StagePicker

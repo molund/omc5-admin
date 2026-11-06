@@ -36,7 +36,13 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
   return (
     <View style={tw`gap-3`}>
       <GantryControls value={d} current={head} onChange={(g) => update(g)} />
-      <TimeStampField value={d.time} onChange={(time) => update({ time })} />
+      <TimeStampField
+        value={d.time}
+        onChange={(time) => update({ time })}
+        auto={!seed}
+        manualUntil={d.manualUntil}
+        onManual={(manualUntil) => update({ manualUntil })}
+      />
       {compareKeys(d.time, head.updated) < 0 && (
         <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>
       )}

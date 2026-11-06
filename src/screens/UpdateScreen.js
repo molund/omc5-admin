@@ -63,7 +63,13 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   return (
     <View style={tw`gap-3`}>
       <GantryFold value={d} current={head} onChange={(g) => update(g)} />
-      <TimeStampField value={d.time} onChange={(time) => update({ time })} />
+      <TimeStampField
+        value={d.time}
+        onChange={(time) => update({ time })}
+        auto={!seed}
+        manualUntil={d.manualUntil}
+        onManual={(manualUntil) => update({ manualUntil })}
+      />
       <StagePicker
         text={blockTexts(d.blocks).join("\n")}
         value={d.stage}

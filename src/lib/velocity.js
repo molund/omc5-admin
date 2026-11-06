@@ -55,6 +55,24 @@ export function stepsBySpan(entries) {
 }
 
 /**
+ * The days each span took, from its arrival to the next span's arrival: { [span]: { start, end, shutdown } }. `end` is null
+ * for the newest span (or one whose next arrival wasn't logged), `shutdown` whether the weekly shutdown fell inside it.
+ * A span with no logged arrival isn't in it.
+ */
+export function spanDays(entries) {
+  const by = stepsBySpan(entries);
+  const out = {};
+  for (const [span, steps] of Object.entries(by)) {
+    const start = steps[STAGES[0]];
+    if (!start) continue;
+    const end = by[Number(span) + 1]?.[STAGES[0]] ?? null;
+    const [a, b] = [parseKey(start), end && parseKey(end)];
+    out[span] = { start, end, shutdown: !!end && workingHours(a, b) < (b - a) / HOUR };
+  }
+  return out;
+}
+
+/**
  * The cycles measured, newest first: { from: span, to: span, by: stage, start, end, hours }.
  * Only consecutive spans, and only when both have a common step.
  */

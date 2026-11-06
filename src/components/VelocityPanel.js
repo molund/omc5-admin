@@ -6,9 +6,9 @@ import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { sinceArrival, WINDOW } from "../lib/velocity.js";
+import { sinceArrival, spanDays, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { clock24, stamp } from "../lib/time.js";
+import { clock24, dayOf, stamp, todayKey, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -27,6 +27,15 @@ export function VelocityPanel() {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
     bySpan.at(-1).steps.push(t);
   }
+  const spanRanges = spanDays(desk.deskEntries);
+  // "Tues - Thurs": the weekday it arrived to the weekday the next span did ("?" while it's on this one), and "Today" for an
+  // arrival today
+  const range = (span) => {
+    const d = spanRanges[span];
+    if (!d) return "";
+    const from = dayOf(d.start) === todayKey() ? "Today" : weekdayShort(d.start);
+    return `${from} - ${d.end ? weekdayShort(d.end) : "?"}${d.shutdown ? " (minus Sunday)" : ""}`;
+  };
   const num = { fontVariant: ["tabular-nums"] };
   return (
     <Panel>
@@ -78,7 +87,7 @@ export function VelocityPanel() {
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
-              <Body small style={tw`font-semibold`}>{`Span ${g.span}`}</Body>
+              <Body small style={tw`font-semibold`}>{`Span ${g.span}: ${range(g.span)}`}</Body>
               {g.steps.map((t) => (
                 <View key={t.key} style={tw`flex-row items-baseline gap-2 pl-3`}>
                   <Body small style={tw`flex-1`}>

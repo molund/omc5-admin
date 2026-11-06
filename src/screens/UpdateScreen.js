@@ -16,7 +16,7 @@ import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
-import { postedStage } from "../lib/deskFile.js";
+import { memoAt, postedStage } from "../lib/deskFile.js";
 import { Button, Notice } from "../components/ui.js";
 
 export function UpdateScreen({ onReview, draftKey = "update", seed }) {
@@ -24,7 +24,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   const desk = useDesk();
   const notes = desk.parsed.notes;
   const head = headerOf(desk.parsed);
-  const [d, update, reset] = useDraft(
+  const [saved, update, reset] = useDraft(
     draftKey,
     () =>
       seed ?? {
@@ -34,9 +34,13 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         title: "",
         titleSet: false,
         blocks: emptyBlocks(),
-        memo: "",
+        memo: undefined, // untouched: the one already at this time stamp, if any
       },
   );
+  // until the gantry is changed here, the draft shows the gantry as it is now, even if it moved since the draft was saved
+  const d = saved.gantrySet || seed ? saved : { ...saved, span: head.span, complete: head.complete };
+  // a position at the same time stamp may have a note to self: it fills the field, and stays unless it is deleted here
+  const memo = d.memo ?? memoAt(desk.deskEntries, d.time);
   // until a title is typed, it's the date title
   const title = d.titleSet ? d.title : dateTitle(d.time);
   // notes are keyed by time stamp, so two can't share one
@@ -54,7 +58,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     complete: d.complete,
     title: title.trim(),
     blocks: d.blocks,
-    memo: { noteKey: d.time, text: d.memo ?? "" },
+    memo: { noteKey: d.time, text: memo },
     stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
@@ -64,7 +68,11 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   };
   return (
     <View style={tw`gap-3`}>
-      <GantryFold value={d} current={head} onChange={(g) => update(g)} />
+      <GantryFold
+        value={d}
+        current={head}
+        onChange={(g) => update({ ...g, gantrySet: g.span !== head.span || g.complete !== head.complete })}
+      />
       <TimeStampField
         value={d.time}
         onChange={(time) => update({ time })}
@@ -95,7 +103,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
       />
-      <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
+      <NoteToSelf value={memo} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
       <CardPreview card={cardFor(preview.text)} />
       {problems.map((p) => (

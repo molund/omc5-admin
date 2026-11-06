@@ -5,7 +5,7 @@
 //   stages: ["glued", …]          the steps it reports, tagged at its own time stamp
 //   noteToSelf: "…"               (move) the note to self at its time stamp
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
-// and, without asking, every move of the gantry is logged: a new span is "arrived", a span marked complete is "hung".
+// and, without asking, every move of the gantry is logged: a new span is "arrived", a span marked hung is "hung".
 import { parseStatus, headerOf } from "./statusFile.js";
 import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStages, setEntry } from "./deskFile.js";
 import { applyChange, Conflict } from "./changes.js";

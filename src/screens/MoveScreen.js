@@ -1,5 +1,5 @@
-// Position: the gantry's span, Complete and a time stamp. No text, so the card shows a Trackside button. The steps of the
-// cycle seen and a note to self go in desk.yaml; a move logs "arrived" and marking a span complete logs "hung" by itself, so
+// Position: the gantry's span, Hung and a time stamp. No text, so the card shows a Trackside button. The steps of the
+// cycle seen and a note to self go in desk.yaml; a move logs "arrived" and marking a span hung logs "hung" by itself, so
 // the velocity has them even when there's no update about them.
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";

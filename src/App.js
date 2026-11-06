@@ -25,7 +25,7 @@ const MODES = [
     label: "Position",
     icon: "crosshair",
     screen: MoveScreen,
-    about: "Position only: the span and Complete, with a time stamp.",
+    about: "Position only: the span and Hung, with a time stamp.",
   },
   { value: "update", label: "Update", screen: UpdateScreen, about: "A status update. Its summary goes on the card." },
   {

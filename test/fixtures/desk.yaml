@@ -7,7 +7,7 @@
 #     supports started, supports moved
 #   note-to-self: a memo, one line
 # A time stamp can match a note or follow-up in status.yaml, or stand alone (a step seen with no post about it). The
-# desk logs every move of the gantry here ("arrived"), and marking a span complete logs "hung".
+# desk logs every move of the gantry here ("arrived"), and marking a span hung logs "hung".
 entries:
   - 2026-11-05T10:00-07:00:
       span: 38

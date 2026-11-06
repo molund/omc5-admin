@@ -16,7 +16,7 @@ const HEADER = `# The Status Desk's own records (molund/omc5-admin). The site do
 #     ${STAGES.slice(9).join(", ")}
 #   note-to-self: a memo, one line
 # A time stamp can match a note or follow-up in status.yaml, or stand alone (a step seen with no post about it). The
-# desk logs every move of the gantry here ("arrived"), and marking a span complete logs "hung".`;
+# desk logs every move of the gantry here ("arrived"), and marking a span hung logs "hung".`;
 
 const unquote = (v) => {
   v = v.trim();

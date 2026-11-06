@@ -21,7 +21,7 @@ export const STAGES = [
 export const STAGE_LABELS = {
   arrived: "Arrived at the span",
   "hanging started": "Hanging started",
-  hung: "All segments hung (complete)",
+  hung: "All segments hung",
   "gluing started": "Gluing started",
   glued: "Glued",
   "post-tensioning started": "Post-tensioning started",

@@ -8,7 +8,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { sinceArrival, spanDays, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { clock24, dayOf, stamp, todayKey, weekdayShort } from "../lib/time.js";
+import { clock24, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -28,13 +28,11 @@ export function VelocityPanel() {
     bySpan.at(-1).steps.push(t);
   }
   const spanRanges = spanDays(desk.deskEntries);
-  // "Tues - Thurs": the weekday it arrived to the weekday the next span did ("?" while it's on this one), and "Today" for an
-  // arrival today
+  // "Tues - Thurs": the weekday it arrived to the weekday the next span did ("?" while it's on this one)
   const range = (span) => {
     const d = spanRanges[span];
     if (!d) return "";
-    const from = dayOf(d.start) === todayKey() ? "Today" : weekdayShort(d.start);
-    return `${from} - ${d.end ? weekdayShort(d.end) : "?"}${d.shutdown ? " (minus Sunday)" : ""}`;
+    return `${weekdayShort(d.start)} - ${d.end ? weekdayShort(d.end) : "?"}${d.shutdown ? " (minus Sunday)" : ""}`;
   };
   const num = { fontVariant: ["tabular-nums"] };
   return (

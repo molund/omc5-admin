@@ -4,7 +4,7 @@
 //
 //   updated: 2026-11-03T20:30-07:00            header lines, at the start of a line
 //   span: 37
-//   complete: true
+//   hung: true                                  (complete: before Nov. 6, 2026; still read and written)
 //   notes:
 //     - 2026-11-03T07:15-07:00: "Title"        a note, two spaces in, its fields four spaces in
 //       summary: "…"
@@ -177,7 +177,8 @@ export function headerOf(parsed) {
   return {
     updated: h.updated?.value ?? "",
     span: h.span ? +h.span.value : null,
-    complete: h.complete?.value === "true",
+    // `hung:` (or `complete:`, its old name): whether all the span's segments are hung
+    complete: (h.hung ?? h.complete)?.value === "true",
   };
 }
 

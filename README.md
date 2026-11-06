@@ -8,7 +8,7 @@ A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a 
 
 | Mode          | What it writes                                                                                               | The card                          |
 | ------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------- |
-| **Position**  | `updated`, `span`, `complete`                                                                                | no text, a Trackside button       |
+| **Position**  | `updated`, `span`, `hung`                                                                                    | no text, a Trackside button       |
 | **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                 | the summary, Comments             |
 | **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments |
 | **Blog**      | a note keyed by date alone, with `post: true`                                                                | unchanged                         |
@@ -39,7 +39,7 @@ is an ordinary change: it's reviewed, waits in the list, becomes one commit, and
 - **Addresses:** the site works out `?post=` addresses from titles, and a repeated title gets `-2` by age. An edit or delete
   that would change any note's address writes a `slug:` that keeps it.
 - **The card:** deleting what the card shows moves `updated` back to the newest time left (a status update, a follow-up or a
-  position, not a blog post). Span and Complete don't change; use Position for those.
+  position, not a blog post). Span and Hung don't change; use Position for those.
 - **Steps:** the slider holds the furthest step an entry reports, and any other steps it has stay listed, each with a Remove
   button, so editing an entry's words costs the velocity nothing. Deleting an entry takes its `desk.yaml` record with it.
 - **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address stops
@@ -61,7 +61,7 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
 - **Gantry steps.** Position, Update and Follow-up have a "Gantry steps" panel. The steps are picked from what you write by
   rules (`src/lib/stages.js`: "moved to span 38", "fully glued", "started moving its supports" and so on); tap any to change
   them. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
-  capability). Every move logs "arrived" by itself, and marking a span complete logs "hung", so a missed report doesn't
+  capability). Every move logs "arrived" by itself, and marking a span hung logs "hung", so a missed report doesn't
   leave a hole.
 - **Velocity.** The panel under the desk copy shows the working days per span over the last two spans, arrival to arrival
   (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 8 p.m.; how long the gantry has been on its

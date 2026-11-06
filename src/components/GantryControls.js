@@ -1,4 +1,5 @@
-// The Clayton Clipper's span and whether it's complete. Moving to a new span turns Complete off, as the deploy workflow does.
+// The Clayton Clipper's span and whether all its segments are hung (`hung:` in status.yaml). Moving to a new span turns Hung
+// off, as the deploy workflow does.
 import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -7,7 +8,7 @@ import { Body, Button, Label, Notice, Panel, Row, Stepper, Toggle } from "./ui.j
 export const FIRST_SPAN = 3,
   LAST_SPAN = 104;
 
-const describe = (g) => `Span ${g.span} · ${g.complete ? "complete" : "not complete"}`;
+const describe = (g) => `Span ${g.span} · ${g.complete ? "hung" : "not hung"}`;
 
 /**
  * @param {{ value: {span:number, complete:boolean}, current: {span:number, complete:boolean}, onChange: Function }} props
@@ -31,11 +32,11 @@ export function GantryControls({ value, current, onChange }) {
         <Stepper label="Span" value={value.span} onMinus={() => step(-1)} onPlus={() => step(1)} />
       </Row>
       <Toggle
-        label={`Span ${value.span} complete`}
+        label={`Span ${value.span} hung`}
         value={value.complete}
         onChange={(complete) => onChange({ ...value, complete })}
       />
-      {value.span !== current.span && <Notice>Moving to a new span turns Complete off.</Notice>}
+      {value.span !== current.span && <Notice>Moving to a new span turns Hung off.</Notice>}
     </Panel>
   );
 }

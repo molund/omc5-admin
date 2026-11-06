@@ -12,7 +12,7 @@
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stages, noteToSelf }  a record in desk.yaml with no post: only desk.yaml changes
-//   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and complete stay
+//   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
@@ -105,9 +105,11 @@ function setHeader(doc, values) {
   const { header } = doc.parsed;
   for (const [k, v] of Object.entries(values)) {
     if (v === undefined || v === null) continue;
-    const h = header[k];
-    if (!h) throw new Conflict(`status.yaml has no "${k}:" line.`);
-    const line = `${k}: ${v}`;
+    // the change's `complete` is the file's `hung:` line (`complete:` in a file from before Nov. 6, 2026)
+    const name = k === "complete" && !header.complete ? "hung" : k;
+    const h = header[name];
+    if (!h) throw new Conflict(`status.yaml has no "${name}:" line.`);
+    const line = `${name}: ${v}`;
     if (doc.lines[h.line] !== line) doc.replace(h.line, 1, [line]);
   }
 }
@@ -170,7 +172,7 @@ function keepAddresses(doc, before) {
 
 /**
  * When what the card showed is gone, `updated` goes back to the newest time left: a status update, a follow-up or a
- * record in desk.yaml (a position). Blog posts never set it. With nothing left, it stays. Span and complete don't change.
+ * record in desk.yaml (a position). Blog posts never set it. With nothing left, it stays. Span and hung don't change.
  */
 function fallBack(doc, removed, updated, deskKeys) {
   if (!removed.includes(updated)) return;
@@ -304,8 +306,8 @@ export function commitMessage(change, before) {
       const logged = change.stages?.length ? ` and log ${change.stages.join(", ")}` : "";
       const memo = logged + (change.noteToSelf?.trim() ? " and add a note to self" : "");
       if (change.span !== head.span) return `Move the Clayton Clipper to span ${change.span}${memo}`;
-      if (change.complete && !head.complete) return `Mark span ${change.span} as complete${memo}`;
-      if (!change.complete && head.complete) return `Mark span ${change.span} as not complete${memo}`;
+      if (change.complete && !head.complete) return `Mark span ${change.span} as hung${memo}`;
+      if (!change.complete && head.complete) return `Mark span ${change.span} as not hung${memo}`;
       return `Update the progress time to ${clock(change.time)} on ${shortDate(change.time)}${memo}`;
     }
     case "update":

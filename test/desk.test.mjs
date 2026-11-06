@@ -443,3 +443,20 @@ test("a waiting change reopens as the draft that makes it again", () => {
   assert.equal(canReopen({ kind: "desk-delete" }), false);
   assert.equal(canReopen({ kind: "note-edit" }), true);
 });
+
+test("status.yaml's hung: line (complete: in a file from before Nov. 6) is read and written", async () => {
+  const { applyChange, commitMessage } = await import("../src/lib/changes.js");
+  const { headerOf } = await import("../src/lib/statusFile.js");
+  const move = { kind: "move", time: "2026-11-06T08:00-07:00", span: 38, complete: true };
+  // an old file: complete:
+  const old = STATUS.replace(/^span: .*$/m, "span: 38").replace(/^complete: .*$/m, "complete: false");
+  assert.match(applyChange(old, move).text, /^complete: true$/m);
+  // a new one: hung:
+  const now = old.replace(/^complete: /m, "hung: ");
+  assert.equal(headerOf(parseStatus(now)).complete, false);
+  const after = applyChange(now, move).text;
+  assert.match(after, /^hung: true$/m);
+  assert.doesNotMatch(after, /^complete:/m);
+  assert.equal(headerOf(parseStatus(after)).complete, true);
+  assert.equal(commitMessage(move, now), "Mark span 38 as hung");
+});

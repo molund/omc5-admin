@@ -45,7 +45,7 @@ function deleteWarning(target, note, address) {
   if (target.type === "followup")
     return "This follow-up comes off the site when you push. Its photo files stay in the repo.";
   if (!note?.fields.summary)
-    return "This record comes out of desk.yaml when you push, and any steps in it leave the velocity. The gantry's span and Complete stay as they are.";
+    return "This record comes out of desk.yaml when you push, and any steps in it leave the velocity. The gantry's span and Hung stay as they are.";
   const count = note.followUps.length;
   return [
     `This comes off the site when you push, and ?post=${address} stops working.`,

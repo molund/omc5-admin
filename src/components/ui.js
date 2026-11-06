@@ -22,12 +22,12 @@ export function Panel({ children, style, tone }) {
   );
 }
 
-/** A small uppercase label over a field or group. */
+/** A title over a field or group, in the ink colour so it is not mistaken for a watermark. */
 export function Label({ children, right }) {
   const { tw } = useTw();
   return (
     <View style={tw`flex-row items-center justify-between gap-2`}>
-      <Text style={tw`text-xs font-bold uppercase tracking-wider text-mute`}>{children}</Text>
+      <Text style={tw`text-sm font-semibold text-ink`}>{children}</Text>
       {right}
     </View>
   );

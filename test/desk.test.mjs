@@ -224,17 +224,17 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       .filter((t) => t.span === 36)
       .map((t) => [t.stage, t.hours]),
     [
-      ["supports started", 58.5],
-      ["cables down", 45],
-      ["post-tensioning started", 36.5],
-      ["hung", 17.25],
-      ["hanging started", 12.75],
       ["arrived at span", 0],
+      ["hanging started", 12.75],
+      ["hung", 17.25],
+      ["post-tensioning started", 36.5],
+      ["cables down", 45],
+      ["supports started", 58.5],
     ],
   );
 });
 
-test("steps logged since arrival: highest span first, then longest first, none without a logged arrival or before it", () => {
+test("steps logged since arrival: highest span first, then shortest first, none without a logged arrival or before it", () => {
   const entries = [
     { key: "2026-11-03T09:00-07:00", span: 41, stage: "hung" },
     { key: "2026-11-03T08:00-07:00", span: 41, stage: "arrived at span" },
@@ -248,11 +248,11 @@ test("steps logged since arrival: highest span first, then longest first, none w
   assert.deepEqual(
     sinceArrival(entries).map((t) => [t.span, t.stage, t.hours]),
     [
-      [41, "hung", 1],
       [41, "arrived at span", 0],
-      [40, "glued", 4],
-      [40, "hung", 2],
+      [41, "hung", 1],
       [40, "arrived at span", 0],
+      [40, "hung", 2],
+      [40, "glued", 4],
     ],
   );
 });

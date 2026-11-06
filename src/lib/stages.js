@@ -33,15 +33,13 @@ export const STAGE_LABELS = {
 };
 
 /**
- * What an entry's saved stages load as in an editor: the two a move logs by itself, which the velocity relies on and which
- * stay unless removed, and the one step it reports (the furthest of any others).
+ * What an entry's saved stages load as in an editor: the one step it reports (the furthest, other than the two a move logs
+ * by itself) for the slider, and any others, which stay unless removed, so editing an entry's words costs the velocity nothing.
  */
 export function splitStages(stages = []) {
   const logged = ["arrived", "hung"];
-  return {
-    kept: STAGES.filter((s) => logged.includes(s) && stages.includes(s)),
-    reported: STAGES.filter((s) => !logged.includes(s) && stages.includes(s)).slice(-1),
-  };
+  const reported = STAGES.filter((s) => !logged.includes(s) && stages.includes(s)).slice(-1);
+  return { kept: STAGES.filter((s) => stages.includes(s) && !reported.includes(s)), reported };
 }
 
 /** The stages of the cycle, each from its start tag to its end tag, for the time each takes. */

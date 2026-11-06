@@ -15,11 +15,12 @@ import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
  * @param {object[]} props.notes The notes in the working copy.
  * @param {Record<string,string>} props.retitles Headlines for the day's other updates, by key.
  * @param {(r: Record<string,string>) => void} props.onRetitle
+ * @param {string} [props.address] Editing a saved note: its address, which stays whatever the title. Offers no retitling.
  */
-export function TitleField({ kind, stamp, title, onChange, notes, retitles = {}, onRetitle }) {
+export function TitleField({ kind, stamp, title, onChange, notes, retitles = {}, onRetitle, address }) {
   const { tw } = useTw();
   const advice = titleAdvice(kind, stamp, title, notes);
-  const slug = title.trim() ? slugFor(title.trim(), stamp, notes) : "";
+  const slug = address ?? (title.trim() ? slugFor(title.trim(), stamp, notes) : "");
   const usingDate = isDateTitle(title);
   const slugs = slugsOf(notes);
   return (
@@ -73,7 +74,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, retitles = {},
       {advice.warnings.map((w) => (
         <Notice key={w}>{w}</Notice>
       ))}
-      {advice.retitle.map((n) => (
+      {(address ? [] : advice.retitle).map((n) => (
         <View key={n.key} style={tw`gap-1.5 rounded-md border border-dashed border-line p-2.5`}>
           <Body small>
             The {clock(n.key)} update has the date title. Give it a headline too, so the two don't share one. Its
@@ -98,6 +99,9 @@ export function titleProblems(kind, stamp, title, notes, retitles = {}) {
   const missing = advice.retitle.filter((n) => !(retitles[n.key] ?? "").trim());
   return [...advice.problems, ...(missing.length ? ["Give the day's other update a headline too."] : [])];
 }
+
+/** Whether a saved note's new title can be saved: the rules for the title alone, as other notes aren't retitled by an edit. */
+export const editedTitleProblems = (kind, stamp, title, notes) => titleAdvice(kind, stamp, title, notes).problems;
 
 /** The retitle list for an update change: [{ key, title, slug }]. */
 export function retitleList(stamp, title, notes, retitles = {}) {

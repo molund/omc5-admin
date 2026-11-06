@@ -261,16 +261,16 @@ export function Row({ children, style }) {
   return <View style={[tw`flex-row flex-wrap items-center justify-between gap-2`, style]}>{children}</View>;
 }
 
-/** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser). */
-export function Link({ href, title }) {
+/** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser), or with `onPress`, a link within the desk. */
+export function Link({ href, title, onPress }) {
   const { tw } = useTw();
   return (
     <Text
-      href={href}
-      hrefAttrs={{ target: "_blank", rel: "noopener" }}
+      accessibilityRole="link"
+      {...(href ? { href, hrefAttrs: { target: "_blank", rel: "noopener" } } : {})}
       // on the web the <a> does it; the phone has no <a>, so it opens the URL itself
-      onPress={Platform.OS === "web" ? undefined : () => Linking.openURL(href)}
-      style={tw`px-1 py-1 text-xs font-semibold text-accent underline`}
+      onPress={onPress ?? (Platform.OS === "web" ? undefined : () => Linking.openURL(href))}
+      style={tw`py-1 text-xs font-semibold text-accent underline`}
     >
       {title}
     </Text>

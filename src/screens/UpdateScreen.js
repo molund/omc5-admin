@@ -18,21 +18,25 @@ import { StagePicker, chosenStages } from "../components/StagePicker.js";
 import { autoStages } from "../lib/deskChanges.js";
 import { Button, Notice } from "../components/ui.js";
 
-export function UpdateScreen({ onReview }) {
+export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const notes = desk.parsed.notes;
   const head = headerOf(desk.parsed);
-  const [d, update, reset] = useDraft("update", () => ({
-    time: nowKey(),
-    span: head.span,
-    complete: head.complete,
-    title: "",
-    titleSet: false,
-    blocks: emptyBlocks(),
-    retitles: {},
-    memo: "",
-  }));
+  const [d, update, reset] = useDraft(
+    draftKey,
+    () =>
+      seed ?? {
+        time: nowKey(),
+        span: head.span,
+        complete: head.complete,
+        title: "",
+        titleSet: false,
+        blocks: emptyBlocks(),
+        retitles: {},
+        memo: "",
+      },
+  );
   // until a title is typed, it follows the rules: the date title for the day's only update, a headline otherwise
   const auto = titleAdvice("update", d.time, "", notes).sameDay.length ? "" : dateTitle(d.time);
   const title = d.titleSet ? d.title : auto;

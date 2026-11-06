@@ -43,14 +43,18 @@ export function Hunks({ hunks }) {
  * @param {() => void} props.onBack
  * @param {(message: string) => void} props.onSave
  * @param {string} [props.cardLabel]
+ * @param {string} [props.warning] What can't be undone once it's pushed.
  */
-export function ReviewSheet({ change, onBack, onSave, cardLabel }) {
+export function ReviewSheet({ change, onBack, onSave, cardLabel, warning }) {
   const { tw } = useTw();
   const desk = useDesk();
   const preview = desk.preview(change);
   const [message, setMessage] = useState(() => desk.suggestMessage(change));
+  const nothing = !preview.error && !preview.hunks.length && !preview.deskHunks?.length;
   return (
     <View style={tw`gap-3.5`}>
+      {warning && <Notice tone="problem">{warning}</Notice>}
+      {nothing && <Notice>This doesn't change anything, so there's nothing to save.</Notice>}
       <Panel>
         <Label>Commit message</Label>
         <Field value={message} onChangeText={setMessage} label="Commit message" noPrompt />
@@ -82,7 +86,7 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel }) {
         <Button
           kind="green"
           title="Save to the desk"
-          disabled={!!preview.error || !message.trim()}
+          disabled={!!preview.error || nothing || !message.trim()}
           onPress={() => onSave(message.trim())}
           style={tw`flex-1`}
         />

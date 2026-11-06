@@ -9,6 +9,7 @@ import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
 import { pushFromPhone } from "../services/phonePush.js";
 import { landingStatus } from "../services/github.js";
+import { canReopen } from "../lib/entries.js";
 import { asOf, dateOf, toKey } from "../lib/time.js";
 import { copyText } from "../platform/clipboard";
 import { Body, Button, Field, Label, Link, Notice, Panel, Row } from "./ui.js";
@@ -22,6 +23,11 @@ const KIND = {
   followup: "Follow-up",
   "followup-edit": "Follow-up edit",
   blog: "Blog",
+  "note-edit": "Edit",
+  "note-delete": "Delete",
+  "followup-delete": "Follow-up delete",
+  "desk-edit": "Position record edit",
+  "desk-delete": "Position record delete",
 };
 
 /** What went wrong, the platform's own words, and the request to send by hand. */
@@ -137,7 +143,7 @@ function Landing({ p }) {
   );
 }
 
-export function Outbox({ onSettings }) {
+export function Outbox({ onSettings, onEdit }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [confirm, setConfirm] = useState(null); // "push" | "refresh"
@@ -227,6 +233,7 @@ export function Outbox({ onSettings }) {
                       {sent ? " · sent" : ""}
                     </Body>
                   </View>
+                  {!sent && canReopen(c) && <Button small kind="link" title="Edit" onPress={() => onEdit(c)} />}
                   {!sent && <Button kind="danger" small title="Discard" onPress={() => desk.removeChange(c.id)} />}
                 </Row>
                 {r && !r.ok && <Notice tone="problem">{`Doesn't fit the copy any more: ${r.error}`}</Notice>}

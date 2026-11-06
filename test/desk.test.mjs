@@ -10,11 +10,23 @@ import { applyBoth, applyDeskChange, autoStages } from "../src/lib/deskChanges.j
 import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
+import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
+import { parseKey } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const DESK = readFileSync(here("./fixtures/desk.yaml"), "utf8");
 const at = (s) => new Date(s);
+/** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
+function blocksOf(fields) {
+  const out = [{ type: "summary", text: fields.summary }];
+  if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
+  for (const b of fields.block)
+    out.push(
+      b.photo ? { type: "photo", file: b.photo.file, caption: b.photo.caption } : { type: "text", text: b.text },
+    );
+  return out;
+}
 
 test("the rules read Mike's wording", () => {
   const cases = [
@@ -260,7 +272,7 @@ test("a follow-up's stages can be replaced or cleared, and deleting it takes its
 
 test("an entry's saved stages load as the arrived and hung it keeps, and one reported step", () => {
   assert.deepEqual(splitStages(["hung", "glued", "post-tensioned", "arrived"]), {
-    kept: ["arrived", "hung"],
+    kept: ["arrived", "hung", "glued"],
     reported: ["post-tensioned"],
   });
   assert.deepEqual(splitStages(undefined), { kept: [], reported: [] });
@@ -296,4 +308,139 @@ test("a position record can be edited or deleted, and only desk.yaml changes unl
     () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-edit", key, stages: [], noteToSelf: "" }),
     /isn't in desk.yaml/,
   );
+});
+
+test("the Entries list: posts with their follow-ups, and position records, newest first", () => {
+  const parsed = parseStatus(STATUS);
+  const n = parsed.notes.find((x) => x.followUps.length);
+  const alone = "2030-01-01T09:00-07:00";
+  const entries = listEntries(parsed, [
+    { key: alone, span: 50, stages: ["glued"], noteToSelf: "" },
+    { key: n.key, span: 30, stages: ["hung"], noteToSelf: "" },
+    { key: n.followUps[0].key, span: 30, stages: ["glued"], noteToSelf: "" },
+  ]);
+  assert.equal(entries.length, parsed.notes.length + 1, "a record with a post at its time isn't listed twice");
+  assert.deepEqual([entries[0].type, entries[0].key], ["position", alone]);
+  assert.deepEqual(
+    entries.map((e) => e.key),
+    [...entries.map((e) => e.key)].sort((a, b) => parseKey(b) - parseKey(a)),
+  );
+  assert.equal(entries.find((e) => e.key === n.key).followUps.length, n.followUps.length);
+  assert.equal(entries.find((e) => e.type === "blog")?.note.fields.post, true);
+});
+
+test("a note with no summary is listed as a position", () => {
+  const text = STATUS.replace(/^notes:$/m, `notes:\n  - 2030-01-01T09:00-07:00: ""\n    note-to-self: "Just this"`);
+  const [first] = listEntries(parseStatus(text), []);
+  assert.deepEqual([first.type, first.note?.fields.memo], ["position", "Just this"]);
+});
+
+test("what's waiting is found by the time stamp it created", () => {
+  const key = "2030-01-01T09:00-07:00";
+  const changes = [
+    { id: "a", kind: "note-edit", noteKey: key },
+    { id: "b", kind: "move", time: key },
+  ];
+  assert.equal(waitingAt(changes, key).id, "b");
+  assert.equal(waitingAt(changes, "2031-01-01"), undefined);
+  assert.equal(waitingAt([{ id: "c", kind: "blog", date: "2031-01-01" }], "2031-01-01").id, "c");
+});
+
+test("an edit of every saved entry, as its editor loads it, changes neither file", () => {
+  const parsed = parseStatus(STATUS);
+  const files = { status: STATUS, desk: DESK };
+  const entries = parseDesk(DESK);
+  const steps = (key) => {
+    const { kept, reported } = splitStages(entries.find((e) => e.key === key)?.stages);
+    return [...kept, ...reported];
+  };
+  for (const n of parsed.notes) {
+    const stages = n.fields.post ? {} : { stages: steps(n.key) };
+    const memo = { noteKey: n.key, text: memoAt(entries, n.key) };
+    const r = applyBoth(files, {
+      kind: "note-edit",
+      noteKey: n.key,
+      title: n.title,
+      blocks: blocksOf(n.fields),
+      memo,
+      ...stages,
+    });
+    assert.equal(r.status, STATUS, n.key);
+    assert.deepEqual(r.deskHunks, [], n.key);
+    for (const f of n.followUps) {
+      const fr = applyBoth(files, {
+        kind: "followup-edit",
+        noteKey: n.key,
+        fuKey: f.key,
+        time: f.key,
+        blocks: blocksOf(f.fields),
+        memo,
+        stages: steps(f.key),
+      });
+      assert.equal(fr.status, STATUS, f.key);
+      assert.deepEqual(fr.deskHunks, [], f.key);
+    }
+  }
+});
+
+test("a waiting change keeps its place when replaced, and later ones stay on top of the new version", () => {
+  const changes = [
+    { id: "a", kind: "move" },
+    { id: "b", kind: "blog", title: "Old" },
+    { id: "c", kind: "move" },
+  ];
+  const out = replaceChangeIn(changes, "b", { kind: "blog", title: "New" }, "Add it", "now");
+  assert.deepEqual(
+    out.map((c) => c.id),
+    ["a", "b", "c"],
+  );
+  assert.deepEqual(out[1], { kind: "blog", title: "New", id: "b", message: "Add it", savedAt: "now" });
+});
+
+test("a waiting change reopens as the draft that makes it again", () => {
+  const head = { span: 37, complete: true };
+  const blocks = [{ type: "summary", text: "Words." }];
+  const T = "2030-01-01T09:00-07:00";
+  assert.deepEqual(
+    reopenAs({ kind: "move", time: T, span: 38, complete: false, noteToSelf: "m", stages: ["glued"] }, head),
+    {
+      screen: "move",
+      seed: { time: T, span: 38, complete: false, memo: "m", stages: ["glued"] },
+    },
+  );
+  const update = reopenAs(
+    {
+      kind: "update",
+      time: T,
+      span: 38,
+      complete: false,
+      title: "A title",
+      blocks,
+      retitle: [{ key: "k", title: "Other", slug: "s" }],
+      memo: { noteKey: T, text: "m" },
+      stages: [],
+    },
+    head,
+  );
+  assert.equal(update.seed.titleSet, true);
+  assert.deepEqual(update.seed.retitles, { k: "Other" });
+  // a follow-up that didn't move the gantry starts from where the gantry is
+  const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stages: [] }, head);
+  assert.deepEqual([fu.seed.span, fu.seed.complete, fu.seed.editing], [37, true, null]);
+  assert.equal(reopenAs({ kind: "blog", date: "2030-01-01", title: "T", blocks }, head).screen, "blog");
+  // what edits something saved reopens in the entry editor, with its steps split again
+  const edit = reopenAs({ kind: "note-edit", noteKey: T, title: "T", blocks, stages: ["arrived", "glued"] }, head);
+  assert.deepEqual(
+    [edit.screen, edit.target, edit.seed.kept, edit.seed.stages],
+    ["entry", { type: "note", key: T }, ["arrived"], ["glued"]],
+  );
+  assert.equal(reopenAs({ kind: "desk-edit", key: T, stages: [], noteToSelf: "x" }, head).seed.memo, "x");
+  assert.equal(
+    reopenAs({ kind: "followup-edit", noteKey: "n", fuKey: T, time: T, blocks, stages: [] }, head).target.type,
+    "followup",
+  );
+  assert.equal(canReopen({ kind: "note-delete" }), false);
+  assert.equal(canReopen({ kind: "followup-delete" }), false);
+  assert.equal(canReopen({ kind: "desk-delete" }), false);
+  assert.equal(canReopen({ kind: "note-edit" }), true);
 });

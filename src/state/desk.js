@@ -3,7 +3,10 @@
 // Pushing hands the list to a Claude Code session, which syncs with main first, then commits each change and refreshes the
 // copy, listing what it committed in pushed.json; the desk then drops those from its list.
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { applyAll, applyChange, commitMessage, photosOf } from "../lib/changes.js";
+import { commitMessage, photosOf } from "../lib/changes.js";
+import { applyAllBoth, applyBoth } from "../lib/deskChanges.js";
+import { EMPTY_DESK, parseDesk } from "../lib/deskFile.js";
+import { velocity } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { ownFile } from "../platform/claude";
 import { load, save } from "../platform/storage";
@@ -21,7 +24,8 @@ function usePersisted(key, initial) {
 }
 
 export function DeskProvider({ children }) {
-  const [copy, setCopy] = useState({ text: null, error: null, meta: null });
+  // status.yaml's text, desk.yaml's (the desk's own records: notes to self and the gantry's steps), and where they came from
+  const [copy, setCopy] = useState({ text: null, desk: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
   const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
@@ -32,13 +36,15 @@ export function DeskProvider({ children }) {
   const reload = useCallback(async () => {
     try {
       const text = await ownFile("status.yaml");
+      // a repo (or a desk published) before desk.yaml existed has none yet
+      const deskText = await ownFile("desk.yaml").catch(() => EMPTY_DESK);
       const meta = await ownFile("copy.json")
         .then(JSON.parse)
         .catch(() => null);
       const pushed = await ownFile("pushed.json")
         .then(JSON.parse)
         .catch(() => null);
-      setCopy({ text, error: null, meta });
+      setCopy({ text, desk: deskText, error: null, meta });
       if (pushed?.pushed?.length) {
         const done = new Set(pushed.pushed);
         setChanges((cs) => cs.filter((c) => !done.has(c.id)));
@@ -61,8 +67,12 @@ export function DeskProvider({ children }) {
     if (unused.length) setPhotos((ps) => Object.fromEntries(Object.entries(ps).filter(([id]) => !unused.includes(id))));
   }, [changes]);
 
-  const working = useMemo(() => (copy.text == null ? null : applyAll(copy.text, changes)), [copy.text, changes]);
-  const parsed = useMemo(() => (working ? parseStatus(working.text) : null), [working]);
+  const working = useMemo(
+    () => (copy.text == null ? null : applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK }, changes)),
+    [copy.text, copy.desk, changes],
+  );
+  const parsed = useMemo(() => (working ? parseStatus(working.status) : null), [working]);
+  const deskEntries = useMemo(() => (working ? parseDesk(working.desk) : []), [working]);
 
   const value = useMemo(
     () => ({
@@ -70,23 +80,28 @@ export function DeskProvider({ children }) {
       error: copy.error,
       meta: copy.meta,
       base: copy.text,
-      text: working?.text ?? null,
+      text: working?.status ?? null,
+      deskText: working?.desk ?? null,
       parsed,
+      deskEntries,
+      /** The gantry's velocity from desk.yaml (lib/velocity.js), with the waiting changes in it. */
+      velocity: velocity(deskEntries),
       results: working?.results ?? new Map(),
       changes,
       photos,
       push,
       kept: changesKept && photosKept,
       reload,
-      /** What a draft change would do to the file as it stands: { text, hunks, error }. */
+      /** What a draft change would do to the files as they stand: { text, hunks, deskText, deskHunks, error }. */
       preview(change) {
         try {
-          return { ...applyChange(working.text, change), error: null };
+          const r = applyBoth({ status: working.status, desk: working.desk }, change);
+          return { text: r.status, hunks: r.hunks, deskText: r.desk, deskHunks: r.deskHunks, error: null };
         } catch (e) {
-          return { text: working?.text, hunks: [], error: e.message };
+          return { text: working?.status, hunks: [], deskText: working?.desk, deskHunks: [], error: e.message };
         }
       },
-      suggestMessage: (change) => commitMessage(change, working?.text),
+      suggestMessage: (change) => commitMessage(change, working?.status),
       addChange(change, message) {
         const id = newId();
         setChanges((cs) => [...cs, { ...change, id, message, savedAt: new Date().toISOString() }]);
@@ -117,7 +132,7 @@ export function DeskProvider({ children }) {
       /** Drops changes that are on main now (pushed from the phone). */
       dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
-    [copy, working, parsed, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
+    [copy, working, parsed, deskEntries, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
   );
   return createElement(DeskContext.Provider, { value }, children);
 }

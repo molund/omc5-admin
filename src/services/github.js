@@ -5,7 +5,9 @@
 // checks the commits only change status.yaml and add photos, builds the site, moves main up to them and deploys.
 // Plain JS: the token is passed in (platform/secrets reads it, after Face ID), and only ever sent to api.github.com.
 import deskConfig from "../../desk.config.json";
-import { applyChange, Conflict, photosOf } from "../lib/changes.js";
+import { Conflict, photosOf } from "../lib/changes.js";
+import { applyBoth } from "../lib/deskChanges.js";
+import { EMPTY_DESK } from "../lib/deskFile.js";
 
 const [, OWNER, REPO] = deskConfig.repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)(?:\.git)?$/);
 export const REPO_NAME = `${OWNER}/${REPO}`;
@@ -126,19 +128,25 @@ export async function pushChanges({ token, changes, photos }) {
   let parent = base;
   let tree = (await api("GET", `/git/commits/${base}`)).tree.sha;
   let text = await api("GET", `/contents/status.yaml?ref=${base}`, undefined, true);
+  // the desk's own records; a main without the file yet starts an empty one
+  let desk = await api("GET", `/contents/desk.yaml?ref=${base}`, undefined, true).catch((e) => {
+    if (e.status === 404) return EMPTY_DESK;
+    throw e;
+  });
 
   const pushed = [],
     skipped = [];
   for (const change of changes) {
     let next;
     try {
-      next = applyChange(text, change).text;
+      next = applyBoth({ status: text, desk }, change);
     } catch (e) {
       if (!(e instanceof Conflict)) throw e;
       skipped.push({ id: change.id, why: e.message });
       continue;
     }
-    const entries = [{ path: "status.yaml", mode: "100644", type: "blob", content: next }];
+    const entries = [{ path: "status.yaml", mode: "100644", type: "blob", content: next.status }];
+    if (next.desk !== desk) entries.push({ path: "desk.yaml", mode: "100644", type: "blob", content: next.desk });
     for (const b of photosOf(change)) {
       if (!b.photoId) continue; // already on the site
       const photo = photos[b.photoId];
@@ -159,7 +167,8 @@ export async function pushChanges({ token, changes, photos }) {
         author: { ...AUTHOR, date: new Date().toISOString() },
       })
     ).sha;
-    text = next;
+    text = next.status;
+    desk = next.desk;
     pushed.push(change.id);
   }
   if (!pushed.length)

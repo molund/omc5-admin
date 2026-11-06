@@ -1,19 +1,15 @@
-// A change is one edit to status.yaml, and one commit. The desk keeps a list of them on top of its copy of the file, and the
-// push session applies the same list, with this same code (tools/apply-changes.mjs), to whatever is on main by then, so
-// anything committed in the meantime is kept.
+// A change is one edit to status.yaml (and desk.yaml, through lib/deskChanges.js), and one commit. The desk keeps a list of
+// them on top of its copy of the files, and the push applies the same list, with this same code (tools/apply-changes.mjs
+// and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
-//   { id, kind: "move",          time, span, complete, noteToSelf? }
+//   { id, kind: "move",          time, span, complete, noteToSelf?, stages? }
 //   { id, kind: "update",        time, span, complete, title, blocks, retitle: [{ key, title, slug }] }
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
 //   { id, kind: "followup-edit", noteKey, fuKey, time, blocks }
 //   { id, kind: "blog",          date, title, blocks }
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
-// parent of a follow-up. One per entry; "" removes it.
-//
-// A position has no entry of its own. With a noteToSelf it makes one: a note at the position's time stamp with no title and
-// no summary, only the note to self. The site shows only notes that have a summary (Trackside, the card, giscus and the
-// sitemap all go by status.history and status.latest), so it appears nowhere, as with the workflow's `note: "-"`.
+// parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -109,19 +105,6 @@ function setHeader(doc, values) {
   }
 }
 
-/** Sets, changes or removes an entry's note to self: one line, right under its key line. */
-function setMemo(doc, noteKey, text) {
-  const note = findNote(doc.parsed, noteKey);
-  const clean = String(text ?? "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const line = `    note-to-self: ${q(clean)}`;
-  if (note.memoLine >= 0) {
-    if (!clean) doc.replace(note.memoLine, 1, []);
-    else if (doc.lines[note.memoLine] !== line) doc.replace(note.memoLine, 1, [line]);
-  } else if (clean) doc.replace(note.start + 1, 0, [line]);
-}
-
 function findNote(parsed, key) {
   const note = parsed.notes.find((n) => n.key === key);
   if (!note) throw new Conflict(`The note from ${shortDate(key)} isn't in status.yaml any more.`);
@@ -153,8 +136,6 @@ export function applyChange(text, change) {
   switch (change.kind) {
     case "move":
       setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
-      if (change.noteToSelf?.trim())
-        insertNote(doc, change.time, [`  - ${change.time}: ""`, `    note-to-self: ${q(change.noteToSelf)}`]);
       break;
     case "update": {
       setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
@@ -197,7 +178,6 @@ export function applyChange(text, change) {
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
-  if (change.memo) setMemo(doc, change.memo.noteKey, change.memo.text);
   return { text: doc.text, hunks: doc.hunks };
 }
 
@@ -230,7 +210,8 @@ export function commitMessage(change, before) {
   const named = note ? nameOf(note.key, note.title) : "";
   switch (change.kind) {
     case "move": {
-      const memo = change.noteToSelf?.trim() ? " and add a note to self" : "";
+      const logged = change.stages?.length ? ` and log ${change.stages.join(", ")}` : "";
+      const memo = logged + (change.noteToSelf?.trim() ? " and add a note to self" : "");
       if (change.span !== head.span) return `Move the Clayton Clipper to span ${change.span}${memo}`;
       if (change.complete && !head.complete) return `Mark span ${change.span} as complete${memo}`;
       if (!change.complete && head.complete) return `Mark span ${change.span} as not complete${memo}`;

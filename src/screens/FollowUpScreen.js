@@ -14,6 +14,9 @@ import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../componen
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
+import { StagePicker, chosenStages } from "../components/StagePicker.js";
+import { autoStages } from "../lib/deskChanges.js";
+import { memoAt } from "../lib/deskFile.js";
 import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
@@ -61,9 +64,10 @@ export function FollowUpScreen({ onReview }) {
 
   const fus = followUpsNewestFirst(note);
   const gantryChanged = d.span !== head.span || d.complete !== head.complete;
-  // a follow-up has no note to self of its own: this is its parent's
-  const memo = d.memo ?? note.fields.memo;
-  const withMemo = { memo: { noteKey: note.key, text: memo } };
+  // a follow-up has no note to self of its own: this is its parent's (in desk.yaml)
+  const memo = d.memo ?? memoAt(desk.deskEntries, note.key);
+  const text = blockTexts(d.blocks).join("\n");
+  const withMemo = { memo: { noteKey: note.key, text: memo }, stages: chosenStages(d.stages, text) };
   const change = d.editing
     ? { kind: "followup-edit", noteKey: note.key, fuKey: d.editing, time: d.time, blocks: d.blocks, ...withMemo }
     : {
@@ -163,6 +167,14 @@ export function FollowUpScreen({ onReview }) {
         />
         {!d.editing && <GantryFold value={d} current={head} onChange={(g) => update(g)} offLabel="Gantry unchanged" />}
       </View>
+
+      <StagePicker
+        text={text}
+        value={d.stages}
+        onChange={(stages) => update({ stages })}
+        auto={!d.editing && gantryChanged ? autoStages(head, d) : []}
+        span={d.editing ? null : d.span}
+      />
 
       <NoteToSelf
         value={memo}

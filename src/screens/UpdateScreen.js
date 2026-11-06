@@ -14,6 +14,8 @@ import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../componen
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
+import { StagePicker, chosenStages } from "../components/StagePicker.js";
+import { autoStages } from "../lib/deskChanges.js";
 import { Button, Notice } from "../components/ui.js";
 
 export function UpdateScreen({ onReview }) {
@@ -34,14 +36,12 @@ export function UpdateScreen({ onReview }) {
   // until a title is typed, it follows the rules: the date title for the day's only update, a headline otherwise
   const auto = titleAdvice("update", d.time, "", notes).sameDay.length ? "" : dateTitle(d.time);
   const title = d.titleSet ? d.title : auto;
-  // entries are keyed by time stamp, so two can't share one (a position's note to self is an entry too)
+  // notes are keyed by time stamp, so two can't share one
   const taken = notes.some((n) => n.key === d.time);
   const problems = [
     ...titleProblems("update", d.time, title, notes, d.retitles),
     ...blockProblems(d.blocks),
-    ...(taken
-      ? ["There's already an entry at this time stamp (a position's note to self, say). Move it a quarter hour."]
-      : []),
+    ...(taken ? ["There's already an update at this time stamp. Move it a quarter hour."] : []),
   ];
   const change = {
     kind: "update",
@@ -52,6 +52,7 @@ export function UpdateScreen({ onReview }) {
     blocks: d.blocks,
     retitle: problems.length ? [] : retitleList(d.time, title, notes, d.retitles),
     memo: { noteKey: d.time, text: d.memo ?? "" },
+    stages: chosenStages(d.stages, blockTexts(d.blocks).join("\n")),
   };
   const preview = desk.preview(change);
   const discard = () => {
@@ -79,6 +80,13 @@ export function UpdateScreen({ onReview }) {
         summaryLabel="Summary · goes on the card"
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
+      />
+      <StagePicker
+        text={blockTexts(d.blocks).join("\n")}
+        value={d.stages}
+        onChange={(stages) => update({ stages })}
+        auto={autoStages(head, d)}
+        span={d.span}
       />
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />

@@ -50,6 +50,7 @@ test("status.yaml is read at main's commit, and copy.json names that commit", as
     [
       "https://api.github.com/repos/molund/omc5/commits/main",
       "https://api.github.com/repos/molund/omc5/contents/status.yaml?ref=abc1234def",
+      "https://api.github.com/repos/molund/omc5/contents/desk.yaml?ref=abc1234def",
     ],
   );
   assert.equal(calls[0].accept, "application/vnd.github.sha");

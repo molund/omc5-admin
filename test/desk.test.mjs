@@ -4,8 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { atLeast, floorStage, furthest, stageOf, stagesIn } from "../src/lib/stages.js";
-import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
+import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
+import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { velocity, workingHours, cycles, sinceArrival, spanDays } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
@@ -95,6 +95,19 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
   assert.equal(atLeast("arrived at span", "hung"), "hung");
   assert.equal(atLeast("glued", "hung"), "glued");
   assert.equal(atLeast(undefined, "arrived at span"), "arrived at span");
+  assert.equal(
+    postedStage(
+      [
+        { span: 5, stage: "glued" },
+        { span: 5, stage: "hung" },
+        { span: 6, stage: "cables down" },
+      ],
+      5,
+    ),
+    "glued",
+  );
+  assert.equal(stageFloor(true, "glued"), "glued");
+  assert.equal(stageFloor(true, "arrived at span"), "hung");
   assert.equal(stageOf({ stage: "glued", stages: ["hung"] }), "glued");
   assert.equal(stageOf({ stages: ["hung", "glued"] }), "glued", "a change waiting from before");
   assert.equal(stageOf({}), undefined);

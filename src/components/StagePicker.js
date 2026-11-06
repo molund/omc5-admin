@@ -150,7 +150,9 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
         <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[STAGES.length - 1]]}</Text>
       </Row>
       <Body small mute>
-        {min > 0 ? `The span is hung, so it can't be earlier than ${STAGE_LABELS[floor].toLowerCase()}. ` : ""}
+        {min > 0
+          ? `Nothing earlier than ${STAGE_LABELS[floor].toLowerCase()}: the span is hung or that step is posted. `
+          : ""}
         {value === undefined
           ? found.length
             ? "Suggested from what you wrote. Move it to change."

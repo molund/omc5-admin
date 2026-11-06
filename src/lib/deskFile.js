@@ -126,6 +126,9 @@ export function spanAt(entries, key) {
   return sortEntries(entries).find((e) => e.span && compareKeys(e.key, key) <= 0)?.span ?? null;
 }
 
+/** The furthest step posted for a span, or undefined. */
+export const postedStage = (entries, span) => furthest(entries.filter((e) => e.span === span).map((e) => e.stage));
+
 /** Takes these time stamps out altogether. */
 export const removeEntries = (entries, keys) => entries.filter((e) => !keys.includes(e.key));
 

@@ -15,8 +15,8 @@ import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
-import { memoAt } from "../lib/deskFile.js";
-import { floorStage } from "../lib/stages.js";
+import { memoAt, postedStage } from "../lib/deskFile.js";
+import { floorStage, stageFloor } from "../lib/stages.js";
 import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
@@ -55,7 +55,8 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const memo = d.memo ?? memoAt(desk.deskEntries, note.key);
   const text = blockTexts(d.blocks).join("\n");
   // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state
-  const floor = d.editing ? floorStage(false) : floorStage(d.complete);
+  // nor earlier than the furthest step already posted for the span (not when editing: that may be a correction)
+  const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
   const withMemo = { memo: { noteKey: note.key, text: memo }, stage: chosenStage(d.stage, text, floor) };
   const change = d.editing
     ? {

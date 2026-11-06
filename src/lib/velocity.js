@@ -78,21 +78,21 @@ export function cycles(entries) {
 }
 
 /**
- * Every step logged after a span's arrival, with the working hours since that arrival: [{ span, stage, key, hours }].
- * Highest span first, then the longest since arrival first. A span with no logged arrival has none.
+ * Each step logged after a span's arrival, once, at its earliest, with the working hours since that arrival:
+ * [{ span, stage, key, hours }]. Highest span first, then the longest since arrival first. A span with no logged arrival
+ * has none.
  */
 export function sinceArrival(entries) {
-  const by = stepsBySpan(entries);
-  return entries
-    .filter((e) => e.stage && e.stage !== STAGES[0] && by[e.span]?.[STAGES[0]])
-    .map((e) => ({
-      span: e.span,
-      stage: e.stage,
-      key: e.key,
-      hours: workingHours(parseKey(by[e.span][STAGES[0]]), parseKey(e.key)),
-    }))
-    .filter((e) => e.hours > 0)
-    .sort((a, b) => b.span - a.span || b.hours - a.hours);
+  const out = [];
+  for (const [span, steps] of Object.entries(stepsBySpan(entries))) {
+    const arrival = steps[STAGES[0]];
+    if (!arrival) continue;
+    for (const [stage, key] of Object.entries(steps)) {
+      const hours = workingHours(parseKey(arrival), parseKey(key));
+      if (hours > 0) out.push({ span: Number(span), stage, key, hours });
+    }
+  }
+  return out.sort((a, b) => b.span - a.span || b.hours - a.hours);
 }
 
 /**

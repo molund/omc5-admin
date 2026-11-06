@@ -218,7 +218,7 @@ test("the velocity: the last two spans, arrival to arrival", () => {
   const c = cycles(entries).find((x) => x.to === 36);
   assert.equal(c.by, "hung");
   assert.equal(c.hours, 55.25);
-  // every step logged on span 36, in working time since its arrival: the shutdown doesn't count
+  // each step logged on span 36, once at its earliest, in working time since its arrival: the shutdown doesn't count
   assert.deepEqual(
     sinceArrival(entries)
       .filter((t) => t.span === 36)
@@ -228,7 +228,6 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       ["cables down", 43],
       ["post-tensioning started", 34.5],
       ["hung", 17.25],
-      ["hanging started", 15],
       ["hanging started", 12.75],
     ],
   );

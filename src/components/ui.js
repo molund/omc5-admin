@@ -257,20 +257,20 @@ export function Field({
         accessibilityState={{ selected: zoomed }}
         onPress={toggleZoom}
         style={({ hovered }) => [
-          tw`h-7 w-7 items-center justify-center rounded-md`,
+          tw`h-8 w-8 items-center justify-center rounded-md`,
           zoomed && tw`bg-accent`,
           hovered && tw`opacity-80`,
         ]}
       >
-        <Icon name={zoomed ? "zoomOut" : "zoomIn"} color={zoomed ? colors["accent-ink"] : colors.mute} />
+        <Icon name={zoomed ? "zoomOut" : "zoomIn"} size={20} color={zoomed ? colors["accent-ink"] : colors.mute} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Copy an AI prompt for ${name}`}
         onPress={copyPrompt}
-        style={({ hovered }) => [tw`h-7 w-7 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
+        style={({ hovered }) => [tw`h-8 w-8 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
       >
-        <Icon name={copied ? "check" : "sparkle"} color={copied ? colors.green : colors.mute} />
+        <Icon name={copied ? "check" : "sparkle"} size={20} color={copied ? colors.green : colors.mute} />
       </Pressable>
     </>
   );

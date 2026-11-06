@@ -38,9 +38,9 @@ function Handles({ i, n, move, remove }) {
       accessibilityLabel={l}
       disabled={off}
       onPress={f}
-      style={[tw`h-7 w-7 items-center justify-center rounded-md`, off && tw`opacity-30`]}
+      style={[tw`h-8 w-8 items-center justify-center rounded-md`, off && tw`opacity-30`]}
     >
-      <Text style={tw`text-sm font-bold text-mute`}>{t}</Text>
+      <Text style={tw`text-base font-bold text-mute`}>{t}</Text>
     </Pressable>
   );
   return (

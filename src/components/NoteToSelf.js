@@ -21,9 +21,11 @@ export function NoteToSelf({ value, onChange, where }) {
         label="Note to self"
         style={tw`min-h-14`}
       />
-      <Body small mute>
-        Kept in desk.yaml, which the site never reads. {where}
-      </Body>
+      {!!where && (
+        <Body small mute>
+          {where}
+        </Body>
+      )}
     </View>
   );
 }

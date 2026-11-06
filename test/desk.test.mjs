@@ -229,6 +229,7 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       ["post-tensioning started", 36.5],
       ["hung", 17.25],
       ["hanging started", 12.75],
+      ["arrived at span", 0],
     ],
   );
 });
@@ -248,8 +249,10 @@ test("steps logged since arrival: highest span first, then longest first, none w
     sinceArrival(entries).map((t) => [t.span, t.stage, t.hours]),
     [
       [41, "hung", 1],
+      [41, "arrived at span", 0],
       [40, "glued", 4],
       [40, "hung", 2],
+      [40, "arrived at span", 0],
     ],
   );
 });

@@ -9,8 +9,8 @@ import prettier from "prettier";
 import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
 import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
 import { slugFor, slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
-import { pageHeading, parseKey } from "../src/lib/time.js";
-import { cardFor } from "../src/lib/card.js";
+import { cardAsOf, pageHeading, parseKey, toKey } from "../src/lib/time.js";
+import { cardFor, figuresFor } from "../src/lib/card.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const BASE = readFileSync(here("./fixtures/status.yaml"), "utf8");
@@ -486,5 +486,40 @@ test("the page heading reads as the site writes it, in every month", async () =>
     const key = `2027-${String(m).padStart(2, "0")}-14T09:30-07:00`;
     const [time, date] = asOf(parseKey(key)).split(" on ");
     assert.equal(pageHeading(key), `${date} at ${time}`, key);
+  }
+});
+
+test("the card's figures match what the site works out from its map", () => {
+  // from running the site's gantryProgress() on its map, for every span; 38 is the live card's "38 (+8) / 105", 36%
+  const want = {
+    3: 18,
+    10: 18,
+    11: 17,
+    28: 17,
+    29: 16,
+    37: 8,
+    38: 8,
+    42: 8,
+    43: 7,
+    47: 3,
+    51: 3,
+    52: 2,
+    53: 1,
+    54: 0,
+    105: 0,
+  };
+  for (const [span, ahead] of Object.entries(want)) assert.equal(figuresFor(+span).ahead, ahead, span);
+  assert.equal(Math.round(figuresFor(38).percent), 36);
+  assert.equal(figuresFor(38).total, 105);
+});
+
+test("the card's time reads as the site words it, today, recently and further back", async () => {
+  globalThis.__STATUS = BASE;
+  const { asOf } = await import(`./.out/site-status.mjs?${n++}`);
+  const q = 15 * 60 * 1000;
+  const now = Math.floor(Date.now() / q) * q;
+  for (const back of [0, 1, 2, 3, 40, 200]) {
+    const date = new Date(now - back * 24 * 3600 * 1000);
+    assert.equal(cardAsOf(toKey(date)), asOf(date, true), `${back} days back`);
   }
 });

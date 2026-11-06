@@ -18,6 +18,17 @@ export const ICONS = {
     ["circle", { cx: 10.5, cy: 10.5, r: 7, fill: "none" }],
     ["path", { d: "M21 21l-5.5-5.5M7.5 10.5h6", fill: "none" }],
   ],
+  // the progress card's, drawn as on the site (src/Icon.svelte in molund/omc5)
+  close: [["path", { d: "M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7", fill: "none" }]],
+  comment: [
+    [
+      "path",
+      {
+        d: "M5 4h14a2.33 2.33 0 0 1 2.33 2.33V15A2.33 2.33 0 0 1 19 17.33h-7.67L6.67 21.33v-4H5A2.33 2.33 0 0 1 2.67 15V6.33A2.33 2.33 0 0 1 5 4z",
+        fill: "none",
+      },
+    ],
+  ],
   // Settings
   gear: [
     ["circle", { cx: 12, cy: 12, r: 3, fill: "none" }],

@@ -4,7 +4,7 @@
 // alone (a step seen with no post about it). The file is always written whole, in one shape, so it stays easy to read and to
 // diff.
 import { compareKeys } from "./time.js";
-import { STAGES, furthest } from "./stages.js";
+import { STAGES, currentName, furthest } from "./stages.js";
 
 export const DESK_FILE = "desk.yaml";
 
@@ -13,8 +13,7 @@ const HEADER = `# The Status Desk's own records (molund/omc5-admin). The site do
 #   span: the Clayton Clipper span it's about
 #   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:
 #     ${STAGES.slice(0, 5).join(", ")},
-#     ${STAGES.slice(5, 9).join(", ")},
-#     ${STAGES.slice(9).join(", ")}
+#     ${STAGES.slice(5).join(", ")}
 #   note-to-self: a memo, one line
 # Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
 # note or follow-up in status.yaml, or stand alone (a step seen with no post about it).`;
@@ -31,8 +30,6 @@ const unquote = (v) => {
   return v;
 };
 const q = (s) => JSON.stringify(String(s));
-// the first stage's old name, so an entry written with it isn't lost
-const renamed = (s) => (s === "arrived" ? "arrived at span" : s);
 
 /**
  * @typedef {{ key: string, span: number|null, stage: string|null, noteToSelf: string }} DeskEntry
@@ -54,7 +51,7 @@ export function parseDesk(text) {
     if (!field) continue;
     const [, k, v] = field;
     if (k === "span") cur.span = Number(v) || null;
-    else if (k === "stage") cur.stage = furthest([renamed(unquote(v))]) ?? null;
+    else if (k === "stage") cur.stage = furthest([currentName(unquote(v))]) ?? null;
     // the old "stages: [a, b]" is read as the furthest of them, so an entry written before this isn't lost
     else if (k === "stages")
       cur.stage =
@@ -62,7 +59,7 @@ export function parseDesk(text) {
           v
             .replace(/^\[|\]$/g, "")
             .split(",")
-            .map((s) => renamed(s.trim())),
+            .map((s) => currentName(s.trim())),
         ) ?? null;
     else if (k === "note-to-self") cur.noteToSelf = unquote(v);
   }

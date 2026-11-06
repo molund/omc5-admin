@@ -3,8 +3,7 @@
 #   span: the Clayton Clipper span it's about
 #   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:
 #     arrived at span, hanging started, hung, gluing started, glued,
-#     post-tensioning started, cables down, hangers down, supports started,
-#     supports moved
+#     post-tensioning started, cables down, hangers down, supports started
 #   note-to-self: a memo, one line
 # Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
 # note or follow-up in status.yaml, or stand alone (a step seen with no post about it).

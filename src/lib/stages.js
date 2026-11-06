@@ -13,7 +13,6 @@ export const STAGES = [
   "cables down",
   "hangers down",
   "supports started",
-  "supports moved",
 ];
 
 /** How each tag reads in the desk. */
@@ -27,8 +26,14 @@ export const STAGE_LABELS = {
   "cables down": "Cables down",
   "hangers down": "Hangers down",
   "supports started": "Moving supports started",
-  "supports moved": "Supports moved",
 };
+
+/**
+ * The current name of a stage that was called something else, so what was written with the old name isn't lost.
+ * Moving the supports has no end of its own: the gantry arrives at the next span as soon as they're all moved.
+ */
+export const currentName = (s) =>
+  s === "arrived" ? "arrived at span" : s === "supports moved" ? "supports started" : s;
 
 /**
  * The furthest along the cycle of some stages.
@@ -38,7 +43,7 @@ export const STAGE_LABELS = {
 export const furthest = (stages) => STAGES.filter((s) => stages?.includes(s)).slice(-1)[0];
 
 /** The stage a change reports: what it carries (or its old `stages`, the furthest of them), if anything. */
-export const stageOf = (change) => change.stage ?? furthest(change.stages);
+export const stageOf = (change) => furthest([change.stage, ...(change.stages ?? [])].map(currentName));
 
 /**
  * The earliest stage an entry can be at: a span that is hung (all its segments hung) is at hung at least.
@@ -61,8 +66,7 @@ export const STEPS = [
   { name: "Gluing", from: "hung", to: "glued" },
   { name: "Post-tensioning", from: "glued", to: "cables down" },
   { name: "Hangers down", from: "cables down", to: "hangers down" },
-  { name: "Moving the supports", from: "hangers down", to: "supports moved" },
-  { name: "Launch", from: "supports moved", to: "arrived at span", next: true },
+  { name: "Moving the supports", from: "hangers down", to: "arrived at span", next: true },
 ];
 
 const START = /\b(start(?:ed|s|ing)?|begin(?:s|ning)?|began|beginning|under ?way|in progress|now)\b/;
@@ -129,8 +133,9 @@ export function stagesIn(text) {
     )
       found.add("hangers down");
     if (/\bsupports?\b|\bmove to the next span\b|\bbeginning the move\b/.test(s)) {
+      // finished moving them is only "started", as far as a tag goes: the next arrival says they're all moved
       if (/\b(finish(ed|ing)? moving|supports? (are|have been|has been) moved|moved (its|the) supports?)\b/.test(s))
-        found.add("supports moved");
+        found.add("supports started");
       else if (
         /\b(start(ed|ing)?|begin(s|ning)?|began) (moving|to move|the move)\b|\bmoving (its|the) supports?\b|\bbeginning the move\b/.test(
           s,

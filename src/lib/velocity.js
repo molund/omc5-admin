@@ -22,7 +22,6 @@ const PREFERRED = [
   "glued",
   "post-tensioning started",
   "supports started",
-  "supports moved",
 ];
 const ORDER = [...PREFERRED, ...STAGES.filter((s) => !PREFERRED.includes(s))];
 

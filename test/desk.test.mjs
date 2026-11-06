@@ -43,8 +43,8 @@ test("the rules read Mike's wording", () => {
     ["Span 35's segments are glued, and Dywidag is post-tensioning now.", ["glued", "post-tensioning started"]],
     ["The Clayton Clipper has started moving its supports.", ["supports started"]],
     ["Starting to move the gantry supports.", ["supports started"]],
-    ["Finished moving the gantry supports.", ["supports moved"]],
-    ["Finishing moving the gantry supports.", ["supports moved"]],
+    ["Finished moving the gantry supports.", ["supports started"]],
+    ["Finishing moving the gantry supports.", ["supports started"]],
     ["The gantry is beginning to move its supports.", ["supports started"]],
     ["All 12 hangers are down.", ["hangers down"]],
     // not these
@@ -81,6 +81,10 @@ test("desk.yaml's old name for the first stage reads as the new one, and is writ
   assert.match(formatDesk(entries), /\n {6}stage: arrived at span\n/);
   const list = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stages: [arrived]\n");
   assert.equal(list[0].stage, "arrived at span");
+  // "supports moved" had no time of its own: the next arrival says it, so it reads as "supports started"
+  const moved = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stage: supports moved\n");
+  assert.equal(moved[0].stage, "supports started");
+  assert.equal(stageOf({ stage: "supports moved" }), "supports started");
 });
 
 test("an entry has one stage, never earlier than hung once its span is, and a note to self goes to desk.yaml only", () => {
@@ -142,11 +146,11 @@ test("update, follow-up and blog changes write their stage and notes to self to 
       title: dateTitle(T),
       blocks: [{ type: "summary", text: "Moved." }],
       memo: { noteKey: T, text: "Check the photo credit" },
-      stage: "supports moved",
+      stage: "supports started",
     },
   );
   let e = parseDesk(upd.desk);
-  assert.equal(e[0].stage, "supports moved");
+  assert.equal(e[0].stage, "supports started");
   assert.equal(e[0].noteToSelf, "Check the photo credit");
   assert.ok(!upd.status.includes("note-to-self"));
   // a follow-up: its stage at its own time, the note to self on its parent

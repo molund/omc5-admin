@@ -4,7 +4,7 @@
 // wasn't logged; then the next step both spans have). Working time leaves out the weekly shutdown: Saturday night and
 // Sunday's day shift, 6 p.m. Saturday to 8 p.m. Sunday, BC time. The velocity is the average of the last two spans' cycles.
 import { parseKey } from "./time.js";
-import { STAGES, STEPS } from "./stages.js";
+import { STAGES } from "./stages.js";
 
 export const WINDOW = 2;
 const HOUR = 3600 * 1000;
@@ -77,22 +77,22 @@ export function cycles(entries) {
   return out;
 }
 
-/** How long each stage of a span took, where both its ends are tagged: [{ name, span, hours, start, end }]. */
-export function stageTimes(entries) {
-  const by = stepsBySpan(entries);
+/**
+ * Each step logged after a span's arrival, once, at its earliest, with the working hours since that arrival:
+ * [{ span, stage, key, hours }]. Highest span first, then the longest since arrival first. A span with no logged arrival
+ * has none.
+ */
+export function sinceArrival(entries) {
   const out = [];
-  for (const [span, s] of Object.entries(by)) {
-    const n = Number(span);
-    for (const step of STEPS) {
-      const start = s[step.from],
-        end = step.next ? by[n + 1]?.[step.to] : s[step.to];
-      if (!start || !end || parseKey(end) <= parseKey(start)) continue;
-      out.push({ name: step.name, span: n, start, end, hours: workingHours(parseKey(start), parseKey(end)) });
+  for (const [span, steps] of Object.entries(stepsBySpan(entries))) {
+    const arrival = steps[STAGES[0]];
+    if (!arrival) continue;
+    for (const [stage, key] of Object.entries(steps)) {
+      const hours = workingHours(parseKey(arrival), parseKey(key));
+      if (hours > 0) out.push({ span: Number(span), stage, key, hours });
     }
   }
-  return out.sort(
-    (x, y) => y.span - x.span || STEPS.findIndex((s) => s.name === x.name) - STEPS.findIndex((s) => s.name === y.name),
-  );
+  return out.sort((a, b) => b.span - a.span || b.hours - a.hours);
 }
 
 /**

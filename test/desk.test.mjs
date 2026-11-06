@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { atLeast, floorStage, furthest, stageOf, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
-import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
+import { velocity, workingHours, cycles, sinceArrival } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
 import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
@@ -218,25 +218,38 @@ test("the velocity: the last two spans, arrival to arrival", () => {
   const c = cycles(entries).find((x) => x.to === 36);
   assert.equal(c.by, "hung");
   assert.equal(c.hours, 55.25);
-  // the stages of span 36 where both ends are logged: with one stage per entry, no glued is left for it
-  const s36 = stageTimes(entries).filter((t) => t.span === 36);
+  // each step logged on span 36, once at its earliest, in working time since its arrival: the shutdown doesn't count
   assert.deepEqual(
-    s36.map((t) => [t.name, t.hours]),
-    [["Hanging", 17.25]],
+    sinceArrival(entries)
+      .filter((t) => t.span === 36)
+      .map((t) => [t.stage, t.hours]),
+    [
+      ["supports started", 56.5],
+      ["cables down", 43],
+      ["post-tensioning started", 34.5],
+      ["hung", 17.25],
+      ["hanging started", 12.75],
+    ],
   );
 });
 
-test("post-tensioning is timed from glued to cables down, and hangers down from there", () => {
+test("steps logged since arrival: highest span first, then longest first, none without a logged arrival or before it", () => {
   const entries = [
-    { key: "2026-11-02T08:00-07:00", span: 40, stage: "glued" },
-    { key: "2026-11-02T10:00-07:00", span: 40, stage: "cables down" },
-    { key: "2026-11-02T13:00-07:00", span: 40, stage: "hangers down" },
+    { key: "2026-11-03T09:00-07:00", span: 41, stage: "hung" },
+    { key: "2026-11-03T08:00-07:00", span: 41, stage: "arrived at span" },
+    { key: "2026-11-02T12:00-07:00", span: 40, stage: "glued" },
+    { key: "2026-11-02T10:00-07:00", span: 40, stage: "hung" },
+    { key: "2026-11-02T07:00-07:00", span: 40, stage: "hanging started" },
+    { key: "2026-11-02T08:00-07:00", span: 40, stage: "arrived at span" },
+    { key: "2026-11-02T06:00-07:00", span: 39, stage: "hung" },
+    { key: "2026-11-02T05:00-07:00", span: 39, stage: null },
   ];
   assert.deepEqual(
-    stageTimes(entries).map((t) => [t.name, t.hours]),
+    sinceArrival(entries).map((t) => [t.span, t.stage, t.hours]),
     [
-      ["Post-tensioning", 2],
-      ["Hangers down", 3],
+      [41, "hung", 1],
+      [40, "glued", 4],
+      [40, "hung", 2],
     ],
   );
 });

@@ -66,7 +66,7 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   capability).
 - **Velocity.** The panel under the desk copy shows the working days per span over the last two spans, arrival to arrival
   (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 8 p.m.; how long the gantry has been on its
-  span; and how long each stage took where both its ends are logged (`src/lib/velocity.js`).
+  span; and each step logged, with the working time since its span's arrival (`src/lib/velocity.js`).
 
 ## How it keeps and pushes changes
 

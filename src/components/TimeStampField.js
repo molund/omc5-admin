@@ -1,6 +1,7 @@
 // A time stamp in BC time, moved a day or a quarter hour at a time, with Now. A date-only stamp (a blog post) moves by days.
 // With `auto` (a new entry) it follows the clock, to the quarter hour, and the fields stay hidden until "Set manually" is
-// switched on; that lasts an hour (`manualUntil`, kept by the caller in its draft), then it's automatic again.
+// switched on; that lasts an hour (`manualUntil`, kept by the caller in its draft), or until the screen is left or the entry
+// is posted, then it's automatic again.
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -16,6 +17,10 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
   const now = dateOnly ? todayKey() : nowKey();
   const follows = !!auto && !dateOnly;
   const manual = follows && manualUntil != null && Date.now() < manualUntil;
+  // coming back to this screen starts automatic again
+  useEffect(() => {
+    if (follows) onManual?.(null);
+  }, []);
   // while automatic, keep the stamp on the clock; when the hour of manual is up, go back to automatic
   useEffect(() => {
     if (!follows) return;

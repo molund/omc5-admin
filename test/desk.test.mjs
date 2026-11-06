@@ -8,7 +8,7 @@ import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "..
 import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { velocity, workingHours, cycles, sinceArrival, spanDays } from "../src/lib/velocity.js";
-import { parseStatus } from "../src/lib/statusFile.js";
+import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
 import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
 import { parseKey, weekdayShort } from "../src/lib/time.js";
@@ -95,6 +95,18 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
   assert.equal(atLeast("arrived at span", "hung"), "hung");
   assert.equal(atLeast("glued", "hung"), "glued");
   assert.equal(atLeast(undefined, "arrived at span"), "arrived at span");
+  assert.equal(stageOf({ stage: "glued", stages: ["hung"] }), "glued");
+  assert.equal(stageOf({ stages: ["hung", "glued"] }), "glued", "a change waiting from before");
+  assert.equal(stageOf({}), undefined);
+  const stageOfMove = (move) =>
+    parseDesk(
+      applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "move", time: "2026-11-06T08:00-07:00", ...move }).desk,
+    )[0]?.stage;
+  const head = headerOf(parseStatus(STATUS));
+  // none picked: what the move implies (arrived at span, or hung with the span marked hung); hung and an earlier one: hung;
+  // a later one stays
+  assert.equal(stageOfMove({ span: 38, complete: false }), "arrived at span");
+  assert.equal(stageOfMove({ span: head.span, complete: head.complete }), undefined, "a move that changes nothing");
   assert.equal(
     postedStage(
       [
@@ -108,15 +120,6 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
   );
   assert.equal(stageFloor(true, "glued"), "glued");
   assert.equal(stageFloor(true, "arrived at span"), "hung");
-  assert.equal(stageOf({ stage: "glued", stages: ["hung"] }), "glued");
-  assert.equal(stageOf({ stages: ["hung", "glued"] }), "glued", "a change waiting from before");
-  assert.equal(stageOf({}), undefined);
-  const stageOfMove = (move) =>
-    parseDesk(
-      applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "move", time: "2026-11-06T08:00-07:00", ...move }).desk,
-    )[0].stage;
-  // none picked: arrived at span; hung and none picked, or an earlier one: hung; a later one stays
-  assert.equal(stageOfMove({ span: 38, complete: false }), "arrived at span");
   assert.equal(stageOfMove({ span: 38, complete: true }), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true, stage: "arrived at span" }), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true, stage: "glued" }), "glued");

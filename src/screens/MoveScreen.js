@@ -32,7 +32,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stage: chosenStage(d.stage, memo, floor),
+    stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
   return (

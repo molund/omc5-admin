@@ -1,24 +1,26 @@
 // The step of the gantry's cycle a change reports, for desk.yaml and the velocity: always one. The rules (lib/stages.js)
 // suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
-// reads the text when the rules find nothing. With the span hung it can't go earlier than hung.
+// reads the text when the rules find nothing. The slider is off until he switches it on, so an entry doesn't report a step by
+// accident. It can't go earlier than the furthest step already posted for the span, or than hung once the span is hung.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
-import { Body, Button, Label, Panel, Row } from "./ui.js";
+import { Body, Button, Label, Panel, Row, Toggle } from "./ui.js";
 
 const THUMB = 26;
 
 /** A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. */
-function StepSlider({ position, count, min = 0, label, valueText, onChange }) {
+function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled }) {
   const { tw } = useTw();
   const width = useRef(0);
   const startX = useRef(0);
   const latest = useRef();
-  latest.current = { position, count, min, onChange };
+  latest.current = { position, count, min, onChange, disabled };
   const go = (next) => {
-    const { position, count, min, onChange } = latest.current;
+    const { position, count, min, onChange, disabled } = latest.current;
+    if (disabled) return;
     const clamped = Math.min(count - 1, Math.max(min, next));
     if (clamped !== position) onChange(clamped);
   };
@@ -47,6 +49,7 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange }) {
       focusable
       accessible
       accessibilityRole="adjustable"
+      accessibilityState={{ disabled: !!disabled }}
       accessibilityLabel={label}
       accessibilityValue={{ min, max: count - 1, now: position, text: valueText }}
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
@@ -56,7 +59,10 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange }) {
         e.preventDefault();
         go(position + (e.key === "ArrowRight" ? 1 : -1));
       }}
-      style={[tw`h-11 justify-center`, { paddingHorizontal: THUMB / 2, touchAction: "none", userSelect: "none" }]}
+      style={[
+        tw`h-11 justify-center`,
+        { paddingHorizontal: THUMB / 2, touchAction: "none", userSelect: "none", opacity: disabled ? 0.4 : 1 },
+      ]}
     >
       <View style={tw`h-1 justify-center rounded-full bg-line`}>
         <View style={[tw`absolute h-1 rounded-full bg-accent`, { left: 0, width: `${percent}%` }]} />
@@ -81,14 +87,13 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange }) {
 }
 
 /**
- * The stage a change will carry: always one. Mike's pick, or else the furthest the rules found in the text, and never earlier
- * than the floor (the first stage, or hung once the span is hung).
+ * The stage a change will carry: Mike's pick, never earlier than the floor (the first stage, hung once the span is hung, or
+ * the furthest step already posted for the span). None until he switches the picker on.
  * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
- * @param {string} text What's written.
  * @param {string} [floor] From floorStage.
- * @returns {string}
+ * @returns {string|undefined}
  */
-export const chosenStage = (value, text, floor = STAGES[0]) => atLeast(value ?? furthest(stagesIn(text)), floor);
+export const chosenStage = (value, floor = STAGES[0]) => (value ? atLeast(value, floor) : undefined);
 
 /**
  * @param {object} props
@@ -101,7 +106,9 @@ export const chosenStage = (value, text, floor = STAGES[0]) => atLeast(value ?? 
 export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) {
   const { tw } = useTw();
   const found = stagesIn(text);
-  const stage = chosenStage(value, text, floor);
+  const on = value !== undefined;
+  const suggested = furthest(found);
+  const stage = chosenStage(value, floor) ?? atLeast(suggested, floor);
   const index = STAGES.indexOf(stage);
   const min = STAGES.indexOf(floor);
   const [claude, setClaude] = useState(false);
@@ -131,6 +138,7 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
   return (
     <Panel>
       <Label>{`Gantry step${span ? ` · span ${span}` : ""}`}</Label>
+      <Toggle label="Report a step" value={on} onChange={(next) => onChange(next ? stage : undefined)} />
       <Row>
         <Body style={tw`font-bold`}>{name}</Body>
         <Body small mute>
@@ -143,6 +151,7 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
         position={index}
         count={STAGES.length}
         min={min}
+        disabled={!on}
         onChange={(p) => onChange(STAGES[p])}
       />
       <Row>
@@ -153,11 +162,11 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
         {min > 0
           ? `Nothing earlier than ${STAGE_LABELS[floor].toLowerCase()}: the span is hung or that step is posted. `
           : ""}
-        {value === undefined
-          ? found.length
+        {!on
+          ? "No step is reported. Switch it on to report one."
+          : value === suggested
             ? "Suggested from what you wrote. Move it to change."
-            : "Nothing found in what you wrote. Move it to the step it reports."
-          : "Your pick."}{" "}
+            : "Your pick."}{" "}
         It goes in desk.yaml, for the velocity.
       </Body>
       {problem && (
@@ -165,10 +174,10 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
           {problem}
         </Body>
       )}
-      {(claude || value !== undefined) && (
+      {(claude || (on && suggested && value !== suggested)) && (
         <Row style={tw`justify-end`}>
-          {value !== undefined && (
-            <Button small kind="link" title="Use what's found" onPress={() => onChange(undefined)} />
+          {on && suggested && value !== suggested && (
+            <Button small kind="link" title="Use what's found" onPress={() => onChange(atLeast(suggested, floor))} />
           )}
           {claude && !!text?.trim() && (
             <Button small title={asking ? "Asking Claude…" : "Ask Claude"} disabled={asking} onPress={ask} />

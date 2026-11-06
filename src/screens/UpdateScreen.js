@@ -55,7 +55,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     title: title.trim(),
     blocks: d.blocks,
     memo: { noteKey: d.time, text: d.memo ?? "" },
-    stage: chosenStage(d.stage, blockTexts(d.blocks).join("\n"), floor),
+    stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
   const discard = () => {

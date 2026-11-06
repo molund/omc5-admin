@@ -57,7 +57,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state
   // nor earlier than the furthest step already posted for the span (not when editing: that may be a correction)
   const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
-  const withMemo = { memo: { noteKey: note.key, text: memo }, stage: chosenStage(d.stage, text, floor) };
+  const withMemo = { memo: { noteKey: note.key, text: memo }, stage: chosenStage(d.stage, floor) };
   const change = d.editing
     ? {
         kind: "followup-edit",

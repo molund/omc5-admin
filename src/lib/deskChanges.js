@@ -5,8 +5,9 @@
 //   stage: "glued"                the step it reports, tagged at its own time stamp
 //   noteToSelf: "…"               (move) the note to self at its time stamp
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
-// A move, update or follow-up always has a stage: with none given it is "arrived at span", and with its span hung, never earlier than
-// "hung" (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
+// A move, update or follow-up has a stage only when one is picked (the picker is off until it is switched on), or when the
+// change implies one: "arrived at span" for a new span, "hung" for marking the span hung. A stage picked is never earlier than
+// "hung" with the span hung (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
 import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
 import { applyChange, Conflict } from "./changes.js";
@@ -41,8 +42,14 @@ export function applyDeskChange(deskText, change, statusBefore) {
   const before = { span: head.span, complete: head.complete };
   const stage = stageOf(change);
   const at = (key, span, stage, noteToSelf) => (entries = setEntry(entries, key, { span, stage, noteToSelf }));
-  // never earlier than hung once the span is: the picker keeps to it, and this holds for a change made without it
-  const reported = (after) => atLeast(stage, floorStage(after.complete));
+  // never earlier than hung once the span is: the picker keeps to it, and this holds for a change made without it. With no
+  // step picked, only what the change itself implies is logged: arriving at a new span, or marking the span hung.
+  const reported = (after) =>
+    stage
+      ? atLeast(stage, floorStage(after.complete))
+      : after.span !== before.span || (after.complete && !before.complete)
+        ? floorStage(after.complete)
+        : undefined;
   switch (change.kind) {
     case "move": {
       const after = { span: change.span, complete: change.complete };

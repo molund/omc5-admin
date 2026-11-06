@@ -92,7 +92,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
 
   const isPost = target.type === "blog";
   const text = target.type === "position" ? (d.memo ?? "") : blockTexts(d.blocks).join("\n");
-  const stage = chosenStage(d.stage, text);
+  const stage = chosenStage(d.stage);
   const memo = d.memo ?? "";
   let change, problems;
   if (target.type === "followup") {

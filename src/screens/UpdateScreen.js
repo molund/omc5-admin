@@ -15,7 +15,8 @@ import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
-import { floorStage } from "../lib/stages.js";
+import { stageFloor } from "../lib/stages.js";
+import { postedStage } from "../lib/deskFile.js";
 import { Button, Notice } from "../components/ui.js";
 
 export function UpdateScreen({ onReview, draftKey = "update", seed }) {
@@ -45,6 +46,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     ...blockProblems(d.blocks),
     ...(taken ? ["There's already an update at this time stamp. Move it a quarter hour."] : []),
   ];
+  const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
   const change = {
     kind: "update",
     time: d.time,
@@ -53,7 +55,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     title: title.trim(),
     blocks: d.blocks,
     memo: { noteKey: d.time, text: d.memo ?? "" },
-    stage: chosenStage(d.stage, blockTexts(d.blocks).join("\n"), floorStage(d.complete)),
+    stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
   const discard = () => {
@@ -74,7 +76,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         text={blockTexts(d.blocks).join("\n")}
         value={d.stage}
         onChange={(stage) => update({ stage })}
-        floor={floorStage(d.complete)}
+        floor={floor}
         span={d.span}
       />
       <TitleField

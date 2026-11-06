@@ -6,7 +6,8 @@ import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
-import { floorStage } from "../lib/stages.js";
+import { stageFloor } from "../lib/stages.js";
+import { postedStage } from "../lib/deskFile.js";
 import { compareKeys, nowKey, asOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
@@ -24,13 +25,14 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
     () => seed ?? { time: nowKey(), span: head.span, complete: head.complete },
   );
   const memo = d.memo ?? "";
+  const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
   const change = {
     kind: "move",
     time: d.time,
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stage: chosenStage(d.stage, memo, floorStage(d.complete)),
+    stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
   return (
@@ -46,13 +48,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
       {compareKeys(d.time, head.updated) < 0 && (
         <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>
       )}
-      <StagePicker
-        text={memo}
-        value={d.stage}
-        onChange={(stage) => update({ stage })}
-        floor={floorStage(d.complete)}
-        span={d.span}
-      />
+      <StagePicker text={memo} value={d.stage} onChange={(stage) => update({ stage })} floor={floor} span={d.span} />
       <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} where="Its steps are picked from it too." />
       <CardPreview card={cardFor(preview.text)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />

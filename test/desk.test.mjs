@@ -4,11 +4,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { atLeast, floorStage, furthest, stageOf, stagesIn } from "../src/lib/stages.js";
-import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
+import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
+import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { velocity, workingHours, cycles, sinceArrival, spanDays } from "../src/lib/velocity.js";
-import { parseStatus } from "../src/lib/statusFile.js";
+import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
 import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
 import { parseKey, weekdayShort } from "../src/lib/time.js";
@@ -101,9 +101,25 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
   const stageOfMove = (move) =>
     parseDesk(
       applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "move", time: "2026-11-06T08:00-07:00", ...move }).desk,
-    )[0].stage;
-  // none picked: arrived at span; hung and none picked, or an earlier one: hung; a later one stays
+    )[0]?.stage;
+  const head = headerOf(parseStatus(STATUS));
+  // none picked: what the move implies (arrived at span, or hung with the span marked hung); hung and an earlier one: hung;
+  // a later one stays
   assert.equal(stageOfMove({ span: 38, complete: false }), "arrived at span");
+  assert.equal(stageOfMove({ span: head.span, complete: head.complete }), undefined, "a move that changes nothing");
+  assert.equal(
+    postedStage(
+      [
+        { span: 5, stage: "glued" },
+        { span: 5, stage: "hung" },
+        { span: 6, stage: "cables down" },
+      ],
+      5,
+    ),
+    "glued",
+  );
+  assert.equal(stageFloor(true, "glued"), "glued");
+  assert.equal(stageFloor(true, "arrived at span"), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true }), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true, stage: "arrived at span" }), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true, stage: "glued" }), "glued");

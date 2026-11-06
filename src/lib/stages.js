@@ -60,6 +60,15 @@ export const floorStage = (hung) => (hung ? "hung" : STAGES[0]);
  */
 export const atLeast = (stage, floor) => furthest([stage, floor]);
 
+/**
+ * The earliest stage a new entry for a span can report: never before the furthest step already posted for it, nor before hung
+ * once the span is hung.
+ * @param {boolean} hung Whether the span is hung.
+ * @param {string|undefined} posted The furthest step posted for the span (deskFile's postedStage).
+ * @returns {string}
+ */
+export const stageFloor = (hung, posted) => atLeast(posted, floorStage(hung));
+
 const START = /\b(start(?:ed|s|ing)?|begin(?:s|ning)?|began|beginning|under ?way|in progress|now)\b/;
 const NOT = /\b(not|isn't|aren't|hasn't|haven't|still (?:up|on|in))\b/;
 

@@ -184,3 +184,52 @@ test("the velocity: the last two spans, arrival to arrival", () => {
     ],
   );
 });
+
+test("editing a note replaces its stages; deleting a note takes its records and those of its follow-ups", () => {
+  const notes = parseStatus(STATUS).notes;
+  const n = notes.find((x) => x.followUps.length);
+  const fu = n.followUps[0];
+  const files = {
+    status: STATUS,
+    desk: formatDesk([
+      { key: n.key, span: 30, stages: ["glued", "hung"], noteToSelf: "keep me" },
+      { key: fu.key, span: 30, stages: ["cables down"], noteToSelf: "" },
+      { key: "2020-01-01T09:00-07:00", span: 3, stages: ["arrived"], noteToSelf: "" },
+    ]),
+  };
+  const edited = parseDesk(
+    applyBoth(files, {
+      kind: "note-edit",
+      noteKey: n.key,
+      title: n.title,
+      blocks: [{ type: "summary", text: "x" }],
+      stages: ["hung"],
+    }).desk,
+  );
+  assert.deepEqual(edited.find((e) => e.key === n.key).stages, ["hung"]);
+  assert.equal(memoAt(edited, n.key), "keep me");
+
+  const deleted = parseDesk(applyBoth(files, { kind: "note-delete", noteKey: n.key }).desk);
+  assert.deepEqual(
+    deleted.map((e) => e.key),
+    ["2020-01-01T09:00-07:00"],
+  );
+});
+
+test("a stage on an entry with no record yet takes the span in force at that time", () => {
+  const n = parseStatus(STATUS).notes.find((x) => !x.fields.post);
+  const files = {
+    status: STATUS,
+    desk: formatDesk([{ key: "2020-01-01T09:00-07:00", span: 3, stages: ["arrived"], noteToSelf: "" }]),
+  };
+  const out = parseDesk(
+    applyBoth(files, {
+      kind: "note-edit",
+      noteKey: n.key,
+      title: n.title,
+      blocks: [{ type: "summary", text: "x" }],
+      stages: ["glued"],
+    }).desk,
+  );
+  assert.equal(out.find((e) => e.key === n.key).span, 3);
+});

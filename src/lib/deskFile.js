@@ -108,5 +108,22 @@ export function moveEntry(entries, from, to) {
   return setEntry(rest, to, { span: e.span, stages: e.stages, noteToSelf: e.noteToSelf || undefined });
 }
 
+/** Sets an entry's stages to exactly these. An entry with no span yet takes the one in force at its time. */
+export function replaceStages(entries, key, stages, fallbackSpan) {
+  const out = setEntry(entries, key);
+  const e = out.find((x) => x.key === key);
+  e.stages = [...stages];
+  if (!e.span && stages.length) e.span = spanAt(entries, key) ?? fallbackSpan ?? null;
+  return out;
+}
+
+/** The span of the newest entry at or before a time stamp, or null. */
+export function spanAt(entries, key) {
+  return sortEntries(entries).find((e) => e.span && compareKeys(e.key, key) <= 0)?.span ?? null;
+}
+
+/** Takes these time stamps out altogether. */
+export const removeEntries = (entries, keys) => entries.filter((e) => !keys.includes(e.key));
+
 /** The note to self at a time stamp, or "". */
 export const memoAt = (entries, key) => entries.find((e) => e.key === key)?.noteToSelf ?? "";

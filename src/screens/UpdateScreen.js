@@ -24,7 +24,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   const desk = useDesk();
   const notes = desk.parsed.notes;
   const head = headerOf(desk.parsed);
-  const [d, update, reset] = useDraft(
+  const [saved, update, reset] = useDraft(
     draftKey,
     () =>
       seed ?? {
@@ -37,6 +37,8 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         memo: "",
       },
   );
+  // until the gantry is changed here, the draft shows the gantry as it is now, even if it moved since the draft was saved
+  const d = saved.gantrySet || seed ? saved : { ...saved, span: head.span, complete: head.complete };
   // until a title is typed, it's the date title
   const title = d.titleSet ? d.title : dateTitle(d.time);
   // notes are keyed by time stamp, so two can't share one
@@ -64,7 +66,11 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
   };
   return (
     <View style={tw`gap-3`}>
-      <GantryFold value={d} current={head} onChange={(g) => update(g)} />
+      <GantryFold
+        value={d}
+        current={head}
+        onChange={(g) => update({ ...g, gantrySet: g.span !== head.span || g.complete !== head.complete })}
+      />
       <TimeStampField
         value={d.time}
         onChange={(time) => update({ time })}

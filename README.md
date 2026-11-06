@@ -109,7 +109,8 @@ src/components/              ui (panels, buttons, segmented control, fields), Ga
                              TitleField, BlockEditor, CardPreview, StyleHints, ReviewSheet, Outbox, EntryEditor (a saved
                              entry), WaitingEditor (a waiting change)
 src/lib/                     plain JS, no React: statusFile (reads status.yaml with line ranges), changes (splices a change
-                             in), deskFile and deskChanges (desk.yaml), stages (the cycle's steps and the rules that find
+                             in), deskFile and deskChanges (desk.yaml), cleanText (drops invisible characters before
+                             anything is written), stages (the cycle's steps and the rules that find
                              them), velocity, titles (date titles, slugs), time (BC time), card (the card rule), styleHints,
                              writingPrompt (the AI prompt a field's icon copies), entries (the Entries list, reopening)
 src/state/desk.js            the copy, the waiting changes, drafts and photos

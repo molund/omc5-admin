@@ -3,6 +3,7 @@
 // reached by then (lib/stages.js) and a note to self. A time stamp can match a note or follow-up in status.yaml, or stand
 // alone (a step seen with no post about it). The file is always written whole, in one shape, so it stays easy to read and to
 // diff.
+import { cleanText } from "./cleanText.js";
 import { compareKeys } from "./time.js";
 import { STAGES, currentName, furthest } from "./stages.js";
 
@@ -73,9 +74,7 @@ export function formatDesk(entries) {
   const lines = [HEADER, "entries:"];
   for (const e of sortEntries(entries)) {
     const stage = furthest([e.stage]);
-    const memo = String(e.noteToSelf ?? "")
-      .replace(/\s+/g, " ")
-      .trim();
+    const memo = cleanText(e.noteToSelf).replace(/\s+/g, " ").trim();
     if (!stage && !memo) continue;
     lines.push(`  - ${e.key}:`);
     if (e.span) lines.push(`      span: ${e.span}`);

@@ -20,6 +20,7 @@
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
 
+import { cleanText } from "./cleanText.js";
 import { parseStatus, headerOf } from "./statusFile.js";
 import { compareKeys, clock, shortDate, longDate } from "./time.js";
 import { slugsOf } from "./titles.js";
@@ -42,7 +43,7 @@ const nameOf = (key, title) =>
 export class Conflict extends Error {}
 
 /** One line of text as a double-quoted YAML scalar (the file's style), on one line. */
-const q = (s) => JSON.stringify(String(s).replace(/\s+/g, " ").trim());
+const q = (s) => JSON.stringify(cleanText(s).replace(/\s+/g, " ").trim());
 
 /** The blocks that will be written: no empty paragraphs, no photo without a file. */
 export function cleanBlocks(blocks) {

@@ -218,12 +218,26 @@ test("the velocity: the last two spans, arrival to arrival", () => {
   const c = cycles(entries).find((x) => x.to === 36);
   assert.equal(c.by, "hung");
   assert.equal(c.hours, 55.25);
-  // the stages of span 36 where both ends are logged: with one stage per entry, no glued is left for it
+  // the stages of span 36, each up to the next step logged: post-tensioning started says it was glued by then, and so on
   const s36 = stageTimes(entries).filter((t) => t.span === 36);
   assert.deepEqual(
     s36.map((t) => [t.name, t.hours]),
-    [["Hanging", 17.25]],
+    [
+      ["Hanging", 17.25],
+      ["Gluing", 17.25],
+      ["Post-tensioning", 8.5],
+      ["Hangers down", 13.5],
+      ["Moving the supports", 6.25],
+    ],
   );
+});
+
+test("a stage's time doesn't start at an arrival that wasn't logged", () => {
+  const entries = [
+    { key: "2026-11-02T08:00-07:00", span: 40, stage: "hanging started" },
+    { key: "2026-11-02T10:00-07:00", span: 40, stage: "hung" },
+  ];
+  assert.deepEqual(stageTimes(entries), []);
 });
 
 test("post-tensioning is timed from glued to cables down, and hangers down from there", () => {

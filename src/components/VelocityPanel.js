@@ -1,5 +1,5 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last two spans, the
-// cycles it's from, how long the gantry has been on its span, and how long each stage took where both ends are tagged.
+// cycles it's from, how long the gantry has been on its span, and how long each stage took, up to the next step logged.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
 import { View } from "react-native";
@@ -66,7 +66,7 @@ export function VelocityPanel() {
       {open && recent.length > 0 && (
         <View style={tw`gap-1 border-t border-line pt-2`}>
           <Body small mute>
-            Stages, where both ends are logged
+            Stages, each up to the next step logged
           </Body>
           {recent.map((t) => (
             <Row key={`${t.span}-${t.name}`}>

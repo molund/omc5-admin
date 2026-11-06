@@ -77,15 +77,28 @@ export function cycles(entries) {
   return out;
 }
 
-/** How long each stage of a span took, where both its ends are tagged: [{ name, span, hours, start, end }]. */
+/**
+ * The time stamp by which a stage had happened on a span: the earliest of its own tag and any later stage's, since an entry
+ * tags only the furthest stage it reached. An arrival counts only by its own tag: a later one says little about when it was.
+ */
+function reachedBy(steps, stage) {
+  if (stage === STAGES[0]) return steps[stage];
+  return STAGES.slice(STAGES.indexOf(stage))
+    .map((st) => steps[st])
+    .filter(Boolean)
+    .sort((a, b) => parseKey(a) - parseKey(b))[0];
+}
+
+/** How long each stage of a span took, up to the next step logged: [{ name, span, hours, start, end }]. */
 export function stageTimes(entries) {
   const by = stepsBySpan(entries);
   const out = [];
   for (const [span, s] of Object.entries(by)) {
     const n = Number(span);
     for (const step of STEPS) {
-      const start = s[step.from],
-        end = step.next ? by[n + 1]?.[step.to] : s[step.to];
+      const start = reachedBy(s, step.from),
+        endSpan = step.next ? by[n + 1] : s,
+        end = endSpan && reachedBy(endSpan, step.to);
       if (!start || !end || parseKey(end) <= parseKey(start)) continue;
       out.push({ name: step.name, span: n, start, end, hours: workingHours(parseKey(start), parseKey(end)) });
     }

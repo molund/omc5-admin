@@ -60,7 +60,7 @@ export const floorStage = (hung) => (hung ? "hung" : STAGES[0]);
  */
 export const atLeast = (stage, floor) => furthest([stage, floor]);
 
-/** The stages of the cycle, each from its start tag to its end tag, for the time each takes. */
+/** The stages of the cycle, from a start tag to an end tag (or a later one, if not logged), for the time each takes. */
 export const STEPS = [
   { name: "Hanging", from: "arrived at span", to: "hung" },
   { name: "Gluing", from: "hung", to: "glued" },

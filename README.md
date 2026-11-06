@@ -65,7 +65,7 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   earlier. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
   capability).
 - **Velocity.** The panel under the desk copy shows the working days per span over the last two spans, arrival to arrival
-  (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 8 p.m.; how long the gantry has been on its
+  (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 6 p.m.; how long the gantry has been on its
   span; and each step logged, with the working time since its span's arrival (`src/lib/velocity.js`).
 
 ## How it keeps and pushes changes

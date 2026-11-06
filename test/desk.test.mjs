@@ -189,17 +189,17 @@ test("update, follow-up and blog changes write their stage and notes to self to 
   assert.ok(head.notes.length > 0);
 });
 
-test("working time leaves out Saturday 6 p.m. to Sunday 8 p.m.", () => {
-  // Friday noon to Monday noon: 72 hours, 26 of them the shutdown
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 46);
-  // Saturday 5 p.m. to Sunday 9 p.m.: one hour before it, one after
-  assert.equal(workingHours(at("2026-10-31T17:00-07:00"), at("2026-11-01T21:00-07:00")), 2);
+test("working time leaves out Saturday 6 p.m. to Sunday 6 p.m.", () => {
+  // Friday noon to Monday noon: 72 hours, 24 of them the shutdown
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 48);
+  // Saturday 5 p.m. to Sunday 7 p.m.: one hour before it, one after
+  assert.equal(workingHours(at("2026-10-31T17:00-07:00"), at("2026-11-01T19:00-07:00")), 2);
   // inside it
-  assert.equal(workingHours(at("2026-10-31T19:00-07:00"), at("2026-11-01T19:00-07:00")), 0);
+  assert.equal(workingHours(at("2026-10-31T19:00-07:00"), at("2026-11-01T17:00-07:00")), 0);
   // a weekday stretch
   assert.equal(workingHours(at("2026-11-03T13:30-07:00"), at("2026-11-05T10:00-07:00")), 44.5);
   // two weekends
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 52);
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 48);
 });
 
 test("the velocity: the last two spans, arrival to arrival", () => {
@@ -209,10 +209,10 @@ test("the velocity: the last two spans, arrival to arrival", () => {
     v.cycles.map((c) => [c.from, c.to, c.by, c.hours]),
     [
       [37, 38, "arrived at span", 44.5],
-      [36, 37, "arrived at span", 62.75],
+      [36, 37, "arrived at span", 64.75],
     ],
   );
-  assert.equal(v.days.toFixed(2), "2.23");
+  assert.equal(v.days.toFixed(2), "2.28");
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
   // with no arrival at 35, span 35 to 36 is measured by the step both have: hung
   const c = cycles(entries).find((x) => x.to === 36);
@@ -224,9 +224,9 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       .filter((t) => t.span === 36)
       .map((t) => [t.stage, t.hours]),
     [
-      ["supports started", 56.5],
-      ["cables down", 43],
-      ["post-tensioning started", 34.5],
+      ["supports started", 58.5],
+      ["cables down", 45],
+      ["post-tensioning started", 36.5],
       ["hung", 17.25],
       ["hanging started", 12.75],
     ],

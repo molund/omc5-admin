@@ -1,6 +1,6 @@
 // Titles and their ?post= slugs, by the rules in molund/omc5's CLAUDE.md and src/lib/status.js.
 
-import { longDate, dayOf, parseKey } from "./time.js";
+import { longDate, parseKey } from "./time.js";
 
 const DATE_TITLE = /^Clayton Clipper construction update for /;
 
@@ -61,30 +61,23 @@ export function slugFor(title, key, notes) {
 const GANTRY = /\b(Clayton Clipper|Surrey Sprinter|Fleetwood Flyer|Clipper|Sprinter|Flyer)\b/;
 
 /**
- * What the title field should say about a title.
+ * What the title field should say about a title. Any update can have the date title, even with others on its day: the page
+ * headings come from the time stamps, and the site makes a repeated title's address unique with "-2".
  * @param {"update"|"blog"} kind
  * @param {string} key The note's time stamp.
  * @param {string} title What's in the field.
- * @param {object[]} notes The notes in the file (parsed).
- * @returns {{ sameDay: object[], needsHeadline: boolean, retitle: object[], problems: string[], warnings: string[] }}
+ * @returns {{ problems: string[], warnings: string[] }}
  */
-export function titleAdvice(kind, key, title, notes) {
-  const day = dayOf(key);
-  // other status updates on the same day (posts have headlines of their own, so they never clash)
-  // (an entry with no summary is only a note to self from a position, and isn't an update)
-  const sameDay = notes.filter((n) => n.fields.summary && !n.fields.post && n.key !== key && dayOf(n.key) === day);
-  const needsHeadline = kind === "blog" || sameDay.length > 0;
-  const retitle = kind === "update" ? sameDay.filter((n) => isDateTitle(n.title)) : [];
+export function titleAdvice(kind, key, title) {
   const problems = [],
     warnings = [];
   const t = title.trim();
   if (!t) problems.push(kind === "blog" ? "A blog post needs a title." : "Add a title.");
   else if (isDateTitle(t)) {
-    if (kind === "blog") problems.push("A blog post gets a headline, not the date title.");
-    else if (sameDay.length) problems.push("Another update is already on this day, so this one needs a headline.");
+    if (kind === "blog") problems.push("A blog post needs its own title, not the date title.");
     else if (t !== dateTitle(key)) warnings.push(`The date title for this time stamp is "${dateTitle(key)}".`);
   } else {
-    if (t.length >= 60) warnings.push(`Headlines stay under 60 characters (this one is ${t.length}).`);
+    if (t.length >= 60) warnings.push(`Titles stay under 60 characters (this one is ${t.length}).`);
     if (/\bspans? \d+/i.test(t) && !GANTRY.test(t))
       warnings.push('Name the gantry the span belongs to, e.g. "Clayton Clipper completes span 36".');
     // sentence case: capitals past the first word, other than names
@@ -96,5 +89,5 @@ export function titleAdvice(kind, key, title, notes) {
       .filter((w) => /^[A-Z][a-z]/.test(w) && !names.test(w.replace(/[^A-Za-z]/g, "")));
     if (caps.length >= 2) warnings.push(`Titles are in sentence case: check ${caps.slice(0, 3).join(", ")}.`);
   }
-  return { sameDay, needsHeadline, retitle, problems, warnings };
+  return { problems, warnings };
 }

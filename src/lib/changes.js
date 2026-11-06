@@ -3,7 +3,8 @@
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
 //   { id, kind: "move",          time, span, complete, noteToSelf?, stages? }
-//   { id, kind: "update",        time, span, complete, title, blocks, retitle: [{ key, title, slug }] }
+//   { id, kind: "update",        time, span, complete, title, blocks, retitle? }
+//       retitle: [{ key, title, slug }] is only on older waiting changes: the desk no longer asks to retitle another update
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
 //   { id, kind: "followup-edit", noteKey, fuKey, time, blocks }
 //   { id, kind: "blog",          date, title, blocks }

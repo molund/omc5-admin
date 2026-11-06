@@ -16,7 +16,7 @@ import { NoteToSelf } from "./NoteToSelf.js";
 import { StagePicker, chosenStages } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
-import { TitleField, editedTitleProblems } from "./TitleField.js";
+import { TitleField, titleProblems } from "./TitleField.js";
 import { Body, Button, Label, Notice, Panel, Row } from "./ui.js";
 
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Follow-up" };
@@ -122,9 +122,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
     };
     problems = [
       // a title left as it was isn't a new problem, whatever the rules say about it now
-      ...(title === note.title
-        ? []
-        : editedTitleProblems(isPost ? "blog" : "update", note.key, title, desk.parsed.notes)),
+      ...(title === note.title ? [] : titleProblems(isPost ? "blog" : "update", note.key, title)),
       ...blockProblems(d.blocks),
     ];
   }

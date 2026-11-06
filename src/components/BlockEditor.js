@@ -38,9 +38,9 @@ function Handles({ i, n, move, remove }) {
       accessibilityLabel={l}
       disabled={off}
       onPress={f}
-      style={[tw`h-7 w-7 items-center justify-center rounded-md`, off && tw`opacity-30`]}
+      style={[tw`h-8 w-8 items-center justify-center rounded-md`, off && tw`opacity-30`]}
     >
-      <Text style={tw`text-sm font-bold text-mute`}>{t}</Text>
+      <Text style={tw`text-base font-bold text-mute`}>{t}</Text>
     </Pressable>
   );
   return (
@@ -96,12 +96,11 @@ function SitePhoto({ file, caption }) {
  * @param {object} props
  * @param {object[]} props.blocks
  * @param {(b: object[]) => void} props.onChange
- * @param {string} props.summaryLabel
  * @param {string} props.day "2026-11-04", for photo names
  * @param {string} props.nameHint The title or summary, for photo names
  * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
  */
-export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, followUp }) {
+export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -157,31 +156,30 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
       {blocks.map((b, i) => {
         if (b.type === "summary")
           return (
-            <Panel key="summary">
-              <Label>{summaryLabel}</Label>
-              <Field
-                multiline
-                value={b.text}
-                onChangeText={(text) => set(i, { text })}
-                placeholder="What happened, in a sentence or two"
-                label="Summary"
-                writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
-              />
-            </Panel>
+            <Field
+              key="summary"
+              multiline
+              heading="Summary"
+              value={b.text}
+              onChangeText={(text) => set(i, { text })}
+              placeholder="What happened?"
+              label="Summary"
+              writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
+            />
           );
         if (b.type === "text")
           return (
-            <Panel key={b.k ?? `t${i}`}>
-              <Label right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}>Paragraph</Label>
-              <Field
-                multiline
-                value={b.text}
-                onChangeText={(text) => set(i, { text })}
-                placeholder="Another paragraph"
-                label={`Paragraph ${i}`}
-                writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
-              />
-            </Panel>
+            <Field
+              key={b.k ?? `t${i}`}
+              multiline
+              heading="Paragraph"
+              right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}
+              value={b.text}
+              onChangeText={(text) => set(i, { text })}
+              placeholder="More detail"
+              label={`Paragraph ${i}`}
+              writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
+            />
           );
         const p = b.photoId ? desk.photos[b.photoId] : null;
         return (
@@ -205,9 +203,10 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
             )}
             <Field
               multiline
+              heading="Caption"
               value={b.caption}
               onChangeText={(caption) => set(i, { caption })}
-              placeholder="Caption: what the photo shows"
+              placeholder="What it shows"
               label="Caption"
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}

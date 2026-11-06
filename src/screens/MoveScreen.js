@@ -49,7 +49,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
         <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>
       )}
       <StagePicker text={memo} value={d.stage} onChange={(stage) => update({ stage })} floor={floor} span={d.span} />
-      <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} where="Its steps are picked from it too." />
+      <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} />
       <CardPreview card={cardFor(preview.text)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />
     </View>

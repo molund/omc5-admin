@@ -169,7 +169,6 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
         <BlockEditor
           blocks={d.blocks}
           onChange={(blocks) => update({ blocks })}
-          summaryLabel={isPost ? "Summary · leads the post and its link preview" : "Summary · goes on the card"}
           day={dayOf(target.key)}
           nameHint={d.title ?? d.blocks[0].text}
           followUp={target.type === "followup"}

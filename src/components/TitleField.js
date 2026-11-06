@@ -3,8 +3,8 @@
 // heading too.
 import { useTw } from "../theme/tw.js";
 import { dateTitle, isDateTitle, slugFor, titleAdvice } from "../lib/titles.js";
-import { pageHeading } from "../lib/time.js";
-import { Body, Button, Field, Label, Notice, Panel, Row } from "./ui.js";
+import { View } from "react-native";
+import { Body, Button, Field, Notice, Row } from "./ui.js";
 
 /**
  * @param {object} props
@@ -21,48 +21,36 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
   const slug = address ?? (title.trim() ? slugFor(title.trim(), stamp, notes) : "");
   const usingDate = isDateTitle(title);
   return (
-    <Panel>
-      <Label
-        right={
-          !title.trim() || isDateTitle(title) ? null : (
-            <Body small mute>
-              {title.trim().length}/60
-            </Body>
-          )
-        }
-      >
-        {kind === "blog" ? "Title · heading, link preview and address" : "Title · link preview and address"}
-      </Label>
-      {kind === "update" && (
-        <Body small mute>
-          {`Page heading, from the time stamp: ${pageHeading(stamp)}`}
-        </Body>
-      )}
+    <View style={tw`gap-1.5`}>
       <Field
         multiline
+        heading="Title"
+        right={
+          kind === "update" &&
+          (usingDate ? (
+            <Button kind="link" small title="Write your own" onPress={() => onChange("")} />
+          ) : (
+            <Button kind="link" small title="Use the date title" onPress={() => onChange(dateTitle(stamp))} />
+          ))
+        }
         value={title}
         onChangeText={(t) => onChange(t.replace(/\n/g, " "))}
-        placeholder={kind === "blog" ? "A title, in sentence case" : "Title"}
+        placeholder={kind === "blog" ? "In sentence case" : "Your own title"}
         label="Title"
         style={tw`min-h-14`}
       />
       {slug ? (
-        <Body small mute style={tw`font-mono`}>
-          ?post={slug}
-        </Body>
-      ) : null}
-      {kind === "update" && (
         <Row>
-          <Body small mute>
-            {usingDate ? "The date title." : "Your own title."}
+          <Body small mute style={tw`font-mono`}>
+            ?post={slug}
           </Body>
-          {usingDate ? (
-            <Button kind="link" small title="Write your own" onPress={() => onChange("")} />
-          ) : (
-            <Button kind="link" small title="Use the date title" onPress={() => onChange(dateTitle(stamp))} />
+          {!usingDate && (
+            <Body small mute>
+              {title.trim().length}/60
+            </Body>
           )}
         </Row>
-      )}
+      ) : null}
       {advice.problems.map((p) => (
         <Notice key={p} tone="problem">
           {p}
@@ -71,7 +59,7 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
       {advice.warnings.map((w) => (
         <Notice key={w}>{w}</Notice>
       ))}
-    </Panel>
+    </View>
   );
 }
 

@@ -99,7 +99,6 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
       <BlockEditor
         blocks={d.blocks}
         onChange={(blocks) => update({ blocks })}
-        summaryLabel="Summary · goes on the card"
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
       />

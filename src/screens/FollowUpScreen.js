@@ -39,6 +39,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
     editing: null,
     memo: undefined, // untouched: the parent's own
     time: nowKey(),
+    manualUntil: null,
     blocks: emptyBlocks(),
     span: head.span,
     complete: head.complete,

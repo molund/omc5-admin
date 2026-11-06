@@ -79,7 +79,7 @@ export function cycles(entries) {
 
 /**
  * Every step logged after a span's arrival, with the working hours since that arrival: [{ span, stage, key, hours }].
- * Newest span first, then in the order they happened. A span with no logged arrival has none.
+ * Highest span first, then the longest since arrival first. A span with no logged arrival has none.
  */
 export function sinceArrival(entries) {
   const by = stepsBySpan(entries);
@@ -92,7 +92,7 @@ export function sinceArrival(entries) {
       hours: workingHours(parseKey(by[e.span][STAGES[0]]), parseKey(e.key)),
     }))
     .filter((e) => e.hours > 0)
-    .sort((a, b) => b.span - a.span || parseKey(a.key) - parseKey(b.key));
+    .sort((a, b) => b.span - a.span || b.hours - a.hours);
 }
 
 /**

@@ -224,17 +224,17 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       .filter((t) => t.span === 36)
       .map((t) => [t.stage, t.hours]),
     [
-      ["hanging started", 12.75],
-      ["hanging started", 15],
-      ["hung", 17.25],
-      ["post-tensioning started", 34.5],
-      ["cables down", 43],
       ["supports started", 56.5],
+      ["cables down", 43],
+      ["post-tensioning started", 34.5],
+      ["hung", 17.25],
+      ["hanging started", 15],
+      ["hanging started", 12.75],
     ],
   );
 });
 
-test("steps logged since arrival: newest span first, none without a logged arrival or before it", () => {
+test("steps logged since arrival: highest span first, then longest first, none without a logged arrival or before it", () => {
   const entries = [
     { key: "2026-11-03T09:00-07:00", span: 41, stage: "hung" },
     { key: "2026-11-03T08:00-07:00", span: 41, stage: "arrived at span" },
@@ -249,8 +249,8 @@ test("steps logged since arrival: newest span first, none without a logged arriv
     sinceArrival(entries).map((t) => [t.span, t.stage, t.hours]),
     [
       [41, "hung", 1],
-      [40, "hung", 2],
       [40, "glued", 4],
+      [40, "hung", 2],
     ],
   );
 });

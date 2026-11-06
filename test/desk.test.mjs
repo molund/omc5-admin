@@ -518,3 +518,29 @@ test("status.yaml's hung: line (complete: in a file from before Nov. 6) is read 
   assert.equal(headerOf(parseStatus(after)).complete, true);
   assert.equal(commitMessage(move, now), "Mark span 38 as hung");
 });
+
+test("invisible characters a phone slips in are left out of both files", async () => {
+  const { applyChange } = await import("../src/lib/changes.js");
+  const junk = "￼6/12 segments​ glued﻿";
+  // desk.yaml: a note to self
+  const desk = formatDesk([{ key: "2026-11-05T21:30-07:00", span: 38, stage: null, noteToSelf: junk }]);
+  assert.match(desk, /note-to-self: "6\/12 segments glued"\n/);
+  // status.yaml: a summary, and a caption
+  const T = "2026-11-06T09:00-07:00";
+  const text = applyChange(STATUS, {
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: true,
+    title: dateTitle(T),
+    blocks: [
+      { type: "summary", text: junk },
+      { type: "photo", file: "x.jpg", caption: "￼A caption" },
+    ],
+  }).text;
+  assert.match(text, /summary: "6\/12 segments glued"/);
+  assert.match(text, /caption: "A caption"/);
+  assert.doesNotMatch(text, /[￼​﻿]/);
+  // emoji built with the zero-width joiner stay whole
+  assert.match(formatDesk([{ key: T, span: 38, stage: null, noteToSelf: "Crew \u{1F477}‍♂️" }]), /‍/);
+});

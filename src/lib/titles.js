@@ -79,7 +79,7 @@ export function titleAdvice(kind, key, title) {
   } else {
     if (t.length >= 60) warnings.push(`Titles stay under 60 characters (this one is ${t.length}).`);
     if (/\bspans? \d+/i.test(t) && !GANTRY.test(t))
-      warnings.push('Name the gantry the span belongs to, e.g. "Clayton Clipper completes span 36".');
+      warnings.push('Name the gantry the span belongs to, e.g. "Clayton Clipper moves to span 38".');
     // sentence case: capitals past the first word, other than names
     const names =
       /^(Clayton|Clipper|Surrey|Sprinter|Fleetwood|Flyer|Highway|Fraser|Green|Timbers|Station|Hillcrest|Street|St|Expo|Line|SkyTrain|Dywidag|Piper|Toby|SFMSF|Langley|Fraggle|Rock|I)$/;

@@ -158,17 +158,6 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
         <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[0]]}</Text>
         <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[STAGES.length - 1]]}</Text>
       </Row>
-      <Body small mute>
-        {min > 0
-          ? `Nothing earlier than ${STAGE_LABELS[floor].toLowerCase()}: the span is hung or that step is posted. `
-          : ""}
-        {!on
-          ? "No step is reported. Switch it on to report one."
-          : value === suggested
-            ? "Suggested from what you wrote. Move it to change."
-            : "Your pick."}{" "}
-        It goes in desk.yaml, for the velocity.
-      </Body>
       {problem && (
         <Body small mute>
           {problem}

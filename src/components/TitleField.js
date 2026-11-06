@@ -3,7 +3,6 @@
 // heading too.
 import { useTw } from "../theme/tw.js";
 import { dateTitle, isDateTitle, slugFor, titleAdvice } from "../lib/titles.js";
-import { pageHeading } from "../lib/time.js";
 import { View } from "react-native";
 import { Body, Button, Field, Notice, Row } from "./ui.js";
 
@@ -27,11 +26,12 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
         multiline
         heading="Title"
         right={
-          !title.trim() || isDateTitle(title) ? null : (
-            <Body small mute>
-              {title.trim().length}/60
-            </Body>
-          )
+          kind === "update" &&
+          (usingDate ? (
+            <Button kind="link" small title="Write your own" onPress={() => onChange("")} />
+          ) : (
+            <Button kind="link" small title="Use the date title" onPress={() => onChange(dateTitle(stamp))} />
+          ))
         }
         value={title}
         onChangeText={(t) => onChange(t.replace(/\n/g, " "))}
@@ -39,28 +39,18 @@ export function TitleField({ kind, stamp, title, onChange, notes, address }) {
         label="Title"
         style={tw`min-h-14`}
       />
-      {kind === "update" && (
-        <Body small mute>
-          {`Page heading, from the time stamp: ${pageHeading(stamp)}`}
-        </Body>
-      )}
       {slug ? (
-        <Body small mute style={tw`font-mono`}>
-          ?post={slug}
-        </Body>
-      ) : null}
-      {kind === "update" && (
         <Row>
-          <Body small mute>
-            {usingDate ? "The date title." : "Your own title."}
+          <Body small mute style={tw`font-mono`}>
+            ?post={slug}
           </Body>
-          {usingDate ? (
-            <Button kind="link" small title="Write your own" onPress={() => onChange("")} />
-          ) : (
-            <Button kind="link" small title="Use the date title" onPress={() => onChange(dateTitle(stamp))} />
+          {!usingDate && (
+            <Body small mute>
+              {title.trim().length}/60
+            </Body>
           )}
         </Row>
-      )}
+      ) : null}
       {advice.problems.map((p) => (
         <Notice key={p} tone="problem">
           {p}

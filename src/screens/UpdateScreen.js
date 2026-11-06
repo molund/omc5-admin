@@ -14,8 +14,8 @@ import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../componen
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
-import { StagePicker, chosenStages } from "../components/StagePicker.js";
-import { autoStages } from "../lib/deskChanges.js";
+import { StagePicker, chosenStage } from "../components/StagePicker.js";
+import { floorStage } from "../lib/stages.js";
 import { Button, Notice } from "../components/ui.js";
 
 export function UpdateScreen({ onReview, draftKey = "update", seed }) {
@@ -53,7 +53,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     title: title.trim(),
     blocks: d.blocks,
     memo: { noteKey: d.time, text: d.memo ?? "" },
-    stages: chosenStages(d.stages, blockTexts(d.blocks).join("\n")),
+    stage: chosenStage(d.stage, blockTexts(d.blocks).join("\n"), floorStage(d.complete)),
   };
   const preview = desk.preview(change);
   const discard = () => {
@@ -66,9 +66,9 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
       <TimeStampField value={d.time} onChange={(time) => update({ time })} />
       <StagePicker
         text={blockTexts(d.blocks).join("\n")}
-        value={d.stages}
-        onChange={(stages) => update({ stages })}
-        auto={autoStages(head, d)}
+        value={d.stage}
+        onChange={(stage) => update({ stage })}
+        floor={floorStage(d.complete)}
         span={d.span}
       />
       <TitleField

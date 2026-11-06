@@ -15,13 +15,13 @@ The steps, in cycle order (the tag, then what it means):
 ${STAGES.map((s) => `- ${s}: ${STAGE_LABELS[s]}`).join("\n")}
 
 What each step looks like:
-- arrived: the gantry has moved to a new span and rests on its own forward support there ("moved to span 38", "made it across to span 32").
+- arrived at span: the gantry has moved to a new span and rests on its own forward support there ("moved to span 38", "made it across to span 32").
 - hanging started: some segments are hung, or the crane is lifting them ("three segments hung", "about to lift the last segment").
 - hung: all the span's segments (usually 11 or 12) are hung (older updates say the span is "marked as complete").
 - gluing started / glued: epoxy joins the segments; plastic is laid over the road while it's under way and lifted after.
-- post-tensioning started / post-tensioned: the span is post-tensioned after it's glued.
+- post-tensioning started: the span is post-tensioned after it's glued. This is the only tag for it, so use it when post-tensioning is under way or done.
 - cables down: the cables attached to the hangers come down. hangers down: all the hangers are lifted down.
-- supports started / supports moved: the gantry's supports are moved forward, before it launches to the next span.
+- supports started: the gantry's supports are being moved forward, before it launches to the next span. There is no tag for finishing: the next arrival says they're all moved.
 
 Rules:
 - Only the Clayton Clipper. Another gantry (the Surrey Sprinter, the Fleetwood Flyer) doesn't count.

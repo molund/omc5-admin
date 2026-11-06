@@ -1,18 +1,18 @@
 // Position: the gantry's span, Hung and a time stamp. No text, so the card shows a Trackside button. The steps of the
-// cycle seen and a note to self go in desk.yaml; a move logs "arrived" and marking a span hung logs "hung" by itself, so
+// cycle seen and a note to self go in desk.yaml; a move logs "arrived at span" and marking a span hung logs "hung" by itself, so
 // the velocity has them even when there's no update about them.
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
-import { autoStages } from "../lib/deskChanges.js";
+import { floorStage } from "../lib/stages.js";
 import { compareKeys, nowKey, asOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf } from "../components/NoteToSelf.js";
-import { StagePicker, chosenStages } from "../components/StagePicker.js";
+import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { Button, Notice } from "../components/ui.js";
 
 export function MoveScreen({ onReview, draftKey = "move", seed }) {
@@ -30,7 +30,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stages: chosenStages(d.stages, memo),
+    stage: chosenStage(d.stage, memo, floorStage(d.complete)),
   };
   const preview = desk.preview(change);
   return (
@@ -42,9 +42,9 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
       )}
       <StagePicker
         text={memo}
-        value={d.stages}
-        onChange={(stages) => update({ stages })}
-        auto={autoStages(head, d)}
+        value={d.stage}
+        onChange={(stage) => update({ stage })}
+        floor={floorStage(d.complete)}
         span={d.span}
       />
       <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} where="Its steps are picked from it too." />

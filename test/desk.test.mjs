@@ -4,9 +4,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { splitStages, stagesIn } from "../src/lib/stages.js";
+import { atLeast, floorStage, furthest, stageOf, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
-import { applyBoth, applyDeskChange, autoStages } from "../src/lib/deskChanges.js";
+import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { velocity, workingHours, cycles, stageTimes } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
@@ -30,7 +30,7 @@ function blocksOf(fields) {
 
 test("the rules read Mike's wording", () => {
   const cases = [
-    ["The Clayton Clipper has moved to span 38.", ["arrived"]],
+    ["The Clayton Clipper has moved to span 38.", ["arrived at span"]],
     [
       "Fully glued. Hangers and cables are still up. Post tensioning in progress.",
       ["glued", "post-tensioning started"],
@@ -39,12 +39,12 @@ test("the rules read Mike's wording", () => {
     ["All segments for span 35 are hung.", ["hung"]],
     ["All the segments for span 37 are now in place.", ["hung"]],
     ["Only three segments have been hung for span 36.", ["hanging started"]],
-    ["Post-tensioning is done on span 36, and the cables are down.", ["post-tensioned", "cables down"]],
+    ["Post-tensioning is done on span 36, and the cables are down.", ["post-tensioning started", "cables down"]],
     ["Span 35's segments are glued, and Dywidag is post-tensioning now.", ["glued", "post-tensioning started"]],
     ["The Clayton Clipper has started moving its supports.", ["supports started"]],
     ["Starting to move the gantry supports.", ["supports started"]],
-    ["Finished moving the gantry supports.", ["supports moved"]],
-    ["Finishing moving the gantry supports.", ["supports moved"]],
+    ["Finished moving the gantry supports.", ["supports started"]],
+    ["Finishing moving the gantry supports.", ["supports started"]],
     ["The gantry is beginning to move its supports.", ["supports started"]],
     ["All 12 hangers are down.", ["hangers down"]],
     // not these
@@ -59,22 +59,55 @@ test("the rules read Mike's wording", () => {
 test("desk.yaml reads back as written, newest first, in one shape", () => {
   const entries = parseDesk(DESK);
   assert.equal(formatDesk(entries), DESK, "the omc5 copy is in the desk's own shape");
-  assert.equal(entries[0].key, "2026-11-05T10:00-07:00");
+  assert.equal(entries[0].key, "2026-11-05T17:15-07:00");
   assert.equal(
     memoAt(entries, "2026-11-04T12:30-07:00"),
     "Fully glued. Hangers and cables are still up. Post tensioning in progress.",
   );
   assert.deepEqual(parseDesk(EMPTY_DESK), []);
-  // unknown tags are dropped; empty entries aren't written
-  const odd = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stages: [hung, flying]\n");
-  assert.deepEqual(odd[0].stages, ["hung"]);
-  assert.equal(formatDesk([{ key: "2026-11-06T08:00-07:00", span: 38, stages: [], noteToSelf: " " }]), EMPTY_DESK);
+  // an unknown tag is dropped; an entry with no stage and no note isn't written
+  const odd = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stage: flying\n");
+  assert.equal(odd[0].stage, null);
+  assert.equal(formatDesk([{ key: "2026-11-06T08:00-07:00", span: 38, stage: null, noteToSelf: " " }]), EMPTY_DESK);
+  // the old "stages: [...]" reads as the furthest of them, and is written back as a stage
+  const old = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stages: [hung, glued]\n");
+  assert.equal(old[0].stage, "glued");
+  assert.match(formatDesk(old), /\n {6}stage: glued\n/);
 });
 
-test("a move logs arrived and hung by itself, and a position's note to self goes to desk.yaml only", () => {
-  assert.deepEqual(autoStages({ span: 37, complete: true }, { span: 38, complete: false }), ["arrived"]);
-  assert.deepEqual(autoStages({ span: 38, complete: false }, { span: 38, complete: true }), ["hung"]);
-  assert.deepEqual(autoStages({ span: 38, complete: true }, { span: 38, complete: true }), []);
+test("desk.yaml's old name for the first stage reads as the new one, and is written back so", () => {
+  const entries = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stage: arrived\n");
+  assert.equal(entries[0].stage, "arrived at span");
+  assert.match(formatDesk(entries), /\n {6}stage: arrived at span\n/);
+  const list = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stages: [arrived]\n");
+  assert.equal(list[0].stage, "arrived at span");
+  // "supports moved" had no time of its own: the next arrival says it, so it reads as "supports started"
+  const moved = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stage: supports moved\n");
+  assert.equal(moved[0].stage, "supports started");
+  assert.equal(stageOf({ stage: "supports moved" }), "supports started");
+});
+
+test("an entry has one stage, never earlier than hung once its span is, and a note to self goes to desk.yaml only", () => {
+  assert.equal(floorStage(false), "arrived at span");
+  assert.equal(floorStage(true), "hung");
+  assert.equal(furthest(["glued", "hung", "arrived at span"]), "glued");
+  assert.equal(furthest([undefined, "nope"]), undefined);
+  assert.equal(atLeast("arrived at span", "hung"), "hung");
+  assert.equal(atLeast("glued", "hung"), "glued");
+  assert.equal(atLeast(undefined, "arrived at span"), "arrived at span");
+  assert.equal(stageOf({ stage: "glued", stages: ["hung"] }), "glued");
+  assert.equal(stageOf({ stages: ["hung", "glued"] }), "glued", "a change waiting from before");
+  assert.equal(stageOf({}), undefined);
+  const stageOfMove = (move) =>
+    parseDesk(
+      applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "move", time: "2026-11-06T08:00-07:00", ...move }).desk,
+    )[0].stage;
+  // none picked: arrived at span; hung and none picked, or an earlier one: hung; a later one stays
+  assert.equal(stageOfMove({ span: 38, complete: false }), "arrived at span");
+  assert.equal(stageOfMove({ span: 38, complete: true }), "hung");
+  assert.equal(stageOfMove({ span: 38, complete: true, stage: "arrived at span" }), "hung");
+  assert.equal(stageOfMove({ span: 38, complete: true, stage: "glued" }), "glued");
+  assert.equal(stageOfMove({ span: 38, complete: false, stage: "hanging started" }), "hanging started");
   const t = "2026-11-06T08:00-07:00";
   const r = applyBoth(
     { status: STATUS, desk: EMPTY_DESK },
@@ -84,7 +117,7 @@ test("a move logs arrived and hung by itself, and a position's note to self goes
       span: 38,
       complete: false,
       noteToSelf: "Ask about the\n girders",
-      stages: ["supports started"],
+      stage: "supports started",
     },
   );
   // status.yaml: only the header lines, no empty note any more
@@ -94,13 +127,13 @@ test("a move logs arrived and hung by itself, and a position's note to self goes
   assert.deepEqual(e, {
     key: t,
     span: 38,
-    stages: ["arrived", "supports started"],
+    stage: "supports started",
     noteToSelf: "Ask about the girders",
   });
   assert.equal(r.deskHunks.length, 1);
 });
 
-test("update, follow-up and blog changes write their stages and notes to self to desk.yaml", () => {
+test("update, follow-up and blog changes write their stage and notes to self to desk.yaml", () => {
   const T = "2026-11-06T09:00-07:00";
   const head = parseStatus(STATUS);
   const upd = applyBoth(
@@ -113,14 +146,14 @@ test("update, follow-up and blog changes write their stages and notes to self to
       title: dateTitle(T),
       blocks: [{ type: "summary", text: "Moved." }],
       memo: { noteKey: T, text: "Check the photo credit" },
-      stages: ["supports moved"],
+      stage: "supports started",
     },
   );
   let e = parseDesk(upd.desk);
-  assert.deepEqual(e[0].stages, ["arrived", "supports moved"]);
+  assert.equal(e[0].stage, "supports started");
   assert.equal(e[0].noteToSelf, "Check the photo credit");
   assert.ok(!upd.status.includes("note-to-self"));
-  // a follow-up: its stages at its own time, the note to self on its parent
+  // a follow-up: its stage at its own time, the note to self on its parent
   const fu = applyBoth(
     { status: upd.status, desk: upd.desk },
     {
@@ -130,11 +163,11 @@ test("update, follow-up and blog changes write their stages and notes to self to
       gantry: null,
       blocks: [{ type: "summary", text: "Three segments are hung." }],
       memo: { noteKey: T, text: "Updated" },
-      stages: ["hanging started"],
+      stage: "hanging started",
     },
   );
   e = parseDesk(fu.desk);
-  assert.deepEqual(e[0], { key: "2026-11-06T15:00-07:00", span: 38, stages: ["hanging started"], noteToSelf: "" });
+  assert.deepEqual(e[0], { key: "2026-11-06T15:00-07:00", span: 38, stage: "hanging started", noteToSelf: "" });
   assert.equal(memoAt(e, T), "Updated");
   // editing a follow-up's time moves its entry with it
   const moved = applyDeskChange(
@@ -152,7 +185,7 @@ test("update, follow-up and blog changes write their stages and notes to self to
     { kind: "blog", date: "2026-11-06", memo: { noteKey: "2026-11-06", text: "Draft" } },
     STATUS,
   );
-  assert.deepEqual(parseDesk(blog.text), [{ key: "2026-11-06", span: null, stages: [], noteToSelf: "Draft" }]);
+  assert.deepEqual(parseDesk(blog.text), [{ key: "2026-11-06", span: null, stage: null, noteToSelf: "Draft" }]);
   assert.ok(head.notes.length > 0);
 });
 
@@ -175,8 +208,8 @@ test("the velocity: the last two spans, arrival to arrival", () => {
   assert.deepEqual(
     v.cycles.map((c) => [c.from, c.to, c.by, c.hours]),
     [
-      [37, 38, "arrived", 44.5],
-      [36, 37, "arrived", 62.75],
+      [37, 38, "arrived at span", 44.5],
+      [36, 37, "arrived at span", 62.75],
     ],
   );
   assert.equal(v.days.toFixed(2), "2.23");
@@ -185,28 +218,39 @@ test("the velocity: the last two spans, arrival to arrival", () => {
   const c = cycles(entries).find((x) => x.to === 36);
   assert.equal(c.by, "hung");
   assert.equal(c.hours, 55.25);
-  // the stages of span 36 where both ends are logged
+  // the stages of span 36 where both ends are logged: with one stage per entry, no glued is left for it
   const s36 = stageTimes(entries).filter((t) => t.span === 36);
   assert.deepEqual(
     s36.map((t) => [t.name, t.hours]),
+    [["Hanging", 17.25]],
+  );
+});
+
+test("post-tensioning is timed from glued to cables down, and hangers down from there", () => {
+  const entries = [
+    { key: "2026-11-02T08:00-07:00", span: 40, stage: "glued" },
+    { key: "2026-11-02T10:00-07:00", span: 40, stage: "cables down" },
+    { key: "2026-11-02T13:00-07:00", span: 40, stage: "hangers down" },
+  ];
+  assert.deepEqual(
+    stageTimes(entries).map((t) => [t.name, t.hours]),
     [
-      ["Hanging", 17.25],
-      ["Gluing", 17.25],
-      ["Post-tensioning", 8.5],
+      ["Post-tensioning", 2],
+      ["Hangers down", 3],
     ],
   );
 });
 
-test("editing a note replaces its stages; deleting a note takes its records and those of its follow-ups", () => {
+test("editing a note replaces its stage; deleting a note takes its records and those of its follow-ups", () => {
   const notes = parseStatus(STATUS).notes;
   const n = notes.find((x) => x.followUps.length);
   const fu = n.followUps[0];
   const files = {
     status: STATUS,
     desk: formatDesk([
-      { key: n.key, span: 30, stages: ["glued", "hung"], noteToSelf: "keep me" },
-      { key: fu.key, span: 30, stages: ["cables down"], noteToSelf: "" },
-      { key: "2020-01-01T09:00-07:00", span: 3, stages: ["arrived"], noteToSelf: "" },
+      { key: n.key, span: 30, stage: "glued", noteToSelf: "keep me" },
+      { key: fu.key, span: 30, stage: "cables down", noteToSelf: "" },
+      { key: "2020-01-01T09:00-07:00", span: 3, stage: "arrived at span", noteToSelf: "" },
     ]),
   };
   const edited = parseDesk(
@@ -215,10 +259,10 @@ test("editing a note replaces its stages; deleting a note takes its records and 
       noteKey: n.key,
       title: n.title,
       blocks: [{ type: "summary", text: "x" }],
-      stages: ["hung"],
+      stage: "hung",
     }).desk,
   );
-  assert.deepEqual(edited.find((e) => e.key === n.key).stages, ["hung"]);
+  assert.equal(edited.find((e) => e.key === n.key).stage, "hung");
   assert.equal(memoAt(edited, n.key), "keep me");
 
   const deleted = parseDesk(applyBoth(files, { kind: "note-delete", noteKey: n.key }).desk);
@@ -232,7 +276,7 @@ test("a stage on an entry with no record yet takes the span in force at that tim
   const n = parseStatus(STATUS).notes.find((x) => !x.fields.post);
   const files = {
     status: STATUS,
-    desk: formatDesk([{ key: "2020-01-01T09:00-07:00", span: 3, stages: ["arrived"], noteToSelf: "" }]),
+    desk: formatDesk([{ key: "2020-01-01T09:00-07:00", span: 3, stage: "arrived at span", noteToSelf: "" }]),
   };
   const out = parseDesk(
     applyBoth(files, {
@@ -240,57 +284,53 @@ test("a stage on an entry with no record yet takes the span in force at that tim
       noteKey: n.key,
       title: n.title,
       blocks: [{ type: "summary", text: "x" }],
-      stages: ["glued"],
+      stage: "glued",
     }).desk,
   );
   assert.equal(out.find((e) => e.key === n.key).span, 3);
 });
 
-test("a follow-up's stages can be replaced or cleared, and deleting it takes its record", () => {
+test("a follow-up's stage can be replaced, and deleting it takes its record", () => {
   const n = parseStatus(STATUS).notes.find((x) => x.followUps.length);
   const fu = n.followUps[0];
   const files = {
     status: STATUS,
-    desk: formatDesk([{ key: fu.key, span: 30, stages: ["arrived", "glued"], noteToSelf: "" }]),
+    desk: formatDesk([{ key: fu.key, span: 30, stage: "glued", noteToSelf: "" }]),
   };
-  const edit = (stages) => ({
+  const edit = (stage) => ({
     kind: "followup-edit",
     noteKey: n.key,
     fuKey: fu.key,
     time: fu.key,
     blocks: [{ type: "summary", text: "x" }],
-    stages,
+    stage,
   });
-  assert.deepEqual(parseDesk(applyBoth(files, edit(["arrived", "cables down"])).desk)[0].stages, [
-    "arrived",
-    "cables down",
-  ]);
-  assert.deepEqual(parseDesk(applyBoth(files, edit([])).desk), [], "no stages left and no memo: no record");
-  assert.deepEqual(parseDesk(applyBoth(files, edit(undefined)).desk)[0].stages, ["arrived", "glued"], "left alone");
+  assert.equal(parseDesk(applyBoth(files, edit("cables down")).desk)[0].stage, "cables down");
+  assert.equal(
+    parseDesk(applyBoth(files, edit("arrived at span")).desk)[0].stage,
+    "arrived at span",
+    "an earlier one replaces it",
+  );
+  assert.equal(parseDesk(applyBoth(files, edit(undefined)).desk)[0].stage, "glued", "left alone");
   assert.deepEqual(parseDesk(applyBoth(files, { kind: "followup-delete", noteKey: n.key, fuKey: fu.key }).desk), []);
-});
-
-test("an entry's saved stages load as the arrived and hung it keeps, and one reported step", () => {
-  assert.deepEqual(splitStages(["hung", "glued", "post-tensioned", "arrived"]), {
-    kept: ["arrived", "hung", "glued"],
-    reported: ["post-tensioned"],
-  });
-  assert.deepEqual(splitStages(undefined), { kept: [], reported: [] });
 });
 
 test("a position record can be edited or deleted, and only desk.yaml changes unless the card showed it", () => {
   const key = "2026-11-20T09:00-07:00";
   const other = "2026-11-19T09:00-07:00";
   const desk = formatDesk([
-    { key, span: 40, stages: ["arrived", "glued"], noteToSelf: "Old" },
-    { key: other, span: 39, stages: ["hung"], noteToSelf: "" },
+    { key, span: 40, stage: "glued", noteToSelf: "Old" },
+    { key: other, span: 39, stage: "hung", noteToSelf: "" },
   ]);
   const shown = STATUS.replace(/^updated: .*$/m, `updated: ${key}`);
 
-  const edited = applyBoth({ status: shown, desk }, { kind: "desk-edit", key, stages: ["arrived"], noteToSelf: "New" });
+  const edited = applyBoth(
+    { status: shown, desk },
+    { kind: "desk-edit", key, stage: "arrived at span", noteToSelf: "New" },
+  );
   assert.equal(edited.status, shown);
   const e = parseDesk(edited.desk).find((x) => x.key === key);
-  assert.deepEqual([e.span, e.stages, e.noteToSelf], [40, ["arrived"], "New"]);
+  assert.deepEqual([e.span, e.stage, e.noteToSelf], [40, "arrived at span", "New"]);
 
   const gone = applyBoth({ status: shown, desk }, { kind: "desk-delete", key });
   assert.ok(!parseDesk(gone.desk).some((x) => x.key === key));
@@ -305,7 +345,11 @@ test("a position record can be edited or deleted, and only desk.yaml changes unl
     /isn't in desk.yaml/,
   );
   assert.throws(
-    () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-edit", key, stages: [], noteToSelf: "" }),
+    () =>
+      applyBoth(
+        { status: STATUS, desk: EMPTY_DESK },
+        { kind: "desk-edit", key, stage: "arrived at span", noteToSelf: "" },
+      ),
     /isn't in desk.yaml/,
   );
 });
@@ -315,9 +359,9 @@ test("the Entries list: posts with their follow-ups, and position records, newes
   const n = parsed.notes.find((x) => x.followUps.length);
   const alone = "2030-01-01T09:00-07:00";
   const entries = listEntries(parsed, [
-    { key: alone, span: 50, stages: ["glued"], noteToSelf: "" },
-    { key: n.key, span: 30, stages: ["hung"], noteToSelf: "" },
-    { key: n.followUps[0].key, span: 30, stages: ["glued"], noteToSelf: "" },
+    { key: alone, span: 50, stage: "glued", noteToSelf: "" },
+    { key: n.key, span: 30, stage: "hung", noteToSelf: "" },
+    { key: n.followUps[0].key, span: 30, stage: "glued", noteToSelf: "" },
   ]);
   assert.equal(entries.length, parsed.notes.length + 1, "a record with a post at its time isn't listed twice");
   assert.deepEqual([entries[0].type, entries[0].key], ["position", alone]);
@@ -350,12 +394,9 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
   const parsed = parseStatus(STATUS);
   const files = { status: STATUS, desk: DESK };
   const entries = parseDesk(DESK);
-  const steps = (key) => {
-    const { kept, reported } = splitStages(entries.find((e) => e.key === key)?.stages);
-    return [...kept, ...reported];
-  };
+  const stageOfEntry = (key) => entries.find((e) => e.key === key)?.stage ?? undefined;
   for (const n of parsed.notes) {
-    const stages = n.fields.post ? {} : { stages: steps(n.key) };
+    const stage = n.fields.post ? {} : { stage: stageOfEntry(n.key) };
     const memo = { noteKey: n.key, text: memoAt(entries, n.key) };
     const r = applyBoth(files, {
       kind: "note-edit",
@@ -363,7 +404,7 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
       title: n.title,
       blocks: blocksOf(n.fields),
       memo,
-      ...stages,
+      ...stage,
     });
     assert.equal(r.status, STATUS, n.key);
     assert.deepEqual(r.deskHunks, [], n.key);
@@ -375,7 +416,7 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
         time: f.key,
         blocks: blocksOf(f.fields),
         memo,
-        stages: steps(f.key),
+        stage: stageOfEntry(f.key),
       });
       assert.equal(fr.status, STATUS, f.key);
       assert.deepEqual(fr.deskHunks, [], f.key);
@@ -402,11 +443,17 @@ test("a waiting change reopens as the draft that makes it again", () => {
   const blocks = [{ type: "summary", text: "Words." }];
   const T = "2030-01-01T09:00-07:00";
   assert.deepEqual(
-    reopenAs({ kind: "move", time: T, span: 38, complete: false, noteToSelf: "m", stages: ["glued"] }, head),
+    reopenAs({ kind: "move", time: T, span: 38, complete: false, noteToSelf: "m", stage: "glued" }, head),
     {
       screen: "move",
-      seed: { time: T, span: 38, complete: false, memo: "m", stages: ["glued"] },
+      seed: { time: T, span: 38, complete: false, memo: "m", stage: "glued" },
     },
+  );
+  // a change waiting from before, with its stages, reopens at the furthest of them
+  assert.equal(
+    reopenAs({ kind: "move", time: T, span: 38, complete: false, noteToSelf: "", stages: ["hung", "glued"] }, head).seed
+      .stage,
+    "glued",
   );
   const update = reopenAs(
     {
@@ -418,24 +465,22 @@ test("a waiting change reopens as the draft that makes it again", () => {
       blocks,
       retitle: [{ key: "k", title: "Other", slug: "s" }],
       memo: { noteKey: T, text: "m" },
-      stages: [],
+      stage: "arrived at span",
     },
     head,
   );
   assert.equal(update.seed.titleSet, true);
   // a follow-up that didn't move the gantry starts from where the gantry is
-  const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stages: [] }, head);
+  const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stage: "hung" }, head);
   assert.deepEqual([fu.seed.span, fu.seed.complete, fu.seed.editing], [37, true, null]);
   assert.equal(reopenAs({ kind: "blog", date: "2030-01-01", title: "T", blocks }, head).screen, "blog");
-  // what edits something saved reopens in the entry editor, with its steps split again
-  const edit = reopenAs({ kind: "note-edit", noteKey: T, title: "T", blocks, stages: ["arrived", "glued"] }, head);
-  assert.deepEqual(
-    [edit.screen, edit.target, edit.seed.kept, edit.seed.stages],
-    ["entry", { type: "note", key: T }, ["arrived"], ["glued"]],
-  );
-  assert.equal(reopenAs({ kind: "desk-edit", key: T, stages: [], noteToSelf: "x" }, head).seed.memo, "x");
+  // what edits something saved reopens in the entry editor, with its stage
+  const edit = reopenAs({ kind: "note-edit", noteKey: T, title: "T", blocks, stage: "glued" }, head);
+  assert.deepEqual([edit.screen, edit.target, edit.seed.stage], ["entry", { type: "note", key: T }, "glued"]);
+  assert.equal(reopenAs({ kind: "desk-edit", key: T, stage: "arrived at span", noteToSelf: "x" }, head).seed.memo, "x");
   assert.equal(
-    reopenAs({ kind: "followup-edit", noteKey: "n", fuKey: T, time: T, blocks, stages: [] }, head).target.type,
+    reopenAs({ kind: "followup-edit", noteKey: "n", fuKey: T, time: T, blocks, stage: "arrived at span" }, head).target
+      .type,
     "followup",
   );
   assert.equal(canReopen({ kind: "note-delete" }), false);

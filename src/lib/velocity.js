@@ -14,7 +14,15 @@ const SHUTDOWN_START = 6 * 24 + 18; // Saturday 18:00
 const SHUTDOWN_HOURS = 26;
 
 // which step to measure a cycle by, when both spans have it: arrival first, then the steps most often reported
-const PREFERRED = ["arrived", "hung", "glued", "post-tensioned", "post-tensioning started", "supports started"];
+const PREFERRED = [
+  "arrived at span",
+  "hanging started",
+  "hung",
+  "gluing started",
+  "glued",
+  "post-tensioning started",
+  "supports started",
+];
 const ORDER = [...PREFERRED, ...STAGES.filter((s) => !PREFERRED.includes(s))];
 
 /** Hours between two Dates that aren't in a shutdown. */
@@ -39,9 +47,9 @@ export function workingHours(from, to) {
 export function stepsBySpan(entries) {
   const out = {};
   for (const e of entries) {
-    if (!e.span || !e.stages?.length) continue;
+    if (!e.span || !e.stage) continue;
     const s = (out[e.span] ??= {});
-    for (const st of e.stages) if (!s[st] || parseKey(e.key) < parseKey(s[st])) s[st] = e.key;
+    if (!s[e.stage] || parseKey(e.key) < parseKey(s[e.stage])) s[e.stage] = e.key;
   }
   return out;
 }
@@ -96,7 +104,7 @@ export function velocity(entries, now = new Date()) {
   const used = all.slice(0, WINDOW);
   const by = stepsBySpan(entries);
   const top = Math.max(0, ...Object.keys(by).map(Number));
-  const since = top ? by[top].arrived : null;
+  const since = top ? by[top]["arrived at span"] : null;
   const current = since ? { span: top, since, days: workingHours(parseKey(since), now) / 24 } : null;
   if (!used.length) return current ? { days: null, cycles: [], current } : null;
   const days = used.reduce((t, c) => t + c.hours, 0) / used.length / 24;

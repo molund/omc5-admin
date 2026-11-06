@@ -51,7 +51,7 @@ export function VelocityPanel() {
             <View style={tw`flex-1 gap-0.5`}>
               <Body small>{`Span ${c.from} to ${c.to}`}</Body>
               <Body small mute>
-                {`${c.by === "arrived" ? "Arrival to arrival" : `${STAGE_LABELS[c.by]}, span to span`}: ${stamp(c.start)} to ${stamp(c.end)}`}
+                {`${c.by === "arrived at span" ? "Arrival to arrival" : `${STAGE_LABELS[c.by]}, span to span`}: ${stamp(c.start)} to ${stamp(c.end)}`}
               </Body>
             </View>
             <Body small>{days(c.hours / 24)}</Body>

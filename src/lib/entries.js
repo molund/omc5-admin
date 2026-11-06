@@ -3,7 +3,7 @@
 // site doesn't show). Plain JS, no React.
 import { compareKeys } from "./time.js";
 import { followUpsNewestFirst } from "./statusFile.js";
-import { STAGE_LABELS, splitStages } from "./stages.js";
+import { STAGE_LABELS, stageOf } from "./stages.js";
 
 /**
  * @typedef {{ type: "update"|"blog", key: string, note: object, followUps: object[] }
@@ -36,9 +36,9 @@ export const waitingAt = (changes, key) => changes.find((c) => createdAt(c) === 
 /** Text cut to a length, for a list. */
 export const shorten = (s, n = 90) => (s.length > n ? `${s.slice(0, n - 2)}…` : s);
 
-/** How a position record reads: its span, its steps and its note to self. */
+/** How a position record reads: its span, its step and its note to self. */
 export function positionName({ note, record }) {
-  const steps = (record?.stages ?? []).map((s) => STAGE_LABELS[s]).join(", ");
+  const steps = record?.stage ? STAGE_LABELS[record.stage] : "";
   const memo = record?.noteToSelf || note?.fields.memo || "";
   return [record?.span ? `Span ${record.span}` : "", steps, shorten(memo)].filter(Boolean).join(" · ") || "No details";
 }
@@ -56,7 +56,7 @@ export const canReopen = (change) => !/-delete$/.test(change.kind);
  */
 export function reopenAs(change, head) {
   const memo = change.memo?.text;
-  const stages = change.stages;
+  const stage = stageOf(change);
   switch (change.kind) {
     case "move":
       return {
@@ -66,7 +66,7 @@ export function reopenAs(change, head) {
           span: change.span,
           complete: change.complete,
           memo: change.noteToSelf ?? "",
-          stages,
+          stage,
         },
       };
     case "update":
@@ -80,7 +80,7 @@ export function reopenAs(change, head) {
           titleSet: true,
           blocks: change.blocks,
           memo: memo ?? "",
-          stages,
+          stage,
         },
       };
     case "followup":
@@ -94,7 +94,7 @@ export function reopenAs(change, head) {
           blocks: change.blocks,
           span: change.gantry?.span ?? head.span,
           complete: change.gantry?.complete ?? head.complete,
-          stages,
+          stage,
         },
       };
     case "blog":
@@ -102,31 +102,25 @@ export function reopenAs(change, head) {
         screen: "blog",
         seed: { date: change.date, title: change.title, blocks: change.blocks, memo: memo ?? "" },
       };
-    case "followup-edit": {
-      const { kept, reported } = splitStages(stages);
+    case "followup-edit":
       return {
         screen: "entry",
         target: { type: "followup", key: change.fuKey, noteKey: change.noteKey },
-        seed: { time: change.time, blocks: change.blocks, memo: memo ?? "", kept, stages: reported },
+        seed: { time: change.time, blocks: change.blocks, memo: memo ?? "", stage },
       };
-    }
-    case "note-edit": {
-      const { kept, reported } = splitStages(stages);
+    case "note-edit":
       return {
         screen: "entry",
         // "blog" or "update" is settled against the note itself when it opens
         target: { type: "note", key: change.noteKey },
-        seed: { title: change.title, blocks: change.blocks, memo: memo ?? "", kept, stages: reported },
+        seed: { title: change.title, blocks: change.blocks, memo: memo ?? "", stage },
       };
-    }
-    case "desk-edit": {
-      const { kept, reported } = splitStages(stages);
+    case "desk-edit":
       return {
         screen: "entry",
         target: { type: "position", key: change.key },
-        seed: { memo: change.noteToSelf ?? "", kept, stages: reported },
+        seed: { memo: change.noteToSelf ?? "", stage },
       };
-    }
     default:
       return null;
   }

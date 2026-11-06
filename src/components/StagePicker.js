@@ -1,25 +1,25 @@
-// The current step of the gantry's cycle a change reports, for desk.yaml and the velocity. The rules (lib/stages.js) suggest
-// the furthest step the text reports; Mike drags or taps a slider between the steps (or to none); in the Claude app, "Ask
-// Claude" reads the text when the rules find nothing. The steps a move logs by itself (arrived, hung) are named below it.
+// The step of the gantry's cycle a change reports, for desk.yaml and the velocity: always one. The rules (lib/stages.js)
+// suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
+// reads the text when the rules find nothing. With the span hung it can't go earlier than hung.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { STAGES, STAGE_LABELS, stagesIn } from "../lib/stages.js";
+import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const THUMB = 26;
 
-/** A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end. */
-function StepSlider({ position, count, label, valueText, onChange }) {
+/** A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. */
+function StepSlider({ position, count, min = 0, label, valueText, onChange }) {
   const { tw } = useTw();
   const width = useRef(0);
   const startX = useRef(0);
   const latest = useRef();
-  latest.current = { position, count, onChange };
+  latest.current = { position, count, min, onChange };
   const go = (next) => {
-    const { position, count, onChange } = latest.current;
-    const clamped = Math.min(count - 1, Math.max(0, next));
+    const { position, count, min, onChange } = latest.current;
+    const clamped = Math.min(count - 1, Math.max(min, next));
     if (clamped !== position) onChange(clamped);
   };
   const goToX = (x) => {
@@ -48,7 +48,7 @@ function StepSlider({ position, count, label, valueText, onChange }) {
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
-      accessibilityValue={{ min: 0, max: count - 1, now: position, text: valueText }}
+      accessibilityValue={{ min, max: count - 1, now: position, text: valueText }}
       accessibilityActions={[{ name: "increment" }, { name: "decrement" }]}
       onAccessibilityAction={(e) => go(position + (e.nativeEvent.actionName === "increment" ? 1 : -1))}
       onKeyDown={(e) => {
@@ -65,7 +65,7 @@ function StepSlider({ position, count, label, valueText, onChange }) {
             key={i}
             style={[
               tw`absolute h-2 w-2 rounded-full ${i <= position ? "bg-accent" : "bg-line"}`,
-              { left: `${(i / (count - 1)) * 100}%`, marginLeft: -4 },
+              { left: `${(i / (count - 1)) * 100}%`, marginLeft: -4, opacity: i < min ? 0.3 : 1 },
             ]}
           />
         ))}
@@ -80,27 +80,30 @@ function StepSlider({ position, count, label, valueText, onChange }) {
   );
 }
 
-/** The stages a change will carry: one at most, the furthest of Mike's pick, Claude's answer or what the rules found. */
-export const chosenStages = (value, text) => {
-  const stages = value ?? stagesIn(text);
-  return STAGES.filter((s) => stages.includes(s)).slice(-1);
-};
+/**
+ * The stage a change will carry: always one. Mike's pick, or else the furthest the rules found in the text, and never earlier
+ * than the floor (the first stage, or hung once the span is hung).
+ * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
+ * @param {string} text What's written.
+ * @param {string} [floor] From floorStage.
+ * @returns {string}
+ */
+export const chosenStage = (value, text, floor = STAGES[0]) => atLeast(value ?? furthest(stagesIn(text)), floor);
 
 /**
  * @param {object} props
  * @param {string} props.text What's written (the summary and paragraphs, or the note to self).
- * @param {string[]|undefined} props.value Mike's pick; undefined until he picks, when the rules' suggestion is used.
- * @param {(stages: string[]) => void} props.onChange
- * @param {string[]} [props.auto] Steps the change logs by itself (a move's arrived, hung).
- * @param {number|null} [props.span] The span they're for.
- * @param {string[]} [props.kept] Editing a saved entry: the arrived or hung it already has, each with a Remove button.
- * @param {(stages: string[]) => void} [props.onKept]
+ * @param {string|undefined} props.value Mike's pick; undefined until he picks, when the rules' suggestion is used.
+ * @param {(stage: string|undefined) => void} props.onChange
+ * @param {string} [props.floor] The earliest stage allowed (floorStage), hung once the span is hung.
+ * @param {number|null} [props.span] The span it's for.
  */
-export function StagePicker({ text, value, onChange, auto = [], span, kept = [], onKept }) {
+export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) {
   const { tw } = useTw();
   const found = stagesIn(text);
-  const chosen = chosenStages(value, text);
-  const index = STAGES.indexOf(chosen[0]); // -1: no step
+  const stage = chosenStage(value, text, floor);
+  const index = STAGES.indexOf(stage);
+  const min = STAGES.indexOf(floor);
   const [claude, setClaude] = useState(false);
   const [asking, setAsking] = useState(false);
   const [problem, setProblem] = useState(null);
@@ -108,12 +111,14 @@ export function StagePicker({ text, value, onChange, auto = [], span, kept = [],
     canAskClaude().then(setClaude);
   }, []);
 
-  const name = index < 0 ? "No step" : STAGE_LABELS[STAGES[index]];
+  const name = STAGE_LABELS[stage];
   async function ask() {
     setAsking(true);
     setProblem(null);
     try {
-      onChange(await askClaude(text));
+      const answer = furthest(await askClaude(text));
+      if (answer) onChange(answer);
+      else setProblem("Claude found no step in it. Pick by hand.");
     } catch (e) {
       setProblem(
         e?.code === "not_granted" ? "Claude wasn't allowed to read it." : "Claude didn't answer. Pick by hand.",
@@ -128,25 +133,24 @@ export function StagePicker({ text, value, onChange, auto = [], span, kept = [],
       <Label>{`Gantry step${span ? ` · span ${span}` : ""}`}</Label>
       <Row>
         <Body style={tw`font-bold`}>{name}</Body>
-        {index >= 0 && (
-          <Body small mute>
-            {`${index + 1} of ${STAGES.length}`}
-          </Body>
-        )}
+        <Body small mute>
+          {`${index + 1} of ${STAGES.length}`}
+        </Body>
       </Row>
       <StepSlider
         label="Gantry step"
         valueText={name}
-        position={index + 1}
-        count={STAGES.length + 1}
-        onChange={(p) => onChange(p === 0 ? [] : [STAGES[p - 1]])}
+        position={index}
+        count={STAGES.length}
+        min={min}
+        onChange={(p) => onChange(STAGES[p])}
       />
       <Row>
-        <Text style={tw`text-xs text-mute`}>No step</Text>
+        <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[0]]}</Text>
         <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[STAGES.length - 1]]}</Text>
       </Row>
       <Body small mute>
-        {auto.length ? `${auto.map((s) => STAGE_LABELS[s]).join(" and ")}: logged by the move itself. ` : ""}
+        {min > 0 ? `The span is hung, so it can't be earlier than ${STAGE_LABELS[floor].toLowerCase()}. ` : ""}
         {value === undefined
           ? found.length
             ? "Suggested from what you wrote. Move it to change."
@@ -154,12 +158,6 @@ export function StagePicker({ text, value, onChange, auto = [], span, kept = [],
           : "Your pick."}{" "}
         It goes in desk.yaml, for the velocity.
       </Body>
-      {kept.map((s) => (
-        <Row key={s}>
-          <Body small>{`Also logged: ${STAGE_LABELS[s]}`}</Body>
-          <Button small kind="link" title="Remove" onPress={() => onKept(kept.filter((x) => x !== s))} />
-        </Row>
-      ))}
       {problem && (
         <Body small mute>
           {problem}

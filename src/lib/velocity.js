@@ -2,16 +2,16 @@
 //
 // A span's cycle is the time from a step at one span to the same step at the next (arrival to arrival, unless an arrival
 // wasn't logged; then the next step both spans have). Working time leaves out the weekly shutdown: Saturday night and
-// Sunday's day shift, 6 p.m. Saturday to 8 p.m. Sunday, BC time. The velocity is the average of the last two spans' cycles.
+// Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time. The velocity is the average of the last two spans' cycles.
 import { parseKey } from "./time.js";
 import { STAGES } from "./stages.js";
 
 export const WINDOW = 2;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
-// the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 20:00 the next day
+// the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
 const SHUTDOWN_START = 6 * 24 + 18; // Saturday 18:00
-const SHUTDOWN_HOURS = 26;
+const SHUTDOWN_HOURS = 24;
 
 // which step to measure a cycle by, when both spans have it: arrival first, then the steps most often reported
 const PREFERRED = [

@@ -157,6 +157,13 @@ export function FollowUpScreen({ onReview }) {
           onChange={(time) => update({ time })}
           note={d.editing ? "Moving it changes only its own time stamp." : undefined}
         />
+        <StagePicker
+          text={text}
+          value={d.stages}
+          onChange={(stages) => update({ stages })}
+          auto={!d.editing && gantryChanged ? autoStages(head, d) : []}
+          span={d.editing ? null : d.span}
+        />
         <BlockEditor
           blocks={d.blocks}
           onChange={(blocks) => update({ blocks })}
@@ -167,14 +174,6 @@ export function FollowUpScreen({ onReview }) {
         />
         {!d.editing && <GantryFold value={d} current={head} onChange={(g) => update(g)} offLabel="Gantry unchanged" />}
       </View>
-
-      <StagePicker
-        text={text}
-        value={d.stages}
-        onChange={(stages) => update({ stages })}
-        auto={!d.editing && gantryChanged ? autoStages(head, d) : []}
-        span={d.editing ? null : d.span}
-      />
 
       <NoteToSelf
         value={memo}

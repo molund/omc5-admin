@@ -4,7 +4,7 @@
 // wasn't logged; then the next step both spans have). Working time leaves out the weekly shutdown: Saturday night and
 // Sunday's day shift, 6 p.m. Saturday to 8 p.m. Sunday, BC time. The velocity is the average of the last two spans' cycles.
 import { parseKey } from "./time.js";
-import { STAGES, STEPS } from "./stages.js";
+import { STAGES } from "./stages.js";
 
 export const WINDOW = 2;
 const HOUR = 3600 * 1000;
@@ -78,34 +78,21 @@ export function cycles(entries) {
 }
 
 /**
- * The time stamp by which a stage had happened on a span: the earliest of its own tag and any later stage's, since an entry
- * tags only the furthest stage it reached. An arrival counts only by its own tag: a later one says little about when it was.
+ * Every step logged after a span's arrival, with the working hours since that arrival: [{ span, stage, key, hours }].
+ * Newest span first, then in the order they happened. A span with no logged arrival has none.
  */
-function reachedBy(steps, stage) {
-  if (stage === STAGES[0]) return steps[stage];
-  return STAGES.slice(STAGES.indexOf(stage))
-    .map((st) => steps[st])
-    .filter(Boolean)
-    .sort((a, b) => parseKey(a) - parseKey(b))[0];
-}
-
-/** How long each stage of a span took, up to the next step logged: [{ name, span, hours, start, end }]. */
-export function stageTimes(entries) {
+export function sinceArrival(entries) {
   const by = stepsBySpan(entries);
-  const out = [];
-  for (const [span, s] of Object.entries(by)) {
-    const n = Number(span);
-    for (const step of STEPS) {
-      const start = reachedBy(s, step.from),
-        endSpan = step.next ? by[n + 1] : s,
-        end = endSpan && reachedBy(endSpan, step.to);
-      if (!start || !end || parseKey(end) <= parseKey(start)) continue;
-      out.push({ name: step.name, span: n, start, end, hours: workingHours(parseKey(start), parseKey(end)) });
-    }
-  }
-  return out.sort(
-    (x, y) => y.span - x.span || STEPS.findIndex((s) => s.name === x.name) - STEPS.findIndex((s) => s.name === y.name),
-  );
+  return entries
+    .filter((e) => e.stage && e.stage !== STAGES[0] && by[e.span]?.[STAGES[0]])
+    .map((e) => ({
+      span: e.span,
+      stage: e.stage,
+      key: e.key,
+      hours: workingHours(parseKey(by[e.span][STAGES[0]]), parseKey(e.key)),
+    }))
+    .filter((e) => e.hours > 0)
+    .sort((a, b) => b.span - a.span || parseKey(a.key) - parseKey(b.key));
 }
 
 /**

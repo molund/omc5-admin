@@ -60,15 +60,6 @@ export const floorStage = (hung) => (hung ? "hung" : STAGES[0]);
  */
 export const atLeast = (stage, floor) => furthest([stage, floor]);
 
-/** The stages of the cycle, from a start tag to an end tag (or a later one, if not logged), for the time each takes. */
-export const STEPS = [
-  { name: "Hanging", from: "arrived at span", to: "hung" },
-  { name: "Gluing", from: "hung", to: "glued" },
-  { name: "Post-tensioning", from: "glued", to: "cables down" },
-  { name: "Hangers down", from: "cables down", to: "hangers down" },
-  { name: "Moving the supports", from: "hangers down", to: "arrived at span", next: true },
-];
-
 const START = /\b(start(?:ed|s|ing)?|begin(?:s|ning)?|began|beginning|under ?way|in progress|now)\b/;
 const NOT = /\b(not|isn't|aren't|hasn't|haven't|still (?:up|on|in))\b/;
 

@@ -1,17 +1,17 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last two spans, the
-// cycles it's from, how long the gantry has been on its span, and how long each stage took, up to the next step logged.
+// cycles it's from, how long the gantry has been on its span, and each step logged, with the time since its span's arrival.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { stageTimes, WINDOW } from "../lib/velocity.js";
+import { sinceArrival, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { stamp } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
-const hours = (h) => (h < 48 ? `${Math.round(h * 4) / 4} h` : days(h / 24));
+const hours = (h) => `${Math.round(h * 4) / 4} h`;
 
 export function VelocityPanel() {
   const { tw } = useTw();
@@ -19,7 +19,7 @@ export function VelocityPanel() {
   const [open, setOpen] = useState(false);
   const v = desk.velocity;
   if (!v) return null;
-  const recent = v.current ? stageTimes(desk.deskEntries).filter((t) => t.span >= v.current.span - WINDOW) : [];
+  const recent = v.current ? sinceArrival(desk.deskEntries).filter((t) => t.span >= v.current.span - WINDOW) : [];
   return (
     <Panel>
       <Label
@@ -66,11 +66,11 @@ export function VelocityPanel() {
       {open && recent.length > 0 && (
         <View style={tw`gap-1 border-t border-line pt-2`}>
           <Body small mute>
-            Stages, each up to the next step logged
+            Steps logged, in working time since arriving at the span
           </Body>
           {recent.map((t) => (
-            <Row key={`${t.span}-${t.name}`}>
-              <Body small>{`Span ${t.span}: ${t.name}`}</Body>
+            <Row key={t.key}>
+              <Body small>{`Span ${t.span}: ${STAGE_LABELS[t.stage]}`}</Body>
               <Body small mute>
                 {hours(t.hours)}
               </Body>

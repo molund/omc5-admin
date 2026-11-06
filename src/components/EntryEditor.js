@@ -65,8 +65,9 @@ function deleteWarning(target, note, address) {
  * @param {() => void} props.onClose
  * @param {(change: object, opts: object) => void} props.onReview
  * @param {boolean} [props.noDelete] A waiting edit has only Discard, in the waiting list.
+ * @param {boolean} [props.noBack] The way back is already on the page.
  */
-export function EntryEditor({ target, draft: d, update, onClose, onReview, noDelete }) {
+export function EntryEditor({ target, draft: d, update, onClose, onReview, noDelete, noBack }) {
   const { tw } = useTw();
   const desk = useDesk();
   const { note, fu, record, gone } = findTarget(desk, target);
@@ -75,7 +76,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
     <Panel>
       <Row>
         <Label>{`Editing: ${TYPE[target.type]}`}</Label>
-        <Button kind="link" small title="Back" onPress={onClose} />
+        {!noBack && <Button kind="link" small title="Back" onPress={onClose} />}
       </Row>
       {gone ? (
         <Notice>That entry isn't in the working copy any more.</Notice>

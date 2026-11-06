@@ -9,7 +9,7 @@ import { listEntries, positionName, shorten, waitingAt } from "../lib/entries.js
 import { clock, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
 import { EntryEditor, seedFor } from "../components/EntryEditor.js";
-import { Body, Button, Label, Notice, Panel } from "../components/ui.js";
+import { Body, Button, Label, Link, Notice, Panel } from "../components/ui.js";
 
 const PAGE = 20;
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Follow-up" };
@@ -37,7 +37,7 @@ function EntryRow({ type, name, when, waiting, nested, onPress }) {
   );
 }
 
-export function EntriesScreen({ onReview, onEditWaiting }) {
+export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [shown, setShown] = useState(PAGE);
@@ -54,11 +54,34 @@ export function EntriesScreen({ onReview, onEditWaiting }) {
     reset();
   };
 
-  if (d.target) return <EntryEditor target={d.target} draft={d} update={update} onClose={close} onReview={onReview} />;
+  if (d.target)
+    return (
+      <View style={tw`gap-3`}>
+        <Link title="← Back to the list of entries" onPress={close} />
+        <EntryEditor target={d.target} draft={d} update={update} onClose={close} onReview={onReview} noBack />
+      </View>
+    );
 
-  if (!entries.length) return <Notice>Nothing has been saved yet.</Notice>;
+  const intro = (
+    <View style={tw`gap-1`}>
+      <Link title="← Back to adding something new" onPress={onLeave} />
+      <Body small mute>
+        Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry step or note to
+        self, or to delete it. Each change gets a review first, and nothing reaches the site until you push. Anything
+        still waiting to push can be changed here too.
+      </Body>
+    </View>
+  );
+  if (!entries.length)
+    return (
+      <View style={tw`gap-3`}>
+        {intro}
+        <Notice>Nothing has been saved yet.</Notice>
+      </View>
+    );
   return (
     <View style={tw`gap-3`}>
+      {intro}
       <Panel>
         <Label>{`Entries (${entries.length})`}</Label>
         {entries.slice(0, shown).map((e) => (

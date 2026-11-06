@@ -60,6 +60,7 @@ Trackside, the progress card, the sitemap or the giscus comments (the same as th
 index.js                     the native entry (iOS): Expo's registerRootComponent
 index.web.js                 the web entry (the Claude app): react-native-web's AppRegistry
 app.json                     the Expo app config
+assets/icon.png              the app icon: the site's favicon (public/favicon.ico in molund/omc5) on its background colour
 src/App.js                   the four modes, the review, the outbox
 src/screens/                 MoveScreen, UpdateScreen, FollowUpScreen, BlogScreen, SettingsScreen (the gear: the token)
 src/components/              ui (panels, buttons, segmented control, fields), GantryControls, TimeStampField,

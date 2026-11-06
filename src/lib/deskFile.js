@@ -1,22 +1,23 @@
 // desk.yaml in molund/omc5: the Status Desk's own records, which the site doesn't read. Entries are keyed by BC time stamps
-// like status.yaml's notes, newest first. An entry can have the span it's about, the steps of the gantry's cycle seen by
-// then (lib/stages.js) and a note to self. A time stamp can match a note or follow-up in status.yaml, or stand alone (a step
-// seen with no post about it). The file is always written whole, in one shape, so it stays easy to read and to diff.
+// like status.yaml's notes, newest first. An entry can have the span it's about, the one step of the gantry's cycle it had
+// reached by then (lib/stages.js) and a note to self. A time stamp can match a note or follow-up in status.yaml, or stand
+// alone (a step seen with no post about it). The file is always written whole, in one shape, so it stays easy to read and to
+// diff.
 import { compareKeys } from "./time.js";
-import { STAGES } from "./stages.js";
+import { STAGES, furthest } from "./stages.js";
 
 export const DESK_FILE = "desk.yaml";
 
 const HEADER = `# The Status Desk's own records (molund/omc5-admin). The site doesn't read this file. Entries are keyed by
 # BC time stamps, like status.yaml's notes, newest first. An entry can have:
 #   span: the Clayton Clipper span it's about
-#   stages: the steps of the gantry's cycle seen by then (see docs/gantry-cycle.md):
+#   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:
 #     ${STAGES.slice(0, 5).join(", ")},
 #     ${STAGES.slice(5, 9).join(", ")},
 #     ${STAGES.slice(9).join(", ")}
 #   note-to-self: a memo, one line
-# A time stamp can match a note or follow-up in status.yaml, or stand alone (a step seen with no post about it). The
-# desk logs every move of the gantry here ("arrived"), and marking a span hung logs "hung".`;
+# Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
+# note or follow-up in status.yaml, or stand alone (a step seen with no post about it).`;
 
 const unquote = (v) => {
   v = v.trim();
@@ -30,9 +31,12 @@ const unquote = (v) => {
   return v;
 };
 const q = (s) => JSON.stringify(String(s));
+// the first stage's old name, so an entry written with it isn't lost
+const renamed = (s) => (s === "arrived" ? "arrived at span" : s);
 
 /**
- * @typedef {{ key: string, span: number|null, stages: string[], noteToSelf: string }} DeskEntry
+ * @typedef {{ key: string, span: number|null, stage: string|null, noteToSelf: string }} DeskEntry
+ * stage: null only on an entry that is just a note to self (a blog post's).
  * @returns {DeskEntry[]} Newest first.
  */
 export function parseDesk(text) {
@@ -42,7 +46,7 @@ export function parseDesk(text) {
     if (/^\s*(#|$)/.test(line)) continue;
     const key = line.match(/^  - (\d{4}-\d\d-\d\d(?:T\d\d:\d\d-07:00)?):\s*$/);
     if (key) {
-      cur = { key: key[1], span: null, stages: [], noteToSelf: "" };
+      cur = { key: key[1], span: null, stage: null, noteToSelf: "" };
       entries.push(cur);
       continue;
     }
@@ -50,12 +54,16 @@ export function parseDesk(text) {
     if (!field) continue;
     const [, k, v] = field;
     if (k === "span") cur.span = Number(v) || null;
+    else if (k === "stage") cur.stage = furthest([renamed(unquote(v))]) ?? null;
+    // the old "stages: [a, b]" is read as the furthest of them, so an entry written before this isn't lost
     else if (k === "stages")
-      cur.stages = v
-        .replace(/^\[|\]$/g, "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => STAGES.includes(s));
+      cur.stage =
+        furthest(
+          v
+            .replace(/^\[|\]$/g, "")
+            .split(",")
+            .map((s) => renamed(s.trim())),
+        ) ?? null;
     else if (k === "note-to-self") cur.noteToSelf = unquote(v);
   }
   return sortEntries(entries);
@@ -67,14 +75,14 @@ const sortEntries = (entries) => [...entries].sort((a, b) => compareKeys(b.key, 
 export function formatDesk(entries) {
   const lines = [HEADER, "entries:"];
   for (const e of sortEntries(entries)) {
-    const stages = STAGES.filter((s) => e.stages?.includes(s));
+    const stage = furthest([e.stage]);
     const memo = String(e.noteToSelf ?? "")
       .replace(/\s+/g, " ")
       .trim();
-    if (!stages.length && !memo) continue;
+    if (!stage && !memo) continue;
     lines.push(`  - ${e.key}:`);
     if (e.span) lines.push(`      span: ${e.span}`);
-    if (stages.length) lines.push(`      stages: [${stages.join(", ")}]`);
+    if (stage) lines.push(`      stage: ${stage}`);
     if (memo) lines.push(`      note-to-self: ${q(memo)}`);
   }
   return lines.join("\n") + "\n";
@@ -84,18 +92,18 @@ export function formatDesk(entries) {
 export const EMPTY_DESK = formatDesk([]);
 
 /**
- * Changes one entry: adds stages (they're never removed this way), sets the span if given, and sets or clears the note to
- * self if `noteToSelf` is a string. Returns the new entries.
+ * Changes one entry: sets its stage if one is given (and never to an earlier one than it has: a stage isn't taken back this
+ * way), sets the span if given, and sets or clears the note to self if `noteToSelf` is a string. Returns the new entries.
  */
-export function setEntry(entries, key, { span, stages = [], noteToSelf } = {}) {
-  const out = entries.map((e) => ({ ...e, stages: [...e.stages] }));
+export function setEntry(entries, key, { span, stage, noteToSelf } = {}) {
+  const out = entries.map((e) => ({ ...e }));
   let e = out.find((x) => x.key === key);
   if (!e) {
-    e = { key, span: null, stages: [], noteToSelf: "" };
+    e = { key, span: null, stage: null, noteToSelf: "" };
     out.push(e);
   }
   if (span) e.span = span;
-  for (const s of stages) if (!e.stages.includes(s)) e.stages.push(s);
+  if (stage) e.stage = furthest([e.stage, stage]);
   if (typeof noteToSelf === "string") e.noteToSelf = noteToSelf;
   return sortEntries(out);
 }
@@ -105,15 +113,15 @@ export function moveEntry(entries, from, to) {
   const e = entries.find((x) => x.key === from);
   if (!e || from === to) return entries;
   const rest = entries.filter((x) => x.key !== from);
-  return setEntry(rest, to, { span: e.span, stages: e.stages, noteToSelf: e.noteToSelf || undefined });
+  return setEntry(rest, to, { span: e.span, stage: e.stage, noteToSelf: e.noteToSelf || undefined });
 }
 
-/** Sets an entry's stages to exactly these. An entry with no span yet takes the one in force at its time. */
-export function replaceStages(entries, key, stages, fallbackSpan) {
+/** Sets an entry's stage to exactly this one. An entry with no span yet takes the one in force at its time. */
+export function replaceStage(entries, key, stage, fallbackSpan) {
   const out = setEntry(entries, key);
   const e = out.find((x) => x.key === key);
-  e.stages = [...stages];
-  if (!e.span && stages.length) e.span = spanAt(entries, key) ?? fallbackSpan ?? null;
+  e.stage = stage;
+  if (!e.span) e.span = spanAt(entries, key) ?? fallbackSpan ?? null;
   return out;
 }
 

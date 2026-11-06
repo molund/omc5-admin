@@ -14,10 +14,9 @@ import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from ".
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
-import { StagePicker, chosenStages } from "../components/StagePicker.js";
-import { autoStages } from "../lib/deskChanges.js";
+import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt } from "../lib/deskFile.js";
-import { splitStages } from "../lib/stages.js";
+import { floorStage } from "../lib/stages.js";
 import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
@@ -54,7 +53,9 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   // a follow-up has no note to self of its own: this is its parent's (in desk.yaml)
   const memo = d.memo ?? memoAt(desk.deskEntries, note.key);
   const text = blockTexts(d.blocks).join("\n");
-  const withMemo = { memo: { noteKey: note.key, text: memo }, stages: chosenStages(d.stages, text) };
+  // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state
+  const floor = d.editing ? floorStage(false) : floorStage(d.complete);
+  const withMemo = { memo: { noteKey: note.key, text: memo }, stage: chosenStage(d.stage, text, floor) };
   const change = d.editing
     ? {
         kind: "followup-edit",
@@ -63,7 +64,6 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         time: d.time,
         blocks: d.blocks,
         ...withMemo,
-        stages: [...(d.kept ?? []), ...withMemo.stages],
       }
     : {
         kind: "followup",
@@ -136,8 +136,8 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
                 small
                 title="Edit"
                 onPress={() => {
-                  const { kept, reported } = splitStages(desk.deskEntries.find((e) => e.key === f.key)?.stages);
-                  start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields), kept, stages: reported });
+                  const stage = desk.deskEntries.find((e) => e.key === f.key)?.stage ?? undefined;
+                  start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields), stage });
                 }}
               />
             )}
@@ -157,12 +157,10 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         />
         <StagePicker
           text={text}
-          value={d.stages}
-          onChange={(stages) => update({ stages })}
-          auto={!d.editing && gantryChanged ? autoStages(head, d) : []}
+          value={d.stage}
+          onChange={(stage) => update({ stage })}
+          floor={floor}
           span={d.editing ? null : d.span}
-          kept={d.editing ? (d.kept ?? []) : []}
-          onKept={(kept) => update({ kept })}
         />
         <BlockEditor
           blocks={d.blocks}

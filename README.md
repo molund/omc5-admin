@@ -58,11 +58,12 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
 
 - **Notes to self.** Every entry can have one. Update and Blog write the new entry's; Follow-up edits its parent's; Position
   writes one at its own time stamp. Empty text removes it.
-- **Gantry steps.** Position, Update and Follow-up have a "Gantry steps" panel. The steps are picked from what you write by
-  rules (`src/lib/stages.js`: "moved to span 38", "fully glued", "started moving its supports" and so on); tap any to change
-  them. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
-  capability). Every move logs "arrived" by itself, and marking a span hung logs "hung", so a missed report doesn't
-  leave a hole.
+- **Gantry step.** Position, Update and Follow-up have a "Gantry step" slider, and every entry about the gantry has exactly
+  one stage (`stage:` in desk.yaml), never none. It starts at the furthest step the rules find in what you write
+  (`src/lib/stages.js`: "moved to span 38", "fully glued", "started moving its supports" and so on), or at "arrived at span" when they
+  find none; drag it to change it. With Hung on, the span is at "hung" at least: the slider goes there by itself and can't go
+  earlier. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
+  capability).
 - **Velocity.** The panel under the desk copy shows the working days per span over the last two spans, arrival to arrival
   (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 8 p.m.; how long the gantry has been on its
   span; and how long each stage took where both its ends are logged (`src/lib/velocity.js`).

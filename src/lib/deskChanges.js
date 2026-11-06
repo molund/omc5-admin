@@ -1,23 +1,16 @@
-// A change's half in desk.yaml (lib/deskFile.js): the steps of the gantry's cycle it reports, any move it makes, and the
-// note to self. A change writes both files in one commit: status.yaml through lib/changes.js, desk.yaml through this.
+// A change's half in desk.yaml (lib/deskFile.js): the step of the gantry's cycle it reports, and the note to self. A change
+// writes both files in one commit: status.yaml through lib/changes.js, desk.yaml through this.
 //
 // What a change can carry for desk.yaml:
-//   stages: ["glued", …]          the steps it reports, tagged at its own time stamp
+//   stage: "glued"                the step it reports, tagged at its own time stamp
 //   noteToSelf: "…"               (move) the note to self at its time stamp
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
-// and, without asking, every move of the gantry is logged: a new span is "arrived", a span marked hung is "hung".
+// A move, update or follow-up always has a stage: with none given it is "arrived at span", and with its span hung, never earlier than
+// "hung" (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
-import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStages, setEntry } from "./deskFile.js";
+import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
 import { applyChange, Conflict } from "./changes.js";
-
-/** The steps a move of the gantry logs by itself: from the position before to the one after. */
-export function autoStages(before, after) {
-  if (!after?.span) return [];
-  const out = [];
-  if (after.span !== before.span) out.push("arrived");
-  if (after.complete && !(before.complete && before.span === after.span)) out.push("hung");
-  return out;
-}
+import { atLeast, floorStage, stageOf } from "./stages.js";
 
 /** The line ranges a whole-file rewrite changed, as one hunk for the review. */
 function diff(oldText, newText) {
@@ -46,27 +39,34 @@ export function applyDeskChange(deskText, change, statusBefore) {
   let entries = parseDesk(deskText);
   const head = headerOf(parseStatus(statusBefore));
   const before = { span: head.span, complete: head.complete };
-  const at = (key, span, stages, noteToSelf) => (entries = setEntry(entries, key, { span, stages, noteToSelf }));
+  const stage = stageOf(change);
+  const at = (key, span, stage, noteToSelf) => (entries = setEntry(entries, key, { span, stage, noteToSelf }));
+  // never earlier than hung once the span is: the picker keeps to it, and this holds for a change made without it
+  const reported = (after) => atLeast(stage, floorStage(after.complete));
   switch (change.kind) {
     case "move": {
       const after = { span: change.span, complete: change.complete };
-      const stages = [...autoStages(before, after), ...(change.stages ?? [])];
-      at(change.time, change.span, stages, typeof change.noteToSelf === "string" ? change.noteToSelf : undefined);
+      at(
+        change.time,
+        change.span,
+        reported(after),
+        typeof change.noteToSelf === "string" ? change.noteToSelf : undefined,
+      );
       break;
     }
     case "update": {
       const after = { span: change.span, complete: change.complete };
-      at(change.time, change.span, [...autoStages(before, after), ...(change.stages ?? [])]);
+      at(change.time, change.span, reported(after));
       break;
     }
     case "followup": {
       const after = change.gantry ?? before;
-      at(change.time, after.span, [...autoStages(before, after), ...(change.stages ?? [])]);
+      at(change.time, after.span, reported(after));
       break;
     }
     case "followup-edit":
       entries = moveEntry(entries, change.fuKey, change.time);
-      if (change.stages) entries = replaceStages(entries, change.time, change.stages, head.span);
+      if (stage) entries = replaceStage(entries, change.time, stage, head.span);
       break;
     case "followup-delete":
       entries = removeEntries(entries, [change.fuKey]);
@@ -77,7 +77,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
         throw new Conflict(`The record from ${change.key} isn't in desk.yaml any more.`);
       if (change.kind === "desk-delete") entries = removeEntries(entries, [change.key]);
       else {
-        entries = replaceStages(entries, change.key, change.stages, head.span);
+        if (stage) entries = replaceStage(entries, change.key, stage, head.span);
         entries = setEntry(entries, change.key, { noteToSelf: change.noteToSelf });
       }
       break;
@@ -85,7 +85,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
     case "blog":
       break;
     case "note-edit":
-      if (change.stages) entries = replaceStages(entries, change.noteKey, change.stages, head.span);
+      if (stage) entries = replaceStage(entries, change.noteKey, stage, head.span);
       break;
     case "note-delete": {
       const note = parseStatus(statusBefore).notes.find((n) => n.key === change.noteKey);
@@ -95,7 +95,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
-  if (change.memo) at(change.memo.noteKey, undefined, [], change.memo.text);
+  if (change.memo) at(change.memo.noteKey, undefined, undefined, change.memo.text);
   const text = formatDesk(entries);
   return { text, hunks: diff(deskText, text) };
 }

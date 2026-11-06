@@ -2,7 +2,7 @@
 // them on top of its copy of the files, and the push applies the same list, with this same code (tools/apply-changes.mjs
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
-//   { id, kind: "move",          time, span, complete, noteToSelf?, stages? }
+//   { id, kind: "move",          time, span, complete, noteToSelf?, stage }
 //   { id, kind: "update",        time, span, complete, title, blocks, retitle? }
 //       retitle: [{ key, title, slug }] is only on older waiting changes: the desk no longer asks to retitle another update
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
@@ -11,11 +11,11 @@
 //   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //   { id, kind: "followup-delete", noteKey, fuKey }
-//   { id, kind: "desk-edit",     key, stages, noteToSelf }  a record in desk.yaml with no post: only desk.yaml changes
+//   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in desk.yaml with no post: only desk.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
-// parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
+// parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to desk.yaml, not here.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -23,6 +23,7 @@
 import { parseStatus, headerOf } from "./statusFile.js";
 import { compareKeys, clock, shortDate, longDate } from "./time.js";
 import { slugsOf } from "./titles.js";
+import { stageOf } from "./stages.js";
 
 const DATE_TITLE = /^Clayton Clipper construction update for /;
 /** "Nov. 4", for commit messages */
@@ -303,7 +304,10 @@ export function commitMessage(change, before) {
   const named = note ? nameOf(note.key, note.title) : "";
   switch (change.kind) {
     case "move": {
-      const logged = change.stages?.length ? ` and log ${change.stages.join(", ")}` : "";
+      // the stage the move itself implies (arrived at a new span, hung when marked so) isn't worth saying
+      const implied = change.span !== head.span ? "arrived at span" : change.complete && !head.complete ? "hung" : null;
+      const stage = stageOf(change);
+      const logged = stage && stage !== implied ? ` and log ${stage}` : "";
       const memo = logged + (change.noteToSelf?.trim() ? " and add a note to self" : "");
       if (change.span !== head.span) return `Move the Clayton Clipper to span ${change.span}${memo}`;
       if (change.complete && !head.complete) return `Mark span ${change.span} as hung${memo}`;

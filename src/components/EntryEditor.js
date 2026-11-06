@@ -7,13 +7,12 @@ import { useDesk } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
 import { memoAt } from "../lib/deskFile.js";
 import { positionName } from "../lib/entries.js";
-import { splitStages } from "../lib/stages.js";
 import { dayOf, stamp } from "../lib/time.js";
 import { slugsOf } from "../lib/titles.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { StagePicker, chosenStages } from "./StagePicker.js";
+import { StagePicker, chosenStage } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
@@ -32,8 +31,7 @@ export function findTarget(desk, target) {
 /** The fields an editor starts with, from what's saved. */
 export function seedFor(desk, target) {
   const { note, fu, record } = findTarget(desk, target);
-  const { kept, reported } = splitStages(record?.stages);
-  const steps = { kept, stages: reported };
+  const steps = { stage: record?.stage ?? undefined };
   if (target.type === "followup")
     return { ...steps, time: target.key, blocks: blocksOf(fu.fields), memo: memoAt(desk.deskEntries, note.key) };
   if (target.type === "position") return { ...steps, memo: record?.noteToSelf ?? "" };
@@ -94,7 +92,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
 
   const isPost = target.type === "blog";
   const text = target.type === "position" ? (d.memo ?? "") : blockTexts(d.blocks).join("\n");
-  const stages = [...(d.kept ?? []), ...chosenStages(d.stages, text)];
+  const stage = chosenStage(d.stage, text);
   const memo = d.memo ?? "";
   let change, problems;
   if (target.type === "followup") {
@@ -105,11 +103,11 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       time: d.time,
       blocks: d.blocks,
       memo: { noteKey: note.key, text: memo },
-      stages,
+      stage,
     };
     problems = blockProblems(d.blocks);
   } else if (target.type === "position") {
-    change = { kind: "desk-edit", key: target.key, stages, noteToSelf: memo };
+    change = { kind: "desk-edit", key: target.key, stage, noteToSelf: memo };
     problems = [];
   } else {
     const title = d.title.trim();
@@ -119,7 +117,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       title,
       blocks: d.blocks,
       memo: { noteKey: note.key, text: memo },
-      ...(isPost ? {} : { stages }),
+      ...(isPost ? {} : { stage }),
     };
     problems = [
       // a title left as it was isn't a new problem, whatever the rules say about it now
@@ -129,16 +127,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   }
   const preview = desk.preview(change);
   const unchanged = !preview.error && !preview.hunks.length && !preview.deskHunks.length;
-  const steps = (
-    <StagePicker
-      text={text}
-      value={d.stages}
-      onChange={(s) => update({ stages: s })}
-      span={record?.span}
-      kept={d.kept ?? []}
-      onKept={(kept) => update({ kept })}
-    />
-  );
+  const steps = <StagePicker text={text} value={d.stage} onChange={(s) => update({ stage: s })} span={record?.span} />;
   const deleteChange =
     target.type === "followup"
       ? { kind: "followup-delete", noteKey: note.key, fuKey: target.key }

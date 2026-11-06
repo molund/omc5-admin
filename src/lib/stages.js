@@ -4,13 +4,12 @@
 
 /** In cycle order. Each stage of the cycle has a start and an end; arrival starts the cycle. */
 export const STAGES = [
-  "arrived",
+  "arrived at span",
   "hanging started",
   "hung",
   "gluing started",
   "glued",
   "post-tensioning started",
-  "post-tensioned",
   "cables down",
   "hangers down",
   "supports started",
@@ -19,37 +18,51 @@ export const STAGES = [
 
 /** How each tag reads in the desk. */
 export const STAGE_LABELS = {
-  arrived: "Arrived at the span",
+  "arrived at span": "Arrived at span",
   "hanging started": "Hanging started",
   hung: "All segments hung",
   "gluing started": "Gluing started",
   glued: "Glued",
   "post-tensioning started": "Post-tensioning started",
-  "post-tensioned": "Post-tensioned",
   "cables down": "Cables down",
   "hangers down": "Hangers down",
-  "supports started": "Moving the supports started",
+  "supports started": "Moving supports started",
   "supports moved": "Supports moved",
 };
 
 /**
- * What an entry's saved stages load as in an editor: the one step it reports (the furthest, other than the two a move logs
- * by itself) for the slider, and any others, which stay unless removed, so editing an entry's words costs the velocity nothing.
+ * The furthest along the cycle of some stages.
+ * @param {Array<string|undefined>} stages Any of them, tags or not.
+ * @returns {string|undefined} undefined when none is a tag.
  */
-export function splitStages(stages = []) {
-  const logged = ["arrived", "hung"];
-  const reported = STAGES.filter((s) => !logged.includes(s) && stages.includes(s)).slice(-1);
-  return { kept: STAGES.filter((s) => stages.includes(s) && !reported.includes(s)), reported };
-}
+export const furthest = (stages) => STAGES.filter((s) => stages?.includes(s)).slice(-1)[0];
+
+/** The stage a change reports: what it carries (or its old `stages`, the furthest of them), if anything. */
+export const stageOf = (change) => change.stage ?? furthest(change.stages);
+
+/**
+ * The earliest stage an entry can be at: a span that is hung (all its segments hung) is at hung at least.
+ * @param {boolean} hung Whether the span is hung.
+ * @returns {string}
+ */
+export const floorStage = (hung) => (hung ? "hung" : STAGES[0]);
+
+/**
+ * A stage that is never earlier than the floor.
+ * @param {string|undefined} stage What was picked, if anything.
+ * @param {string} floor From floorStage.
+ * @returns {string}
+ */
+export const atLeast = (stage, floor) => furthest([stage, floor]);
 
 /** The stages of the cycle, each from its start tag to its end tag, for the time each takes. */
 export const STEPS = [
-  { name: "Hanging", from: "arrived", to: "hung" },
+  { name: "Hanging", from: "arrived at span", to: "hung" },
   { name: "Gluing", from: "hung", to: "glued" },
-  { name: "Post-tensioning", from: "glued", to: "post-tensioned" },
-  { name: "Hangers down", from: "post-tensioned", to: "hangers down" },
+  { name: "Post-tensioning", from: "glued", to: "cables down" },
+  { name: "Hangers down", from: "cables down", to: "hangers down" },
   { name: "Moving the supports", from: "hangers down", to: "supports moved" },
-  { name: "Launch", from: "supports moved", to: "arrived", next: true },
+  { name: "Launch", from: "supports moved", to: "arrived at span", next: true },
 ];
 
 const START = /\b(start(?:ed|s|ing)?|begin(?:s|ning)?|began|beginning|under ?way|in progress|now)\b/;
@@ -77,7 +90,7 @@ export function stagesIn(text) {
       /\b(has |have )?moved to (the next )?span\b|\barrived at span\b|\bis (now )?(at|on|over) span \d+/.test(s) &&
       !NOT.test(s)
     )
-      found.add("arrived");
+      found.add("arrived at span");
     if (/\bsegments?\b/.test(s)) {
       if (
         /\ball (the |\d+ |of the )?(segments|\d+)\b.*\b(hung|in place|up)\b|\b(hung|finished hanging)\b.*\ball\b/.test(
@@ -99,8 +112,13 @@ export function stagesIn(text) {
       else if (START.test(s) || /\bgluing\b/.test(s)) found.add("gluing started");
     }
     if (/\bpost[- ]?tension/.test(s)) {
-      if (/\b(done|finished|complete[d]?)\b/.test(s) && !NOT.test(s)) found.add("post-tensioned");
-      else if (START.test(s) || /\bpost[- ]?tensioning\b/.test(s)) found.add("post-tensioning started");
+      // finished has no tag of its own: "post-tensioning started" is the furthest it reports
+      if (
+        (/\b(done|finished|complete[d]?)\b/.test(s) && !NOT.test(s)) ||
+        START.test(s) ||
+        /\bpost[- ]?tensioning\b/.test(s)
+      )
+        found.add("post-tensioning started");
     }
     if (/\bcables?\b.*\b(down|removed)\b/.test(s) && !/\bcables?\b[^.]*\bstill\b/.test(s)) found.add("cables down");
     // "six out of twelve hangers are down" is only some of them

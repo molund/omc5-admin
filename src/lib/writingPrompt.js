@@ -7,7 +7,7 @@ export const WRITES_FOLLOW_UP = "a follow-up to the attached blog post";
 
 const STYLE_GUIDE = `- Spans: lowercase, "span 50", like "page 5"; capitalised only at the start of a sentence.
 - Spans and girders: a span is the space between two supports, numbered along the route; a girder is a precast concrete or steel one connecting two supports, as opposed to the segmental spans the gantry builds from segments. Always call a precast concrete or steel one a "girder" and avoid "span" or "beam" for it; use the span's number only to say where it goes ("both precast concrete girders for span 34").
-- Complete: a span is marked as complete by the progress card's rules (all its segments hung), whether or not its girders are in yet, so "span 34 is complete" can be true while its girders are still missing.
+- Complete: a span is marked as complete when all its segments are hung, whether or not its girders are in yet, so "span 34 is complete" can be true while its girders are still missing. The map draws it complete; the progress card counts the span the gantry is on, complete or not.
 - Titles: sentence case for everything, posts included ("The curious case of Clayton Clipper span 50").
 - Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Clipper", "the Sprinter" or "the gantry" after. If the text only says "the gantry", it means the Clayton Clipper.
 - Segments: always "segments", never "rocks". When all of a span's segments are hung, the span is "marked as complete".

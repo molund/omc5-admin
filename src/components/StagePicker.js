@@ -3,7 +3,7 @@
 // reads the text when the rules find nothing. The slider is off until he switches it on, so an entry doesn't report a step by
 // accident. It can't go earlier than the furthest step already posted for the span, or than hung once the span is hung.
 import { useEffect, useRef, useState } from "react";
-import { PanResponder, Text, View } from "react-native";
+import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
@@ -154,10 +154,6 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
         disabled={!on}
         onChange={(p) => onChange(STAGES[p])}
       />
-      <Row>
-        <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[0]]}</Text>
-        <Text style={tw`text-xs text-mute`}>{STAGE_LABELS[STAGES[STAGES.length - 1]]}</Text>
-      </Row>
       {problem && (
         <Body small mute>
           {problem}

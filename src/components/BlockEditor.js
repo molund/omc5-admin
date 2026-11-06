@@ -1,6 +1,6 @@
 // The block editor: the summary first (it can't move), then paragraphs and photos in any order, with buttons to add more.
 // Picking a photo resizes it and opens its caption field straight away.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -48,6 +48,46 @@ function Handles({ i, n, move, remove }) {
       {h("↑", () => move(i, -1), "Move up", i <= 1)}
       {h("↓", () => move(i, 1), "Move down", i >= n - 1)}
       {h("✕", () => remove(i), "Remove")}
+    </View>
+  );
+}
+
+const SITE_PHOTOS = "https://clayton-clipper.olund.ca/images/sorry-im-a-shitty-photographer/";
+
+/** A photo already on the site, at its own shape. It can fail when offline, or before a push has been deployed. */
+function SitePhoto({ file, caption }) {
+  const { tw } = useTw();
+  const uri = SITE_PHOTOS + encodeURIComponent(file);
+  const [ratio, setRatio] = useState(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let live = true;
+    setRatio(null);
+    setFailed(false);
+    Image.getSize(
+      uri,
+      (width, height) => live && setRatio(width / height),
+      () => live && setFailed(true),
+    );
+    return () => {
+      live = false;
+    };
+  }, [uri]);
+  if (ratio && !failed)
+    return (
+      <Image
+        accessibilityLabel={caption || "The photo"}
+        source={{ uri }}
+        onError={() => setFailed(true)}
+        style={[tw`w-full rounded-md bg-code`, { aspectRatio: ratio }]}
+        resizeMode="cover"
+      />
+    );
+  return (
+    <View style={tw`items-center justify-center rounded-md border border-dashed border-line bg-code py-6`}>
+      <Body small mute>
+        {failed ? "Already on the site, but it couldn't be loaded here." : "Loading the photo from the site…"}
+      </Body>
     </View>
   );
 }
@@ -154,14 +194,14 @@ export function BlockEditor({ blocks, onChange, summaryLabel, day, nameHint, fol
                 style={[tw`w-full rounded-md bg-code`, { aspectRatio: p.width / p.height }]}
                 resizeMode="cover"
               />
-            ) : (
+            ) : b.photoId ? (
               <View style={tw`items-center justify-center rounded-md border border-dashed border-line bg-code py-6`}>
                 <Body small mute>
-                  {b.photoId
-                    ? "This photo isn't on this device any more. Remove it and add it again."
-                    : "Already on the site"}
+                  This photo isn't on this device any more. Remove it and add it again.
                 </Body>
               </View>
+            ) : (
+              <SitePhoto file={b.file} caption={b.caption} />
             )}
             <Field
               multiline

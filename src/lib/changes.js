@@ -9,6 +9,9 @@
 //   { id, kind: "blog",          date, title, blocks }
 //   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
+//   { id, kind: "followup-delete", noteKey, fuKey }
+//   { id, kind: "desk-edit",     key, stages, noteToSelf }  a record in desk.yaml with no post: only desk.yaml changes
+//   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and complete stay
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and stages are written to desk.yaml, not here.
@@ -248,6 +251,20 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       fallBack(doc, [note.key, ...note.followUps.map((f) => f.key)], head.updated, deskKeys);
       break;
     }
+    case "followup-delete": {
+      const note = findNote(doc.parsed, change.noteKey);
+      const fu = note.followUps.find((f) => f.key === change.fuKey);
+      if (!fu) throw new Conflict(`The ${clock(change.fuKey)} follow-up isn't in status.yaml any more.`);
+      // the last one takes the list's `follow-up:` line with it
+      removeLines(doc, note.followUps.length === 1 ? note.fuLine : fu.start, fu.end);
+      fallBack(doc, [fu.key], head.updated, deskKeys);
+      break;
+    }
+    case "desk-edit":
+      break;
+    case "desk-delete":
+      fallBack(doc, [change.key], head.updated, deskKeys);
+      break;
     default:
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
@@ -304,6 +321,12 @@ export function commitMessage(change, before) {
       return `Edit ${named}`;
     case "note-delete":
       return `Delete ${named}`;
+    case "followup-delete":
+      return `Delete the ${clock(change.fuKey)} follow-up to ${named}`;
+    case "desk-edit":
+      return `Edit the ${clock(change.key)} position record from ${monthDay(change.key)}`;
+    case "desk-delete":
+      return `Delete the ${clock(change.key)} position record from ${monthDay(change.key)}`;
     default:
       return "Update status.yaml";
   }

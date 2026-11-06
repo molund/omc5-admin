@@ -66,8 +66,22 @@ export function applyDeskChange(deskText, change, statusBefore) {
     }
     case "followup-edit":
       entries = moveEntry(entries, change.fuKey, change.time);
-      if (change.stages?.length) at(change.time, head.span, change.stages);
+      if (change.stages) entries = replaceStages(entries, change.time, change.stages, head.span);
       break;
+    case "followup-delete":
+      entries = removeEntries(entries, [change.fuKey]);
+      break;
+    case "desk-edit":
+    case "desk-delete": {
+      if (!entries.some((e) => e.key === change.key))
+        throw new Conflict(`The record from ${change.key} isn't in desk.yaml any more.`);
+      if (change.kind === "desk-delete") entries = removeEntries(entries, [change.key]);
+      else {
+        entries = replaceStages(entries, change.key, change.stages, head.span);
+        entries = setEntry(entries, change.key, { noteToSelf: change.noteToSelf });
+      }
+      break;
+    }
     case "blog":
       break;
     case "note-edit":

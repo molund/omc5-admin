@@ -93,8 +93,10 @@ export const chosenStages = (value, text) => {
  * @param {(stages: string[]) => void} props.onChange
  * @param {string[]} [props.auto] Steps the change logs by itself (a move's arrived, hung).
  * @param {number|null} [props.span] The span they're for.
+ * @param {string[]} [props.kept] Editing a saved entry: the arrived or hung it already has, each with a Remove button.
+ * @param {(stages: string[]) => void} [props.onKept]
  */
-export function StagePicker({ text, value, onChange, auto = [], span }) {
+export function StagePicker({ text, value, onChange, auto = [], span, kept = [], onKept }) {
   const { tw } = useTw();
   const found = stagesIn(text);
   const chosen = chosenStages(value, text);
@@ -152,6 +154,12 @@ export function StagePicker({ text, value, onChange, auto = [], span }) {
           : "Your pick."}{" "}
         It goes in desk.yaml, for the velocity.
       </Body>
+      {kept.map((s) => (
+        <Row key={s}>
+          <Body small>{`Also logged: ${STAGE_LABELS[s]}`}</Body>
+          <Button small kind="link" title="Remove" onPress={() => onKept(kept.filter((x) => x !== s))} />
+        </Row>
+      ))}
       {problem && (
         <Body small mute>
           {problem}

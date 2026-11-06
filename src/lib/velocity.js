@@ -55,6 +55,24 @@ export function stepsBySpan(entries) {
 }
 
 /**
+ * The days each span took, from its arrival to the next span's arrival: { [span]: { start, end, shutdown } }. `end` is null
+ * for the newest span (or one whose next arrival wasn't logged), `shutdown` whether the weekly shutdown fell inside it.
+ * A span with no logged arrival isn't in it.
+ */
+export function spanDays(entries) {
+  const by = stepsBySpan(entries);
+  const out = {};
+  for (const [span, steps] of Object.entries(by)) {
+    const start = steps[STAGES[0]];
+    if (!start) continue;
+    const end = by[Number(span) + 1]?.[STAGES[0]] ?? null;
+    const [a, b] = [parseKey(start), end && parseKey(end)];
+    out[span] = { start, end, shutdown: !!end && workingHours(a, b) < (b - a) / HOUR };
+  }
+  return out;
+}
+
+/**
  * The cycles measured, newest first: { from: span, to: span, by: stage, start, end, hours }.
  * Only consecutive spans, and only when both have a common step.
  */
@@ -78,8 +96,8 @@ export function cycles(entries) {
 }
 
 /**
- * Each step logged after a span's arrival, once, at its earliest, with the working hours since that arrival:
- * [{ span, stage, key, hours }]. Highest span first, then the longest since arrival first. A span with no logged arrival
+ * The arrival itself and each step logged after it, once, at its earliest, with the working hours since that arrival:
+ * [{ span, stage, key, hours }]. Highest span first, then the shortest since arrival first (the arrival). A span with no logged arrival
  * has none.
  */
 export function sinceArrival(entries) {
@@ -89,10 +107,10 @@ export function sinceArrival(entries) {
     if (!arrival) continue;
     for (const [stage, key] of Object.entries(steps)) {
       const hours = workingHours(parseKey(arrival), parseKey(key));
-      if (hours > 0) out.push({ span: Number(span), stage, key, hours });
+      if (hours > 0 || stage === STAGES[0]) out.push({ span: Number(span), stage, key, hours });
     }
   }
-  return out.sort((a, b) => b.span - a.span || b.hours - a.hours);
+  return out.sort((a, b) => b.span - a.span || a.hours - b.hours);
 }
 
 /**

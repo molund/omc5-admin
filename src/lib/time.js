@@ -4,6 +4,7 @@
 const OFFSET = -7 * 60; // minutes from UTC
 const QUARTER = 15 * 60 * 1000;
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const WEEKDAYS_SHORT = ["Sun", "Mon", "Tues", "Wed", "Thurs", "Fri", "Sat"];
 // the site's titles abbreviate months AP style: "Oct.", "Nov.", but "May", "June", "July"
 const MONTHS = ["Jan.", "Feb.", "March", "April", "May", "June", "July", "Aug.", "Sept.", "Oct.", "Nov.", "Dec."];
 
@@ -66,6 +67,15 @@ export const todayKey = () => dayOf(new Date());
 export function shiftKey(key, minutes) {
   const t = new Date(parseKey(key).getTime() + minutes * 60 * 1000);
   return isDateOnly(key) ? dayOf(t) : toKey(t);
+}
+
+/** "Tues": a key's BC (Vancouver) weekday, short. */
+export const weekdayShort = (key) => WEEKDAYS_SHORT[bc(parseKey(key)).getUTCDay()];
+
+/** "16:30": a key's BC (Vancouver) time on a 24-hour clock, no date. */
+export function clock24(key) {
+  const d = bc(parseKey(key));
+  return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 /** "4:30 p.m." */

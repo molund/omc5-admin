@@ -7,11 +7,11 @@ import { fileURLToPath } from "node:url";
 import { atLeast, floorStage, furthest, stageOf, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
-import { velocity, workingHours, cycles, sinceArrival } from "../src/lib/velocity.js";
+import { velocity, workingHours, cycles, sinceArrival, spanDays } from "../src/lib/velocity.js";
 import { parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
 import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
-import { parseKey } from "../src/lib/time.js";
+import { parseKey, weekdayShort } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
@@ -224,16 +224,17 @@ test("the velocity: the last two spans, arrival to arrival", () => {
       .filter((t) => t.span === 36)
       .map((t) => [t.stage, t.hours]),
     [
-      ["supports started", 58.5],
-      ["cables down", 45],
-      ["post-tensioning started", 36.5],
-      ["hung", 17.25],
+      ["arrived at span", 0],
       ["hanging started", 12.75],
+      ["hung", 17.25],
+      ["post-tensioning started", 36.5],
+      ["cables down", 45],
+      ["supports started", 58.5],
     ],
   );
 });
 
-test("steps logged since arrival: highest span first, then longest first, none without a logged arrival or before it", () => {
+test("steps logged since arrival: highest span first, then shortest first, none without a logged arrival or before it", () => {
   const entries = [
     { key: "2026-11-03T09:00-07:00", span: 41, stage: "hung" },
     { key: "2026-11-03T08:00-07:00", span: 41, stage: "arrived at span" },
@@ -247,9 +248,11 @@ test("steps logged since arrival: highest span first, then longest first, none w
   assert.deepEqual(
     sinceArrival(entries).map((t) => [t.span, t.stage, t.hours]),
     [
+      [41, "arrived at span", 0],
       [41, "hung", 1],
-      [40, "glued", 4],
+      [40, "arrived at span", 0],
       [40, "hung", 2],
+      [40, "glued", 4],
     ],
   );
 });
@@ -543,4 +546,20 @@ test("invisible characters a phone slips in are left out of both files", async (
   assert.doesNotMatch(text, /[￼​﻿]/);
   // emoji built with the zero-width joiner stay whole
   assert.match(formatDesk([{ key: T, span: 38, stage: null, noteToSelf: "Crew \u{1F477}‍♂️" }]), /‍/);
+});
+
+test("the days each span took: arrival to the next arrival, open on the newest, and whether the shutdown fell inside", () => {
+  const entries = [
+    { key: "2026-11-05T10:00-07:00", span: 38, stage: "arrived at span" },
+    { key: "2026-11-03T09:00-07:00", span: 37, stage: "arrived at span" },
+    { key: "2026-10-30T09:00-07:00", span: 36, stage: "arrived at span" },
+  ];
+  const d = spanDays(entries);
+  assert.deepEqual(d[38], { start: "2026-11-05T10:00-07:00", end: null, shutdown: false });
+  assert.equal(d[37].end, "2026-11-05T10:00-07:00");
+  assert.equal(d[37].shutdown, false);
+  assert.equal(d[36].end, "2026-11-03T09:00-07:00");
+  assert.equal(d[36].shutdown, true);
+  assert.equal(weekdayShort("2026-11-05T10:00-07:00"), "Thurs");
+  assert.equal(weekdayShort("2026-11-03T09:00-07:00"), "Tues");
 });

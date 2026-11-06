@@ -89,12 +89,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
         </Row>
       )}
       <Body small mute>
-        {note ??
-          (manual
-            ? "Manual for an hour, then back to automatic."
-            : dateOnly
-              ? "Trackside shows a blog post's date only."
-              : "BC time, to the quarter hour.")}
+        {note ?? (dateOnly ? "Trackside shows a blog post's date only." : "BC time, to the quarter hour.")}
       </Body>
     </Panel>
   );

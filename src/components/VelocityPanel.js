@@ -132,7 +132,7 @@ export function VelocityPanel() {
                       small
                       mute={t.estimated}
                       numberOfLines={1}
-                      style={[tw`text-right`, { minWidth: 72, flexShrink: 0 }, num]}
+                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}
                     >
                       {clock(t.key)}
                     </Body>

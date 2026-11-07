@@ -5,7 +5,7 @@ import { useTw } from "../theme/tw.js";
 import { stamp } from "../lib/time.js";
 import { Body, Field } from "./ui.js";
 
-/** "Saved with the Wed, Nov. 4, 2026 · 8:15 a.m. update." */
+/** "Saved with the Wed, Nov. 4, 2026 · 8:15am update." */
 export const whereIs = (note) => `Saved with the ${stamp(note.key)} ${note.fields.post ? "blog post" : "update"}.`;
 
 export function NoteToSelf({ value, onChange, where }) {

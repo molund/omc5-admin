@@ -78,11 +78,16 @@ export function clock24(key) {
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
-/** "4:30 p.m." */
+/** "4:30pm" */
 export function clock(key) {
   const d = bc(parseKey(key));
   const h = d.getUTCHours();
-  return `${h % 12 || 12}:${pad(d.getUTCMinutes())} ${h < 12 ? "a.m." : "p.m."}`;
+  return `${h % 12 || 12}:${pad(d.getUTCMinutes())}${h < 12 ? "am" : "pm"}`;
+}
+
+/** "4:30 p.m.", as the site words a time: only for what shows how the site will read. */
+function siteClock(key) {
+  return clock(key).replace(/(am|pm)$/, (period) => ` ${period[0]}.m.`);
 }
 
 /** "Wednesday, Nov. 4, 2026" */
@@ -96,7 +101,7 @@ export function shortDate(key) {
   return longDate(key).replace(/^(\w{3})\w*/, "$1");
 }
 
-/** "Wed, Nov. 4, 2026 · 4:30 p.m.", or the date alone for a date-only key */
+/** "Wed, Nov. 4, 2026 · 4:30pm", or the date alone for a date-only key */
 export function stamp(key) {
   return isDateOnly(key) ? shortDate(key) : `${shortDate(key)} · ${clock(key)}`;
 }
@@ -105,23 +110,23 @@ export function stamp(key) {
 export const pageHeading = (key) =>
   `${longDate(key)
     .replace(/^\w+, /, "")
-    .replace(/^([A-Za-z]{3})[a-z]*\.?/, "$1")} at ${clock(key)}`;
+    .replace(/^([A-Za-z]{3})[a-z]*\.?/, "$1")} at ${siteClock(key)}`;
 
 /** When the progress card says it's from, as the site words it (asOf(date, true) in its src/lib/status.js). */
 export function cardAsOf(key) {
   if (!key) return "";
   const days = (n) => dayOf(new Date(Date.now() - n * 24 * 3600 * 1000));
   const day = dayOf(key);
-  if (day === days(0)) return `${clock(key)} today`;
-  if (day === days(1)) return `${clock(key)} yesterday`;
-  if (day === days(2)) return `${clock(key)} on ${longDate(key).split(",")[0]}`;
-  return `${clock(key)} on ${pageHeading(key).split(" at ")[0]}`;
+  if (day === days(0)) return `${siteClock(key)} today`;
+  if (day === days(1)) return `${siteClock(key)} yesterday`;
+  if (day === days(2)) return `${siteClock(key)} on ${longDate(key).split(",")[0]}`;
+  return `${siteClock(key)} on ${pageHeading(key).split(" at ")[0]}`;
 }
 
 /** A moment's BC date without the weekday, "Feb. 3, 2027". */
 export const dateOf = (date) => longDate(dayOf(new Date(date))).replace(/^\w+, /, "");
 
-/** "4:30 p.m. today", "4:30 p.m. yesterday" or "4:30 p.m. on Nov. 2, 2026", as the progress card words it. */
+/** "4:30pm today", "4:30pm yesterday" or "4:30pm on Nov. 2, 2026". */
 export function asOf(key) {
   if (!key) return "";
   const day = dayOf(key),

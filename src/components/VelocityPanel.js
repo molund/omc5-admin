@@ -105,7 +105,7 @@ export function VelocityPanel() {
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
-              <Body small style={tw`font-semibold`}>{`Span ${g.span}`}</Body>
+              <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
               {g.steps.map((t) => (
                 <Fragment key={t.stage}>
                   {t.newDay && (

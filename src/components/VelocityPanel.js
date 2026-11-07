@@ -68,10 +68,10 @@ export function VelocityPanel() {
           {/* on one line, or one under the other when it's too narrow, never broken in the middle of a stat */}
           <View style={tw`flex-row flex-wrap items-baseline gap-x-4`}>
             <Body>
-              <Body style={tw`text-lg font-bold`}>{v.days.toFixed(2)}</Body> days per span
+              <Body style={tw`text-lg font-bold`}>{v.days.toFixed(2)}</Body> days/span
             </Body>
             <Body>
-              <Body style={tw`text-lg font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans per week
+              <Body style={tw`text-lg font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans/wk
             </Body>
           </View>
           {open && (

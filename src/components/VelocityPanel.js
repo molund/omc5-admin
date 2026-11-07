@@ -1,4 +1,4 @@
-// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span and spans per week, from how far
+// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): spans per week, from how far
 // the gantry got in the week up to the latest step reported (the window it's from), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
 // with its time (BC) and the working time from it to the next step: the ones logged, and the ones that
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
@@ -23,7 +23,7 @@ const SHORT_LABELS = {
 // the stage a cycle is timed by, in full ("Hanging started to hanging started")
 const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 
-// the two stats: a tenth larger than text-lg numbers and text-sm words
+// the stat: a tenth larger than text-lg numbers and text-sm words
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
 const STAT_LABEL = { fontSize: 15.4 };
 
@@ -68,15 +68,12 @@ export function VelocityPanel() {
       >
         Velocity
       </Label>
-      {v.days != null ? (
+      {v.spansPerWeek != null ? (
         <View style={tw`gap-0.5`}>
           {/* closed: on one line, or one under the other when it's too narrow, never broken in the middle of a stat;
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
-            {[
-              [v.days.toFixed(2), "days-per-span", "days/span"],
-              [v.spansPerWeek.toFixed(2), "spans-per-week", "spans/wk"],
-            ].map(([shown, key, label]) => {
+            {[[v.spansPerWeek.toFixed(2), "spans-per-week", "spans/wk"]].map(([shown, key, label]) => {
               const t = trendOf(shown, desk.parsed?.header, key);
               return (
                 <Body key={key} style={STAT_LABEL}>
@@ -94,7 +91,7 @@ export function VelocityPanel() {
           </View>
           {open && (
             <Body small mute>
-              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
+              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Saturday night and Sunday's day shift.`}
             </Body>
           )}
         </View>

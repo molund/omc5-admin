@@ -70,8 +70,8 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   earlier. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
   capability).
 - **Velocity.** The panel under the desk copy shows the spans per week: how far the gantry got in the 168 hours up to the
-  step reported most recently (so it moves with every step logged), part-spans included; and the working days per span
-  that makes over the week's 6 working days (Saturday 6 p.m. to Sunday 6 p.m. is the shutdown); each stage's share of the cycle; how long the gantry has been on its span; and each step, with the working
+  step reported most recently (so it moves with every step logged), part-spans included, with the weekly shutdown
+  (Saturday 6 p.m. to Sunday 6 p.m.) allowed for; each stage's share of the cycle; how long the gantry has been on its span; and each step, with the working
   time from it to the next (`src/lib/velocity.js`, and `src/lib/VELOCITY.md` for every assumption). A stage or arrival that
   wasn't logged is estimated from the steps
   that were. Recent gaps between steps, counted in shift hours (7 a.m. to 5 p.m. and 8 p.m. to 6 a.m.), give each stage's

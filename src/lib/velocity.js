@@ -1,5 +1,5 @@
-// The Clayton Clipper's velocity: the working days it takes per span, from the steps tagged in desk.yaml, and the spans
-// per week that makes once a week's shutdown is allowed for.
+// The Clayton Clipper's velocity: the spans per week it builds, from the steps tagged in desk.yaml, with a week's shutdown
+// allowed for.
 //
 // The velocity is how far the gantry got in the week (168 hours) up to the step reported most recently, so it moves with
 // every step logged. The recent gaps between steps give each stage's share of a span's cycle, in shift hours (no time
@@ -326,7 +326,7 @@ export function sinceArrival(entries) {
 
 /**
  * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
- * steps logged by then, as if it were that moment: [{ key, days, spansPerWeek, span, stage }], newest first, `span` and
+ * steps logged by then, as if it were that moment: [{ key, spansPerWeek, span, stage }], newest first, `span` and
  * `stage` the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are
  * counted where their time stamps put them.
  */
@@ -340,10 +340,9 @@ export function velocityHistory(entries) {
   const out = [];
   for (const t of times.sort((a, b) => b - a)) {
     const v = velocity(entries.filter((e) => parseKey(e.key).getTime() <= t));
-    if (v?.days != null)
+    if (v?.spansPerWeek != null)
       out.push({
         key: toKey(new Date(t)),
-        days: v.days,
         spansPerWeek: v.spansPerWeek,
         span: v.window.span,
         stage: v.stage,
@@ -359,7 +358,7 @@ export function velocityHistory(entries) {
  * the file had earlier on Nov. 7, 2026 are read too: underscores in the keys, and a single `-previous` value.
  * @param {string} shown "2.83"
  * @param {object} header status.yaml's parsed header
- * @param {string} key "days-per-span" or "spans-per-week"
+ * @param {string} key "spans-per-week"
  * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
  */
 export function trendOf(shown, header, key) {
@@ -395,9 +394,9 @@ function progressAt(steps, shares, when) {
 /**
  * The velocity now: how far the gantry got in the 168 hours (a week) up to the step reported most recently, so it moves
  * with every step logged. That step's own place is logged; the place a week before it is read off between the steps
- * either side. Spans per week is that distance (a week always holds one shutdown, so 6 working days); days per span the
- * working days over it.
- * @returns {{ days: number, spansPerWeek?: number, stage: string, window: { start: string, end: string, from: number,
+ * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so 6
+ * working days).
+ * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
  *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
  *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span.
  */
@@ -414,8 +413,9 @@ export function velocity(entries, now = new Date()) {
   const start = last && new Date(last.at.getTime() - WEEK_HOURS * HOUR);
   const from = last && progressAt(steps, shares, start);
   const to = last && last.span + shares[last.index].position;
-  if (from == null || !(to > from)) return current ? { days: null, stage, window: null, shares, current } : null;
-  const days = workingHours(start, last.at) / 24 / (to - from);
+  if (from == null || !(to > from))
+    return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
+  const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
   const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span };
-  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, stage, window, shares, current };
+  return { spansPerWeek, stage, window, shares, current };
 }

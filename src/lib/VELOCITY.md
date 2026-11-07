@@ -12,15 +12,13 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
     38.83.
   - The start, a week earlier, is read off between the steps logged either side of that moment, on the shift clock, the
     way an estimated step is.
-- **Days per span**: the working days in that week over the spans. Any 168 hours hold exactly one 24-hour shutdown, so
-  that's 6 working days, and days per span is always 6 over spans per week.
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
-Both figures are written into `status.yaml` after `hung:`, as `days-per-span` and `spans-per-week`, to two decimals, on
-every push (`setVelocity` in `changes.js`), each change its own commit. Under each, `days-per-span-previous` and
-`spans-per-week-previous` list its values at the earlier steps of the past **96 hours** (`HISTORY_HOURS`), newest first,
-each with the span and stage of the step it was timed by:
+Spans per week is written into `status.yaml` after `hung:`, as `spans-per-week`, to two decimals, on every push
+(`setVelocity` in `changes.js`), each change its own commit. Under it, `spans-per-week-previous` lists its values at the
+earlier steps of the past **96 hours** (`HISTORY_HOURS`), newest first, each with the span and stage of the step it was
+timed by:
 
 ```yaml
 spans-per-week: 2.83
@@ -35,8 +33,9 @@ spans-per-week-previous:
   step logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
 - **The arrow** (the desk's panel and the site's card) compares the figure with the newest earlier value; equal, no
   arrow.
-- **Earlier forms.** Through Nov. 7, 2026 the keys had underscores (`days_per_span` and so on), and `-previous` was a
-  single value. The next push replaces those with the lists; until then both the desk and the site still read them.
+- **Earlier forms.** Through Nov. 7, 2026 the keys had underscores (`spans_per_week` and so on), `-previous` was a
+  single value, and days per span was written too (`days-per-span`). The next push replaces those with the list and
+  removes days per span; until then both the desk and the site still read the old forms of spans per week.
 
 ## The site's tooltip is simplified on purpose
 
@@ -81,8 +80,8 @@ enough that the simplification stops being fair.
 - **Seen Nov. 7, 2026, not yet in the code:** the Friday night shift is pretty much nonexistent. There was a little
   activity early Friday evening, the hangers being lowered, which doesn't need a big crew; it may have just been the day
   shift working overtime. The day shift works six days a week and the night shift only five (Sunday to Thursday nights),
-  so the working week is uneven, and a weekly velocity (spans per week) is probably more meaningful than a daily one
-  (days per span).
+  so the working week is uneven, which is why the velocity is given only per week (spans per week), not as days per
+  span.
 
 ## Two clocks
 
@@ -90,10 +89,10 @@ The code keeps two clocks, and they don't agree on the gaps between shifts:
 
 | Used for                         | Clock        | Counts                                     |
 | -------------------------------- | ------------ | ------------------------------------------ |
-| Cycle lengths, days per span     | Working time | Every hour except the shutdown             |
+| Cycle lengths, spans per week    | Working time | Every hour except the shutdown             |
 | Stage shares, estimated arrivals | Shift hours  | Only the hours inside a day or night shift |
 
-So the days per span include the shift-change gaps, and the shares don't.
+So the cycle lengths and spans per week include the shift-change gaps, and the shares don't.
 
 ## Stages
 

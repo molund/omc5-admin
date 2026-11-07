@@ -117,44 +117,55 @@ function setHeader(doc, values) {
 }
 
 const VELOCITY_COMMENT = [
+  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+  "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
+  "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
+];
+// the first two lines the comment had while it also gave days per span
+const OLD_VELOCITY_START = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
-  "# for), each with its values at the earlier steps of the past 96 hours (-previous), newest first, with the span and",
-  "# stage of the step each was timed by",
 ];
 // the comments as they were written before, replaced by the one above where they're found: before the velocity was taken
-// over a week, while its keys had underscores, and while it kept a single earlier value (all Nov. 7, 2026)
+// over a week, while its keys had underscores, while it kept a single earlier value, and while it also gave days per
+// span (all Nov. 7, 2026)
 const OLD_VELOCITY_COMMENTS = [
   [
     "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
     "# last three spans, and spans per week once the weekly shutdown is allowed for",
   ],
-  [...VELOCITY_COMMENT.slice(0, 2), "# for), each with its value before it last changed (_previous)"],
-  [...VELOCITY_COMMENT.slice(0, 2), "# for), each with its value before it last changed (-previous)"],
+  [...OLD_VELOCITY_START, "# for), each with its value before it last changed (_previous)"],
+  [...OLD_VELOCITY_START, "# for), each with its value before it last changed (-previous)"],
   [
-    ...VELOCITY_COMMENT.slice(0, 2),
+    ...OLD_VELOCITY_START,
     "# for), each with its values at the earlier steps of the past 72 hours (-previous), newest first",
   ],
+  [
+    ...OLD_VELOCITY_START,
+    "# for), each with its values at the earlier steps of the past 96 hours (-previous), newest first, with the span and",
+    "# stage of the step each was timed by",
+  ],
 ];
-// every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026
+// every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026; days per span is no longer
+// written, and is removed where it's found
 const VELOCITY_NAMES = ["days-per-span", "spans-per-week"].flatMap((k) =>
   [k, `${k}-previous`].flatMap((n) => [n, n.replaceAll("-", "_")]),
 );
 
 /**
- * Writes the velocity into the file's header, after `hung:`, or where it already is: its two figures, each with its
+ * Writes the velocity into the file's header, after `hung:`, or where it already is: spans per week, with its
  * values at the earlier steps of the past 96 hours under it, newest first, as a `- time: value` list, each with the span
  * and stage of the step it was timed by (lib/velocity.js's velocityHistory). The whole block is written again from them each time, so older values drop out and missing ones are
- * filled in; the forms it had earlier on Nov. 7, 2026 (underscored keys, a single earlier value) are replaced.
+ * filled in; the forms it had earlier on Nov. 7, 2026 (underscored keys, a single earlier value, days per span) are replaced.
  * @param {string} text
- * @param {{ days: number|null, spansPerWeek?: number }|null} v From lib/velocity.js; with no days the file is left as it is.
- * @param {{ key: string, days: number, spansPerWeek: number, span: number, stage: string }[]} [history] The earlier
+ * @param {{ spansPerWeek: number|null }|null} v From lib/velocity.js; with no velocity the file is left as it is.
+ * @param {{ key: string, spansPerWeek: number, span: number, stage: string }[]} [history] The earlier
  *   values, newest first.
  * @returns {{ text: string, hunks: object[] }}
  */
 export function setVelocity(text, v, history = []) {
   const doc = new Doc(text);
-  if (v?.days == null) return { text, hunks: [] };
+  if (v?.spansPerWeek == null) return { text, hunks: [] };
   const figure = (key, now, before) => [
     `${key}: ${now.toFixed(2)}`,
     ...(history.length
@@ -168,11 +179,7 @@ export function setVelocity(text, v, history = []) {
         ]
       : []),
   ];
-  const block = [
-    ...VELOCITY_COMMENT,
-    ...figure("days-per-span", v.days, (h) => h.days),
-    ...figure("spans-per-week", v.spansPerWeek, (h) => h.spansPerWeek),
-  ];
+  const block = [...VELOCITY_COMMENT, ...figure("spans-per-week", v.spansPerWeek, (h) => h.spansPerWeek)];
   const { header } = doc.parsed;
   const found = VELOCITY_NAMES.map((n) => header[n]).filter(Boolean);
   if (found.length) {

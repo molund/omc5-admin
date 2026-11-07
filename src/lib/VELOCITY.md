@@ -22,6 +22,24 @@ each change its own commit. A figure that moves keeps the value it had in `days_
 `spans_per_week_previous`, on the line after it; one that stays the same leaves its `_previous` as it was. The desk's
 velocity panel shows an arrow for which way each one last went.
 
+## The site's tooltip is simplified on purpose
+
+The site's progress card shows spans per week, and its tooltip says: "Approximate. Based on 2-3 site visits per day during
+the 168 hours preceding the last check-in. Significant figures are for entertainment purposes only." That's simplified,
+intentionally, so it reads easily. What the calculation actually does:
+
+- **It's based on the earliest observed stage entry it uses, not on a clean 168-hour window.** The start of the week is
+  read off between the steps logged either side of it, so the earliest step the calculation draws on is the last one
+  logged before the week began. That can be hours or days before it, so the data behind the figure can reach back well
+  beyond 168 hours.
+- **The week ends at the last step logged, not the last check-in.** A check-in that logs no step (an update, follow-up or
+  position record without a gantry step) doesn't move the end, so the most recent check-in may not contribute to the
+  velocity at all.
+- "2-3 site visits per day" describes how often steps tend to be logged; the calculation doesn't assume it.
+
+The tooltip's text is in the site's `src/ProgressCard.svelte` (molund/omc5); change it there if the calculation changes
+enough that the simplification stops being fair.
+
 ## Time
 
 - **BC time is UTC−7 all year.** Every time stamp in `status.yaml` and `desk.yaml` is read as UTC−7. There's no switch to

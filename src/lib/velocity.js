@@ -324,16 +324,18 @@ export function sinceArrival(entries) {
 
 /**
  * Which way a velocity figure last went, from status.yaml's header: the figure shown (to two decimals) against the value
- * it had before. That's the file's `_previous` when the file already holds the figure shown, or else the file's own
- * value (the figure shown is new, with waiting changes or a new way of working it out).
+ * it had before. That's the file's `-previous` when the file already holds the figure shown, or else the file's own
+ * value (the figure shown is new, with waiting changes or a new way of working it out). A file whose keys are still named
+ * with underscores (before Nov. 7, 2026) is read too.
  * @param {string} shown "2.83"
  * @param {object} header status.yaml's parsed header
- * @param {string} key "days_per_span" or "spans_per_week"
+ * @param {string} key "days-per-span" or "spans-per-week"
  * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
  */
 export function trendOf(shown, header, key) {
-  const now = header?.[key]?.value;
-  const from = now === shown ? header?.[`${key}_previous`]?.value : now;
+  const field = (k) => (header?.[k] ?? header?.[k.replaceAll("-", "_")])?.value;
+  const now = field(key);
+  const from = now === shown ? field(`${key}-previous`) : now;
   if (from == null || +from === +shown) return null;
   return { way: +shown > +from ? "up" : "down", from };
 }

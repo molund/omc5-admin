@@ -74,8 +74,8 @@ export function VelocityPanel() {
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
             {[
-              [v.days.toFixed(2), "days_per_span", "days/span"],
-              [v.spansPerWeek.toFixed(2), "spans_per_week", "spans/wk"],
+              [v.days.toFixed(2), "days-per-span", "days/span"],
+              [v.spansPerWeek.toFixed(2), "spans-per-week", "spans/wk"],
             ].map(([shown, key, label]) => {
               const t = trendOf(shown, desk.parsed?.header, key);
               return (

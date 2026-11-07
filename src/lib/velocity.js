@@ -323,6 +323,22 @@ export function sinceArrival(entries) {
 }
 
 /**
+ * Which way a velocity figure last went, from status.yaml's header: the figure shown (to two decimals) against the value
+ * it had before. That's the file's `_previous` when the file already holds the figure shown, or else the file's own
+ * value (the figure shown is new, with waiting changes or a new way of working it out).
+ * @param {string} shown "2.83"
+ * @param {object} header status.yaml's parsed header
+ * @param {string} key "days_per_span" or "spans_per_week"
+ * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
+ */
+export function trendOf(shown, header, key) {
+  const now = header?.[key]?.value;
+  const from = now === shown ? header?.[`${key}_previous`]?.value : now;
+  if (from == null || +from === +shown) return null;
+  return { way: +shown > +from ? "up" : "down", from };
+}
+
+/**
  * How far along the gantry was at a moment, in spans (a span number plus how far through that span's cycle), read off
  * between the logged steps either side of it on the shift clock, as an estimated step is. Null with no step on one side.
  * Steps logged out of order don't take it backwards.

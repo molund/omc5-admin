@@ -20,7 +20,7 @@ await build({
   outfile: here("./.out/github.mjs"),
   logLevel: "silent",
 });
-const { checkToken, landingStatus, parseExpiry, pushChanges, AUTHOR } = await import(here("./.out/github.mjs"));
+const { checkToken, pushStatus, parseExpiry, pushChanges, AUTHOR } = await import(here("./.out/github.mjs"));
 const BASE = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const API = "https://api.github.com/repos/molund/omc5";
 const T = "2026-11-05T08:30-07:00";
@@ -196,27 +196,53 @@ test("expiry headers, with UTC or an offset; none means it never expires", () =>
   assert.equal(parseExpiry("soon"), null);
 });
 
-test("the landing is followed through the desk workflow's run, without the token", async () => {
-  const run = (status, conclusion) => ({
+test("a push is followed through the landing run, then the deploy it starts, in one request each time", async () => {
+  // as GitHub lists them for the commit, newest first
+  const land = (status, conclusion) => ({
     path: ".github/workflows/desk.yml",
+    event: "push",
+    head_branch: "desk",
     status,
     conclusion,
     html_url: "https://github.com/molund/omc5/actions/runs/1",
   });
-  const other = { path: ".github/workflows/deploy.yml", status: "completed", conclusion: "success", html_url: "x" };
-  let gh = fakeGitHub({ runs: [other] });
-  assert.deepEqual(await landingStatus("abc"), { state: "waiting", url: null });
+  const deploy = (status, conclusion, event = "repository_dispatch") => ({
+    path: ".github/workflows/deploy.yml",
+    event,
+    head_branch: "main",
+    status,
+    conclusion,
+    html_url: "https://github.com/molund/omc5/actions/runs/2",
+  });
+  let gh = fakeGitHub({ runs: [] });
+  assert.deepEqual(await pushStatus("abc"), { stage: "waiting", url: null });
+  assert.equal(gh.calls.length, 1);
   assert.equal(gh.calls[0].auth, null);
   assert.match(gh.calls[0].path, /head_sha=abc/);
-  fakeGitHub({ runs: [other, run("in_progress", null)] });
-  assert.equal((await landingStatus("abc")).state, "running");
-  fakeGitHub({ runs: [run("completed", "success")] });
-  assert.equal((await landingStatus("abc")).state, "landed");
-  fakeGitHub({ runs: [run("completed", "failure")] });
-  assert.deepEqual(await landingStatus("abc"), {
-    state: "failed",
+  fakeGitHub({ runs: [land("in_progress", null)] });
+  assert.equal((await pushStatus("abc")).stage, "landing");
+  fakeGitHub({ runs: [land("completed", "failure")] });
+  assert.deepEqual(await pushStatus("abc"), { stage: "failed", url: "https://github.com/molund/omc5/actions/runs/1" });
+  // landed: on main, the deploy not started yet (a deploy for a push to main isn't the desk's)
+  fakeGitHub({ runs: [deploy("completed", "success", "push"), land("completed", "success")] });
+  assert.deepEqual(await pushStatus("abc"), {
+    stage: "deploying",
+    started: false,
     url: "https://github.com/molund/omc5/actions/runs/1",
   });
+  fakeGitHub({ runs: [deploy("in_progress", null), land("completed", "success")] });
+  assert.deepEqual(await pushStatus("abc"), {
+    stage: "deploying",
+    started: true,
+    url: "https://github.com/molund/omc5/actions/runs/2",
+  });
+  fakeGitHub({ runs: [deploy("completed", "success"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "live");
+  // cancelled for a newer deploy, which publishes these changes too
+  fakeGitHub({ runs: [deploy("completed", "cancelled"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "live");
+  fakeGitHub({ runs: [deploy("completed", "failure"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "deploy-failed");
 });
 
 test("an edit and a delete push as one commit each, and don't touch any photo", async () => {

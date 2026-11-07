@@ -2,7 +2,7 @@
 // Each waiting change is applied, in order, to status.yaml as it is on main now (the same code as the desk:
 // lib/changes.js), and made into its own commit with its photos, by "Mike Olund (Status Desk)". The desk branch is then
 // pointed at the last one. The site's "Land Status Desk changes" workflow (.github/workflows/desk.yml in molund/omc5)
-// checks the commits only change status.yaml and add photos, builds the site, moves main up to them and deploys.
+// checks the commits only change status.yaml and add photos, builds the site, moves main up to them and starts the deploy.
 // Plain JS: the token is passed in (platform/secrets reads it, after Face ID), and only ever sent to api.github.com.
 import deskConfig from "../../desk.config.json";
 import { Conflict, photosOf } from "../lib/changes.js";
@@ -16,6 +16,7 @@ export const BRANCH = "desk";
 export const AUTHOR = { name: "Mike Olund (Status Desk)", email: "mike@oxd.com" };
 const PHOTOS = "public/images/sorry-im-a-shitty-photographer";
 const WORKFLOW = ".github/workflows/desk.yml";
+const DEPLOY = ".github/workflows/deploy.yml";
 export const NEW_TOKEN_URL = "https://github.com/settings/personal-access-tokens/new";
 
 export class GitHubError extends Error {
@@ -184,21 +185,33 @@ export async function pushChanges({ token, changes, photos }) {
 }
 
 /**
- * How the landing of a push is going, from the site's workflow runs (public, so no token and no Face ID).
- * @returns {Promise<{ state: "waiting"|"running"|"landed"|"failed", url: string|null }>}
+ * How a push is going, from the site's workflow runs for its commit (public, so no token and no Face ID): first the landing
+ * (desk.yml, on the desk branch: it checks the commits, builds the site and moves main up), then the deploy that starts
+ * with its "desk-pushed" event (deploy.yml, on main, for the same commit: it publishes the site). One request has both.
+ * @returns {Promise<{ stage: "waiting"|"landing"|"failed"|"deploying"|"live"|"deploy-failed", started?: boolean,
+ *   url: string|null }>} `started`, while deploying: whether the deploy's run has begun.
  */
-export async function landingStatus(head) {
+export async function pushStatus(head) {
   let res;
   try {
-    res = await fetch(`${API}/actions/runs?head_sha=${head}&branch=${BRANCH}&per_page=20`, {
+    res = await fetch(`${API}/actions/runs?head_sha=${head}&per_page=20`, {
       headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
     });
   } catch (e) {
     throw new GitHubError("offline", "GitHub couldn't be reached to check on the push.", e.message);
   }
   if (!res.ok) throw new GitHubError("github", `GitHub didn't say how the push is going (${res.status}).`);
-  const run = (await res.json()).workflow_runs?.find((r) => r.path === WORKFLOW);
-  if (!run) return { state: "waiting", url: null };
-  if (run.status !== "completed") return { state: "running", url: run.html_url };
-  return { state: run.conclusion === "success" ? "landed" : "failed", url: run.html_url };
+  // newest first
+  const runs = (await res.json()).workflow_runs ?? [];
+  const land = runs.find((r) => r.path === WORKFLOW && r.head_branch === BRANCH);
+  if (!land) return { stage: "waiting", url: null };
+  if (land.status !== "completed") return { stage: "landing", url: land.html_url };
+  if (land.conclusion !== "success") return { stage: "failed", url: land.html_url };
+  const deploy = runs.find((r) => r.path === DEPLOY && r.event === "repository_dispatch");
+  if (!deploy) return { stage: "deploying", started: false, url: land.html_url };
+  if (deploy.status !== "completed") return { stage: "deploying", started: true, url: deploy.html_url };
+  // a deploy cancelled for a newer one is fine: the newer one is of main later on, which has these changes too
+  if (deploy.conclusion === "success" || deploy.conclusion === "cancelled")
+    return { stage: "live", url: deploy.html_url };
+  return { stage: "deploy-failed", url: deploy.html_url };
 }

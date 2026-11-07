@@ -724,6 +724,11 @@ test("steps that weren't logged are estimated close to the real ones, and a step
     assert.ok(Math.abs(parseKey(row.key) - parseKey(real.key)) <= 60 * 60 * 1000, `${real.stage}: ${row.key}`);
   }
   assert.equal(rows.find((r) => r.span === 42 && r.stage === "hung").estimated, false);
+  // each step's time runs to the next, so a span's steps add up to its cycle, and the last step has nowhere to run to
+  const arrived = (span) => parseKey(rows.find((r) => r.span === span && r.stage === "arrived at span").key);
+  const span41 = rows.filter((r) => r.span === 41).reduce((t, r) => t + r.stepHours, 0);
+  assert.equal(span41, workingHours(arrived(41), arrived(42)));
+  assert.equal(rows.at(-1).stepHours, null);
   // lowest span first
   assert.deepEqual(
     rows.map((r) => r.span),

@@ -1,7 +1,7 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
 // the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
 // estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
-// with its time (BC, 24-hour clock) and the working time since its span's arrival: the ones logged, and the ones that
+// with its time (BC, 24-hour clock) and the working time from it to the next step: the ones logged, and the ones that
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day.
 // Only the velocity itself shows until it's opened.
 import { Fragment, useState } from "react";
@@ -108,7 +108,7 @@ export function VelocityPanel() {
       {open && recent.length > 0 && (
         <View style={tw`gap-1 border-t border-line pt-2`}>
           <Body small mute>
-            Steps, in working time since arriving at the span (est.: not logged, estimated)
+            Steps, with the working time from each to the next (est.: not logged, estimated)
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
@@ -128,7 +128,7 @@ export function VelocityPanel() {
                       {clock24(t.key)}
                     </Body>
                     <Body small mute style={[tw`w-16 text-right`, num]}>
-                      {hours(t.hours)}
+                      {t.stepHours == null ? "–" : hours(t.stepHours)}
                     </Body>
                   </View>
                 </Fragment>

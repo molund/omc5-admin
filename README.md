@@ -11,7 +11,7 @@ A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a 
 | **Position**  | `updated`, `span`, `hung`                                                                                    | no text, a Trackside button       |
 | **Update**    | the same, plus a note: title, summary, photos and paragraphs                                                 | the summary, Comments             |
 | **Follow-up** | a follow-up under an update or blog post (or an edit of one), and `updated` if it's the newest; can move too | the follow-up's summary, Comments |
-| **Blog**      | a note keyed by date alone, with `post: true`                                                                | unchanged                         |
+| **Blog post** | a note keyed by date alone, with `post: true` (Update, with its Blog post switch on)                         | unchanged                         |
 
 The card column follows the card's new rule: an entry shows on the card only when its time stamp equals `updated`. That
 rule needs a change to `src/ProgressCard.svelte` on the site. Until then, the live card keeps showing the newest update's

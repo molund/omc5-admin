@@ -1,4 +1,5 @@
-// The Clayton Clipper's velocity: the working days it takes per span, from the steps tagged in desk.yaml.
+// The Clayton Clipper's velocity: the working days it takes per span, from the steps tagged in desk.yaml, and the spans
+// per week that makes once a week's shutdown is allowed for.
 //
 // A span's cycle is the time from a step at one span to the same step at the next (arrival to arrival, unless an arrival
 // wasn't logged; then the next step both spans have). Working time leaves out the weekly shutdown: Saturday night and
@@ -12,6 +13,7 @@ const DAY = 24 * HOUR;
 // the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
 const SHUTDOWN_START = 6 * 24 + 18; // Saturday 18:00
 const SHUTDOWN_HOURS = 24;
+const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWN_HOURS / 24;
 
 // which step to measure a cycle by, when both spans have it: arrival first, then the steps most often reported
 const PREFERRED = [
@@ -115,7 +117,7 @@ export function sinceArrival(entries) {
 
 /**
  * The velocity now.
- * @returns {{ days: number, cycles: object[], current: { span: number, since: string, days: number }|null }|null}
+ * @returns {{ days: number, spansPerWeek?: number, cycles: object[], current: { span: number, since: string, days: number }|null }|null}
  */
 export function velocity(entries, now = new Date()) {
   const all = cycles(entries);
@@ -126,5 +128,5 @@ export function velocity(entries, now = new Date()) {
   const current = since ? { span: top, since, days: workingHours(parseKey(since), now) / 24 } : null;
   if (!used.length) return current ? { days: null, cycles: [], current } : null;
   const days = used.reduce((t, c) => t + c.hours, 0) / used.length / 24;
-  return { days, cycles: used, current };
+  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, cycles: used, current };
 }

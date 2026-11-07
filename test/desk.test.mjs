@@ -230,6 +230,7 @@ test("the velocity: the last three spans, arrival to arrival or the next step bo
     ],
   );
   assert.equal(v.days.toFixed(2), "2.28");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.63");
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
   // with no arrival at 35, span 35 to 36 is measured by the step both have: hung
   const c = cycles(entries).find((x) => x.to === 36);

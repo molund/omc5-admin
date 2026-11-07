@@ -1,8 +1,9 @@
 // Picking and preparing a photo on the phone: at most 800 pixels wide, JPEG at quality 75, the same as photos.web.js. The
-// photo is picked from the library and saved again by the image manipulator, which writes a new JPEG with none of the
-// original's metadata (location, camera, time), as CLAUDE.md in molund/omc5 asks.
+// photo is picked from the library and saved again by the image manipulator, then its metadata segments (location, camera,
+// time, colour profile) are dropped, as CLAUDE.md in molund/omc5 asks.
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { fromBase64, stripJpegMetadata, toBase64 } from "../lib/jpeg.js";
 
 const MAX_WIDTH = 800;
 const QUALITY = 0.75;
@@ -30,12 +31,14 @@ export async function preparePhoto(asset) {
   if (asset.width > MAX_WIDTH) context.resize({ width: MAX_WIDTH });
   const image = await context.renderAsync();
   const out = await image.saveAsync({ format: SaveFormat.JPEG, compress: QUALITY, base64: true });
-  const padding = out.base64.endsWith("==") ? 2 : out.base64.endsWith("=") ? 1 : 0;
+  // the manipulator's own JPEG can still carry segments the site refuses (its ICC profile, say): drop them too
+  const jpeg = stripJpegMetadata(fromBase64(out.base64));
+  const base64 = toBase64(jpeg);
   return {
-    dataUrl: `data:image/jpeg;base64,${out.base64}`,
+    dataUrl: `data:image/jpeg;base64,${base64}`,
     width: out.width,
     height: out.height,
-    bytes: Math.floor((out.base64.length * 3) / 4) - padding,
+    bytes: jpeg.length,
     original: asset.fileName ?? "",
   };
 }

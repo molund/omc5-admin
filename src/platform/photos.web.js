@@ -1,6 +1,9 @@
 // Picking and preparing a photo in the browser: at most 800 pixels wide, JPEG at quality 75. Drawing it onto a canvas and
-// saving that drops all of the original's metadata (location, camera, time), as CLAUDE.md asks.
+// saving that drops the original's metadata (location, camera, time), and the saved JPEG's own extra segments are dropped
+// too, as CLAUDE.md asks.
 // (A native build would use expo-image-picker and expo-image-manipulator behind the same two functions.)
+
+import { fromBase64, stripJpegMetadata, toBase64 } from "../lib/jpeg.js";
 
 const MAX_WIDTH = 800;
 const QUALITY = 0.75;
@@ -59,9 +62,11 @@ export async function preparePhoto(file) {
     const ctx = canvas.getContext("2d");
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(img, 0, 0, width, height);
-    const dataUrl = canvas.toDataURL("image/jpeg", QUALITY);
-    const bytes = Math.round(((dataUrl.length - dataUrl.indexOf(",") - 1) * 3) / 4);
-    return { dataUrl, width, height, bytes, original: file.name };
+    // the browser's own JPEG can still carry segments the site refuses (Safari adds a colour profile, say): drop them too
+    const [head, data] = canvas.toDataURL("image/jpeg", QUALITY).split(",");
+    const jpeg = stripJpegMetadata(fromBase64(data));
+    const dataUrl = `${head},${toBase64(jpeg)}`;
+    return { dataUrl, width, height, bytes: jpeg.length, original: file.name };
   } finally {
     URL.revokeObjectURL(url);
   }

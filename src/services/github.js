@@ -184,22 +184,59 @@ export async function pushChanges({ token, changes, photos }) {
   return { head: parent, base, pushed, skipped, expiresAt: seen.expiresAt ?? null };
 }
 
+// The token a push was made with, kept in memory only (never stored) while that push is followed: with it GitHub allows
+// 5,000 requests an hour, without it 60, shared by everything on the same network. It needs Actions: read-only to see the
+// runs; without that GitHub refuses it, and the push is followed without it.
+let follow = null; // { token, head }
+
+/** Follows the push of this commit with this token. */
+export function followWith(token, head) {
+  follow = { token, head };
+}
+
+/** Forgets the token, when the push of this commit is no longer followed (a newer push keeps its own). */
+export function stopFollowing(head) {
+  if (follow?.head === head) follow = null;
+}
+
+/** Whether the push of this commit is followed with the token, so its runs can be checked more often. */
+export const followingWithToken = (head) => follow?.head === head;
+
 /**
- * How a push is going, from the site's workflow runs for its commit (public, so no token and no Face ID): first the landing
- * (desk.yml, on the desk branch: it checks the commits, builds the site and moves main up), then the deploy that starts
- * with its "desk-pushed" event (deploy.yml, on main, for the same commit: it publishes the site). One request has both.
+ * How a push is going, from the site's workflow runs for its commit: first the landing (desk.yml, on the desk branch: it
+ * checks the commits, builds the site and moves main up), then the deploy that starts with its "desk-pushed" event
+ * (deploy.yml, on main, for the same commit: it publishes the site). One request has both. The repo is public, so the
+ * token isn't needed, only welcome (see followWith).
+ * @param {string} head The push's last commit.
  * @returns {Promise<{ stage: "waiting"|"landing"|"failed"|"deploying"|"live"|"deploy-failed", started?: boolean,
  *   url: string|null }>} `started`, while deploying: whether the deploy's run has begun.
  */
 export async function pushStatus(head) {
+  const get = (token) =>
+    fetch(`${API}/actions/runs?head_sha=${head}&per_page=20`, {
+      headers: {
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+    });
+  const token = follow?.head === head ? follow.token : null;
   let res;
   try {
-    res = await fetch(`${API}/actions/runs?head_sha=${head}&per_page=20`, {
-      headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" },
-    });
+    res = await get(token);
+    // a token without Actions: read (or expired): follow without it from now on
+    if (token && (res.status === 401 || res.status === 403)) {
+      stopFollowing(head);
+      res = await get(null);
+    }
   } catch (e) {
     throw new GitHubError("offline", "GitHub couldn't be reached to check on the push.", e.message);
   }
+  if (res.status === 403 || res.status === 429)
+    throw new GitHubError(
+      "github",
+      "GitHub has had too many checks from this network for now. It'll try again shortly.",
+    );
   if (!res.ok) throw new GitHubError("github", `GitHub didn't say how the push is going (${res.status}).`);
   // newest first
   const runs = (await res.json()).workflow_runs ?? [];

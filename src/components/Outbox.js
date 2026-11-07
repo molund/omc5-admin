@@ -8,7 +8,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
 import { pushFromPhone } from "../services/phonePush.js";
-import { pushStatus } from "../services/github.js";
+import { followingWithToken, pushStatus, stopFollowing } from "../services/github.js";
 import { canReopen } from "../lib/entries.js";
 import { asOf, dateOf, toKey } from "../lib/time.js";
 import { copyText } from "../platform/clipboard";
@@ -155,7 +155,10 @@ function Landing({ p }) {
           desk.setPush((q) => (q && q.head === p.head ? { ...q, landed: true } : q));
           desk.reload();
         }
-        if (["failed", "live", "deploy-failed"].includes(s.stage)) final.current = true;
+        if (["failed", "live", "deploy-failed"].includes(s.stage)) {
+          final.current = true;
+          stopFollowing(p.head);
+        }
         // live: say so for a moment, then the panel goes
         if (s.stage === "live") setTimeout(() => desk.setPush((q) => (q && q.head === p.head ? null : q)), 15 * 1000);
       } catch (e) {
@@ -164,11 +167,22 @@ function Landing({ p }) {
     },
     [p.head, p.landed],
   );
+  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one)
   useEffect(() => {
-    check();
-    const timer = setInterval(check, 15 * 1000);
-    return () => clearInterval(timer);
+    let on = true,
+      timer;
+    const loop = async () => {
+      await check();
+      if (on) timer = setTimeout(loop, followingWithToken(p.head) ? 5 * 1000 : 15 * 1000);
+    };
+    loop();
+    return () => {
+      on = false;
+      clearTimeout(timer);
+    };
   }, [check]);
+  // the push isn't followed any more (done, or Stop waiting): the token goes
+  useEffect(() => () => stopFollowing(p.head), [p.head]);
 
   const when = asOf(toKey(new Date(p.requestedAt)));
   const text = {

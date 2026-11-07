@@ -20,7 +20,8 @@ await build({
   outfile: here("./.out/github.mjs"),
   logLevel: "silent",
 });
-const { checkToken, pushStatus, parseExpiry, pushChanges, AUTHOR } = await import(here("./.out/github.mjs"));
+const { checkToken, followWith, followingWithToken, pushStatus, parseExpiry, pushChanges, stopFollowing, AUTHOR } =
+  await import(here("./.out/github.mjs"));
 const BASE = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const API = "https://api.github.com/repos/molund/omc5";
 const T = "2026-11-05T08:30-07:00";
@@ -243,6 +244,44 @@ test("a push is followed through the landing run, then the deploy it starts, in 
   assert.equal((await pushStatus("abc")).stage, "live");
   fakeGitHub({ runs: [deploy("completed", "failure"), land("completed", "success")] });
   assert.equal((await pushStatus("abc")).stage, "deploy-failed");
+});
+
+test("a push's runs are checked with its token while it's followed, and without it once GitHub refuses it", async () => {
+  // a fake GitHub that refuses the token when told to, and answers without one
+  const calls = [];
+  let refuse = false;
+  globalThis.fetch = async (url, init = {}) => {
+    const auth = init.headers?.Authorization ?? null;
+    calls.push(auth);
+    const ok = !(auth && refuse);
+    return { ok, status: ok ? 200 : 403, json: async () => ({ workflow_runs: [] }), text: async () => "" };
+  };
+  followWith("github_pat_x", "abc");
+  assert.equal(followingWithToken("abc"), true);
+  await pushStatus("abc");
+  assert.deepEqual(calls, ["Bearer github_pat_x"]);
+  // another push's runs don't get it
+  await pushStatus("def");
+  assert.equal(calls[1], null);
+  assert.equal(followingWithToken("def"), false);
+  // refused (no Actions: read): asked again without it, and it's forgotten
+  refuse = true;
+  assert.equal((await pushStatus("abc")).stage, "waiting");
+  assert.deepEqual(calls.slice(2), ["Bearer github_pat_x", null]);
+  assert.equal(followingWithToken("abc"), false);
+  await pushStatus("abc");
+  assert.equal(calls.at(-1), null);
+  // a newer push's token isn't dropped when an older one stops being followed
+  followWith("github_pat_y", "ghi");
+  stopFollowing("abc");
+  assert.equal(followingWithToken("ghi"), true);
+  stopFollowing("ghi");
+  assert.equal(followingWithToken("ghi"), false);
+});
+
+test("GitHub's limit on checks without a token says to wait, not that something's wrong", async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => "" });
+  await assert.rejects(pushStatus("abc"), /too many checks/);
 });
 
 test("an edit and a delete push as one commit each, and don't touch any photo", async () => {

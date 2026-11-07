@@ -1,6 +1,6 @@
 // Push on the phone: Face ID, then the token from the Keychain, then the changes to GitHub (services/github.js).
 import { readToken } from "../platform/secrets";
-import { GitHubError, pushChanges } from "./github.js";
+import { GitHubError, followWith, pushChanges } from "./github.js";
 
 /**
  * @param {{ changes: object[], photos: object, tokenInfo: object|null, setTokenInfo: Function }} desk
@@ -28,6 +28,8 @@ export async function pushFromPhone({ changes, photos, tokenInfo, setTokenInfo }
 
   try {
     const result = await pushChanges({ token, changes, photos });
+    // the token Face ID just unlocked follows this push's runs too, in memory, until the push is done
+    followWith(token, result.head);
     setTokenInfo((t) => t && { ...t, expiresAt: result.expiresAt ?? t.expiresAt, rejected: false });
     return result;
   } catch (e) {

@@ -331,21 +331,21 @@ test("an arrival: as logged if it was, close to the real one if it's estimated, 
   assert.deepEqual(arrivals([]), {});
 });
 
-test("the velocity: the last three spans, timed by the stage reported last, span to span", () => {
+test("the velocity: how far the gantry got in the week up to the step reported last", () => {
   const entries = parseDesk(DESK);
   const v = velocity(entries, at("2026-11-05T13:00-07:00"));
-  // the copy's last step is span 38's hung, at 5:15 p.m. on Nov. 5: hung to hung, all three logged
+  // the copy's last step is span 38's hung, at 5:15 p.m. on Nov. 5; a week before, the gantry was between span 35's hung
+  // (6:45 a.m. on Oct. 29) and its post-tensioning (6:30 p.m.)
   assert.equal(v.stage, "hung");
-  assert.deepEqual(
-    v.cycles.map((c) => [c.from, c.to, c.stage, c.startEstimated, c.endEstimated, c.hours]),
-    [
-      [37, 38, "hung", false, false, 44.75],
-      [36, 37, "hung", false, false, 54.5],
-      [35, 36, "hung", false, false, 55.25],
-    ],
-  );
-  assert.equal(v.days.toFixed(2), "2.15");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.80");
+  assert.equal(v.window.start, "2026-10-29T17:15-07:00");
+  assert.equal(v.window.end, "2026-11-05T17:15-07:00");
+  assert.equal(v.window.span, 38);
+  assert.equal(v.window.from.toFixed(2), "35.54");
+  assert.equal(v.window.to.toFixed(2), "38.15");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.61");
+  // a week holds one shutdown: 6 working days
+  assert.equal(v.days, 6 / (v.window.to - v.window.from));
+  assert.equal(v.days.toFixed(2), "2.30");
   assert.equal(v.shares.length, 9);
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
   // the cycles by arrival are still there: with no arrival at 35, it's estimated from the steps around it (span 35's hung
@@ -771,33 +771,26 @@ test("a follow-up goes under today's or yesterday's update: not older ones, blog
   assert.deepEqual(recentUpdates(null, now), []);
 });
 
-test("the velocity moves with each step: timed by the latest, and estimated on a span where it wasn't logged", () => {
-  // spans 40 to 43 in full, then span 44 up to glued, as the shift hours in LENGTHS would have them
+test("the velocity over a week: a steady pace comes back, the window moves with each step, and a week of data is needed", () => {
+  // spans 40 to 43 in full, then span 44 up to glued, at LENGTHS' shift hours: a span every CYCLE shift hours, and any
+  // week holds 120 (a day and a night shift on six days), so 120 / CYCLE spans a week
   const entries = runOfCycles();
   let t = parseKey(entries.at(-1).key);
-  for (const [stage, hours] of Object.entries(LENGTHS).slice(0, 4)) {
-    t = afterShiftHours(t, hours);
-    entries.push({ key: toKey(t), span: 44, stage: Object.keys(LENGTHS)[Object.keys(LENGTHS).indexOf(stage) + 1] });
+  const names = Object.keys(LENGTHS);
+  for (const stage of names.slice(0, 4)) {
+    t = afterShiftHours(t, LENGTHS[stage]);
+    entries.push({ key: toKey(t), span: 44, stage: names[names.indexOf(stage) + 1] });
   }
-  assert.equal(entries.at(-1).stage, "glued");
-  const real = entries.find((e) => e.span === 41 && e.stage === "glued");
-  const byArrival = velocity(entries.filter((e) => !(e.span === 44 && e.stage !== "arrived at span")));
-  const v = velocity(entries.filter((e) => e !== real));
-  assert.equal(byArrival.stage, "arrived at span");
+  const atArrival = velocity(entries.filter((e) => !(e.span === 44 && e.stage !== "arrived at span")));
+  const v = velocity(entries);
+  for (const x of [atArrival, v]) assert.ok(Math.abs(x.spansPerWeek - 120 / CYCLE) < 0.05, `${x.spansPerWeek}`);
+  // the week ends at the latest step: span 44's glued, logged after its arrival
+  assert.equal(atArrival.stage, "arrived at span");
   assert.equal(v.stage, "glued");
-  assert.deepEqual(
-    v.cycles.map((c) => [c.from, c.to, c.startEstimated, c.endEstimated]),
-    [
-      [43, 44, false, false],
-      [42, 43, false, false],
-      [41, 42, true, false],
-    ],
-  );
-  // span 41's glued, estimated, lands near where it really was
-  const est = parseKey(v.cycles.at(-1).start);
-  assert.ok(Math.abs(est - parseKey(real.key)) <= 60 * 60 * 1000, v.cycles.at(-1).start);
-  // three cycles, glued on span 41 to glued on span 44
-  assert.equal(v.days, workingHours(est, parseKey(entries.at(-1).key)) / 3 / 24);
-  // and it's not the figure by arrival: logging the steps since moved it
-  assert.notEqual(v.days.toFixed(4), byArrival.days.toFixed(4));
+  assert.equal(v.window.end, entries.at(-1).key);
+  assert.ok(parseKey(v.window.end) > parseKey(atArrival.window.end));
+  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 144);
+  // less than a week of steps: nothing to read the start off
+  const short = entries.filter((e) => e.span >= 43);
+  assert.equal(velocity(short).days, null);
 });

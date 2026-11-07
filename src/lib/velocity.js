@@ -1,16 +1,19 @@
 // The Clayton Clipper's velocity: the working days it takes per span, from the steps tagged in desk.yaml, and the spans
 // per week that makes once a week's shutdown is allowed for.
 //
-// A span's cycle is the time from a stage on it to the same stage on the next span: the stage reported most recently, so
-// the velocity moves with every step logged. A stage that wasn't logged on a span is estimated from the steps that were:
-// the recent gaps between steps give each stage's share of the cycle, in shift hours (no time passes in a shift break or
-// the shutdown), and that places every step along the gantry's progress, to read the stage off between them. Working time
-// leaves out only the weekly shutdown: Saturday night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time.
-// The velocity is the average of the last three spans' cycles.
+// The velocity is how far the gantry got in the week (168 hours) up to the step reported most recently, so it moves with
+// every step logged. The recent gaps between steps give each stage's share of a span's cycle, in shift hours (no time
+// passes in a shift break or the shutdown), and that places every step along the gantry's progress, in spans: the place a
+// week before the last step is read off between the steps either side of it, and so is a stage or arrival that wasn't
+// logged. Working time leaves out only the weekly shutdown: Saturday night and Sunday's day shift, 6 p.m. Saturday to
+// 6 p.m. Sunday, BC time.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
 
+// the spans before the newest that the stage shares are fitted on, and the velocity panel lists steps for
 export const WINDOW = 3;
+// the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
+const WEEK_HOURS = 168;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
@@ -320,23 +323,50 @@ export function sinceArrival(entries) {
 }
 
 /**
- * The velocity now, timed by the stage reported most recently (so it moves with every step logged): from that stage on
- * the span three back to the same stage on its own span, over three, the earlier ones estimated where they weren't logged.
- * @returns {{ days: number, spansPerWeek?: number, stage: string, cycles: object[], shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ * How far along the gantry was at a moment, in spans (a span number plus how far through that span's cycle), read off
+ * between the logged steps either side of it on the shift clock, as an estimated step is. Null with no step on one side.
+ * Steps logged out of order don't take it backwards.
+ */
+function progressAt(steps, shares, when) {
+  const origin = steps[0].at;
+  let furthest = -Infinity;
+  const points = [];
+  for (const t of steps) {
+    furthest = Math.max(furthest, t.span + shares[t.index].position);
+    points.push({ position: furthest, hours: shiftHours(origin, t.at), at: t.at });
+  }
+  const before = points.filter((p) => p.at <= when).at(-1);
+  const after = points.find((p) => p.at > when);
+  if (!before || !after) return null;
+  const hours = shiftHours(origin, when);
+  const part = after.hours > before.hours ? (hours - before.hours) / (after.hours - before.hours) : 0;
+  return before.position + (after.position - before.position) * part;
+}
+
+/**
+ * The velocity now: how far the gantry got in the 168 hours (a week) up to the step reported most recently, so it moves
+ * with every step logged. That step's own place is logged; the place a week before it is read off between the steps
+ * either side. Spans per week is that distance (a week always holds one shutdown, so 6 working days); days per span the
+ * working days over it.
+ * @returns {{ days: number, spansPerWeek?: number, stage: string, window: { start: string, end: string, from: number,
+ *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span.
  */
 export function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
+  const steps = allSteps(entries);
   // the step logged last (allSteps is in the order logged), and its stage
-  const last = allSteps(entries).at(-1);
+  const last = steps.at(-1);
   const stage = last ? STAGES[last.index] : STAGES[0];
-  const used = cycles(entries, shares, stage)
-    .filter((c) => !last || c.to <= last.span)
-    .slice(0, WINDOW);
   const by = stepsBySpan(entries);
   const top = Math.max(0, ...Object.keys(by).map(Number));
   const since = top ? by[top]["arrived at span"] : null;
   const current = since ? { span: top, since, days: workingHours(parseKey(since), now) / 24 } : null;
-  if (!used.length) return current ? { days: null, stage, cycles: [], shares, current } : null;
-  const days = used.reduce((t, c) => t + c.hours, 0) / used.length / 24;
-  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, stage, cycles: used, shares, current };
+  const start = last && new Date(last.at.getTime() - WEEK_HOURS * HOUR);
+  const from = last && progressAt(steps, shares, start);
+  const to = last && last.span + shares[last.index].position;
+  if (from == null || !(to > from)) return current ? { days: null, stage, window: null, shares, current } : null;
+  const days = workingHours(start, last.at) / 24 / (to - from);
+  const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span };
+  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, stage, window, shares, current };
 }

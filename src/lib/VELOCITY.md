@@ -5,14 +5,17 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 
 ## What it calculates
 
-- **Days per span**: the average of the last three cycles (`WINDOW`), in working days. Each cycle runs from a stage on one
-  span to the same stage on the next: **the stage reported most recently** (the last step logged in `desk.yaml`), so the
-  velocity moves with every step, not only at each arrival. Averaged, that's the time from that stage on the span three
-  back to the same stage now, over three.
-- **Spans per week**: 6 working days a week divided by the days per span.
+- **Spans per week**: how far the gantry got in **the 168 hours (a week) up to the step reported most recently** (the last
+  step logged in `desk.yaml`, `WEEK_HOURS`), in spans, counting the part-spans at each end. So it moves with every step,
+  not only at each arrival.
+  - The end is that step's place in its span's cycle: span 38's "moving supports started", 83% through its cycle, is
+    38.83.
+  - The start, a week earlier, is read off between the steps logged either side of that moment, on the shift clock, the
+    way an estimated step is.
+- **Days per span**: the working days in that week over the spans. Any 168 hours hold exactly one 24-hour shutdown, so
+  that's 6 working days, and days per span is always 6 over spans per week.
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
-- **Estimated stages**: that stage on an earlier span, or a span's arrival, when it wasn't logged, read off from the steps
-  that were.
+- **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
 Both figures are written into `status.yaml` after `hung:`, to two decimals, on every push (`setVelocity` in `changes.js`).
 
@@ -94,10 +97,11 @@ These short hand-offs are held near a set length in shift hours (`KNOWN_HOURS`):
 - **The newest span and the three before it** for the shares. Older spans drop out as the gantry moves on. A step tagged
   with too high a span number moves this window.
 - **The earliest time stamp** for each step on each span. A tag means "this had happened by then".
-- Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares.
-- Only consecutive spans make a cycle, and only when the stage is known on both, logged or estimated.
-- The newest cycle ends at the step logged last. If that step's span is lower than a span already logged (a late report),
-  the cycles end at its span.
+- Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares, and don't take the
+  gantry's progress backwards when the start of the velocity's week is read off.
+- The velocity's week ends at the step logged last, by time stamp. With no step logged before its start (a week of data or
+  less), there's no velocity yet.
+- **All steps count** for the velocity's week, however old, not only those since `SHARES_SINCE`.
 
 ## Estimated arrivals and steps
 

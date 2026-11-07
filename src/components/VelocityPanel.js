@@ -1,5 +1,5 @@
-// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans, the
-// cycles it's from, how long the gantry has been on its span, and each step logged, grouped by span, with its time (BC, 24-hour
+// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
+// the spans per week that makes with the shutdown allowed for, the cycles it's from, how long the gantry has been on its span, and each step logged, grouped by span, with its time (BC, 24-hour
 // clock) and the working time since its span's arrival.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
@@ -51,8 +51,11 @@ export function VelocityPanel() {
           <Body>
             <Body style={tw`text-2xl font-bold`}>{v.days.toFixed(2)}</Body> days per span
           </Body>
+          <Body>
+            <Body style={tw`text-2xl font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans per week
+          </Body>
           <Body small mute>
-            {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}, in working time: Saturday night and Sunday's day shift don't count.`}
+            {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
           </Body>
         </View>
       ) : (

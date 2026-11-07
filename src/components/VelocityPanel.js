@@ -1,6 +1,5 @@
-// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
-// the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
-// estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
+// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span and spans per week, from how far
+// the gantry got in the week up to the latest step reported (the window it's from), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
 // with its time (BC) and the working time from it to the next step: the ones logged, and the ones that
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
 // steps added up.
@@ -21,6 +20,8 @@ const SHORT_LABELS = {
   "post-tensioning started": "Post-tensioning",
   "supports started": "Moving supports",
 };
+// the stage a cycle is timed by, in full ("Hanging started to hanging started")
+const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 
 // the two stats: a tenth larger than text-lg numbers and text-sm words
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
@@ -60,7 +61,7 @@ export function VelocityPanel() {
     <Panel>
       <Label
         right={
-          (v.cycles.length > 0 || v.current || recent.length > 0) && (
+          (v.window || v.current || recent.length > 0) && (
             <Button kind="link" small title={open ? "Hide details" : "Show details"} onPress={() => setOpen(!open)} />
           )
         }
@@ -81,7 +82,7 @@ export function VelocityPanel() {
           </View>
           {open && (
             <Body small mute>
-              {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
+              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
             </Body>
           )}
         </View>
@@ -90,18 +91,17 @@ export function VelocityPanel() {
           Not enough steps logged yet for a velocity.
         </Body>
       )}
-      {open &&
-        [...v.cycles].reverse().map((c) => (
-          <Row key={c.to} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
-            <View style={tw`flex-1 gap-0.5`}>
-              <Body small>{`Span ${c.from} to ${c.to}`}</Body>
-              <Body small mute>
-                {`Arrival to arrival: ${c.startEstimated ? "about " : ""}${stamp(c.start)} to ${c.endEstimated ? "about " : ""}${stamp(c.end)}`}
-              </Body>
-            </View>
-            <Body small>{days(c.hours / 24)}</Body>
-          </Row>
-        ))}
+      {open && v.window && (
+        <Row style={tw`flex-nowrap items-start border-t border-line pt-2`}>
+          <View style={tw`flex-1 gap-0.5`}>
+            <Body small>{`About span ${v.window.from.toFixed(2)} to span ${v.window.to.toFixed(2)}`}</Body>
+            <Body small mute>
+              {`${stamp(v.window.start)} to ${stamp(v.window.end)}. The end is where ${stageName(v.stage).toLowerCase()} comes in span ${v.window.span}'s cycle; the start is read off between the steps either side of it.`}
+            </Body>
+          </View>
+          <Body small>{`${(v.window.to - v.window.from).toFixed(2)} spans`}</Body>
+        </Row>
+      )}
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
           <Body small mute>

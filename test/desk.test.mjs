@@ -331,22 +331,25 @@ test("an arrival: as logged if it was, close to the real one if it's estimated, 
   assert.deepEqual(arrivals([]), {});
 });
 
-test("the velocity: the last three spans, arrival to arrival, logged or estimated", () => {
+test("the velocity: how far the gantry got in the week up to the step reported last", () => {
   const entries = parseDesk(DESK);
   const v = velocity(entries, at("2026-11-05T13:00-07:00"));
-  assert.deepEqual(
-    v.cycles.map((c) => [c.from, c.to, c.startEstimated, c.endEstimated, c.hours]),
-    [
-      [37, 38, false, false, 44.5],
-      [36, 37, false, false, 64.75],
-      [35, 36, true, false, 45.25],
-    ],
-  );
-  assert.equal(v.days.toFixed(2), "2.15");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.80");
+  // the copy's last step is span 38's hung, at 5:15 p.m. on Nov. 5; a week before, the gantry was between span 35's hung
+  // (6:45 a.m. on Oct. 29) and its post-tensioning (6:30 p.m.)
+  assert.equal(v.stage, "hung");
+  assert.equal(v.window.start, "2026-10-29T17:15-07:00");
+  assert.equal(v.window.end, "2026-11-05T17:15-07:00");
+  assert.equal(v.window.span, 38);
+  assert.equal(v.window.from.toFixed(2), "35.54");
+  assert.equal(v.window.to.toFixed(2), "38.15");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.61");
+  // a week holds one shutdown: 6 working days
+  assert.equal(v.days, 6 / (v.window.to - v.window.from));
+  assert.equal(v.days.toFixed(2), "2.30");
   assert.equal(v.shares.length, 9);
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
-  // with no arrival at 35, it's estimated from the steps around it: span 35's hung was at 6:45 a.m.
+  // the cycles by arrival are still there: with no arrival at 35, it's estimated from the steps around it (span 35's hung
+  // was at 6:45 a.m.)
   const c = cycles(entries).find((x) => x.to === 36);
   assert.equal(c.start, "2026-10-28T23:30-07:00");
   assert.equal(c.end, "2026-10-30T20:45-07:00");
@@ -766,4 +769,28 @@ test("a follow-up goes under today's or yesterday's update: not older ones, blog
   // two days later: none, so the tab is off
   assert.deepEqual(recentUpdates(parsed, new Date("2026-11-09T09:00-07:00")), []);
   assert.deepEqual(recentUpdates(null, now), []);
+});
+
+test("the velocity over a week: a steady pace comes back, the window moves with each step, and a week of data is needed", () => {
+  // spans 40 to 43 in full, then span 44 up to glued, at LENGTHS' shift hours: a span every CYCLE shift hours, and any
+  // week holds 120 (a day and a night shift on six days), so 120 / CYCLE spans a week
+  const entries = runOfCycles();
+  let t = parseKey(entries.at(-1).key);
+  const names = Object.keys(LENGTHS);
+  for (const stage of names.slice(0, 4)) {
+    t = afterShiftHours(t, LENGTHS[stage]);
+    entries.push({ key: toKey(t), span: 44, stage: names[names.indexOf(stage) + 1] });
+  }
+  const atArrival = velocity(entries.filter((e) => !(e.span === 44 && e.stage !== "arrived at span")));
+  const v = velocity(entries);
+  for (const x of [atArrival, v]) assert.ok(Math.abs(x.spansPerWeek - 120 / CYCLE) < 0.05, `${x.spansPerWeek}`);
+  // the week ends at the latest step: span 44's glued, logged after its arrival
+  assert.equal(atArrival.stage, "arrived at span");
+  assert.equal(v.stage, "glued");
+  assert.equal(v.window.end, entries.at(-1).key);
+  assert.ok(parseKey(v.window.end) > parseKey(atArrival.window.end));
+  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 144);
+  // less than a week of steps: nothing to read the start off
+  const short = entries.filter((e) => e.span >= 43);
+  assert.equal(velocity(short).days, null);
 });

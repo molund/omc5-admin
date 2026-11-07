@@ -116,6 +116,35 @@ function setHeader(doc, values) {
   }
 }
 
+const VELOCITY_COMMENT = [
+  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
+  "# last three spans, and spans per week once the weekly shutdown is allowed for",
+];
+
+/**
+ * Writes the velocity's two figures into the file's header, after `hung:`, or updates them where they already are.
+ * @param {string} text
+ * @param {{ days: number|null, spansPerWeek?: number }|null} v From lib/velocity.js; with no days the file is left as it is.
+ * @returns {{ text: string, hunks: object[] }}
+ */
+export function setVelocity(text, v) {
+  const doc = new Doc(text);
+  if (v?.days == null) return { text, hunks: [] };
+  const values = { days_per_span: v.days.toFixed(2), spans_per_week: v.spansPerWeek.toFixed(2) };
+  const { header } = doc.parsed;
+  if (header.days_per_span && header.spans_per_week) {
+    setHeader(doc, values);
+    return { text: doc.text, hunks: doc.hunks };
+  }
+  const after = header.hung ?? header.complete;
+  if (!after) throw new Conflict(`status.yaml has no "hung:" line.`);
+  doc.replace(after.line + 1, 0, [
+    ...VELOCITY_COMMENT,
+    ...Object.entries(values).map(([k, value]) => `${k}: ${value}`),
+  ]);
+  return { text: doc.text, hunks: doc.hunks };
+}
+
 function findNote(parsed, key) {
   const note = parsed.notes.find((n) => n.key === key);
   if (!note) throw new Conflict(`The note from ${shortDate(key)} isn't in status.yaml any more.`);

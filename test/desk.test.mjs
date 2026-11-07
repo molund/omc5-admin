@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
+import { setVelocity } from "../src/lib/changes.js";
 import {
   afterShiftHours,
   arrivals,
@@ -537,9 +538,11 @@ test("what's waiting is found by the time stamp it created", () => {
 });
 
 test("an edit of every saved entry, as its editor loads it, changes neither file", () => {
-  const parsed = parseStatus(STATUS);
-  const files = { status: STATUS, desk: DESK };
   const entries = parseDesk(DESK);
+  // status.yaml as a push leaves it, with the velocity already in it
+  const STATUS_NOW = setVelocity(STATUS, velocity(entries)).text;
+  const parsed = parseStatus(STATUS_NOW);
+  const files = { status: STATUS_NOW, desk: DESK };
   const stageOfEntry = (key) => entries.find((e) => e.key === key)?.stage ?? undefined;
   for (const n of parsed.notes) {
     const stage = n.fields.post ? {} : { stage: stageOfEntry(n.key) };
@@ -552,7 +555,7 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
       memo,
       ...stage,
     });
-    assert.equal(r.status, STATUS, n.key);
+    assert.equal(r.status, STATUS_NOW, n.key);
     assert.deepEqual(r.deskHunks, [], n.key);
     for (const f of n.followUps) {
       const fr = applyBoth(files, {
@@ -564,7 +567,7 @@ test("an edit of every saved entry, as its editor loads it, changes neither file
         memo,
         stage: stageOfEntry(f.key),
       });
-      assert.equal(fr.status, STATUS, f.key);
+      assert.equal(fr.status, STATUS_NOW, f.key);
       assert.deepEqual(fr.deskHunks, [], f.key);
     }
   }
@@ -692,4 +695,20 @@ test("the days each span took: arrival to the next arrival, open on the newest, 
   assert.equal(d[36].shutdown, true);
   assert.equal(weekdayShort("2026-11-05T10:00-07:00"), "Thurs");
   assert.equal(weekdayShort("2026-11-03T09:00-07:00"), "Tues");
+});
+
+test("a push writes the velocity's two figures after hung:, and keeps them up to date", () => {
+  const v = velocity(parseDesk(DESK));
+  const once = setVelocity(STATUS, v).text;
+  const head = parseStatus(once).header;
+  assert.equal(head.days_per_span.value, v.days.toFixed(2));
+  assert.equal(head.spans_per_week.value, v.spansPerWeek.toFixed(2));
+  // (the fixture is from before Nov. 6, 2026, so its hung: line is still complete:)
+  assert.equal(head.days_per_span.line, (head.hung ?? head.complete).line + 3);
+  // written again: changed in place, not added twice
+  const again = setVelocity(once, { days: 2, spansPerWeek: 3 }).text;
+  assert.equal(again.split("\n").length, once.split("\n").length);
+  assert.equal(parseStatus(again).header.spans_per_week.value, "3.00");
+  // no velocity yet: left as it is
+  assert.equal(setVelocity(STATUS, null).text, STATUS);
 });

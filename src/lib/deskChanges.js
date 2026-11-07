@@ -10,7 +10,8 @@
 // "hung" with the span hung (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
 import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
-import { applyChange, Conflict } from "./changes.js";
+import { applyChange, Conflict, setVelocity } from "./changes.js";
+import { velocity } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
 
 /** The line ranges a whole-file rewrite changed, as one hunk for the review. */
@@ -108,7 +109,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
 }
 
 /**
- * Applies a change to both files.
+ * Applies a change to both files, and writes the velocity it leaves into status.yaml.
  * @param {{ status: string, desk: string }} files
  * @returns {{ status: string, desk: string, hunks: object[], deskHunks: object[] }}
  * @throws {Conflict} when the change no longer fits status.yaml.
@@ -116,7 +117,9 @@ export function applyDeskChange(deskText, change, statusBefore) {
 export function applyBoth(files, change) {
   const s = applyChange(files.status, change, { deskKeys: parseDesk(files.desk).map((e) => e.key) });
   const d = applyDeskChange(files.desk, change, files.status);
-  return { status: s.text, desk: d.text, hunks: s.hunks, deskHunks: d.hunks };
+  // the velocity with this change's steps in it, near the top of status.yaml
+  const v = setVelocity(s.text, velocity(parseDesk(d.text)));
+  return { status: v.text, desk: d.text, hunks: [...s.hunks, ...v.hunks], deskHunks: d.hunks };
 }
 
 /**

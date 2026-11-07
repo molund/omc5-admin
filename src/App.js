@@ -6,7 +6,7 @@ import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
 import { BeforeChange, DeskProvider, useDesk } from "./state/desk.js";
 import { load, save } from "./platform/storage";
-import { Segmented, Body, Notice, Button, Link, ZoomScope } from "./components/ui.js";
+import { Segmented, Body, Notice, Button, Link, Toggle, ZoomScope } from "./components/ui.js";
 import { Outbox } from "./components/Outbox.js";
 import { VelocityPanel } from "./components/VelocityPanel.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
@@ -34,8 +34,9 @@ const MODES = [
     screen: FollowUpScreen,
     about: "Add to an update or blog post, or edit a follow-up.",
   },
-  { value: "blog", label: "Blog", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
 ];
+// a blog post is written under Update, with its switch on: each keeps its own draft
+const BLOG = { screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." };
 
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
 const InReview = ({ id, children }) => (id ? <BeforeChange id={id}>{children}</BeforeChange> : children);
@@ -44,10 +45,16 @@ function Desk() {
   const { tw, colors } = useTw();
   const desk = useDesk();
   const [settings, setSettings] = useState(false);
-  const [mode, setModeState] = useState(() => load("mode", "move"));
+  // a desk last left on the old Blog tab opens on Update with its switch on
+  const [mode, setModeState] = useState(() => (load("mode", "move") === "blog" ? "update" : load("mode", "move")));
   const setMode = (m) => {
     setModeState(m);
     save("mode", m);
+  };
+  const [blog, setBlogState] = useState(() => load("blog", false) || load("mode", "move") === "blog");
+  const setBlog = (b) => {
+    setBlogState(b);
+    save("blog", b);
   };
   const [review, setReview] = useState(null); // { change, after, cardLabel, warning }
   const [reopenId, setReopenId] = useState(null); // a waiting change being edited
@@ -58,7 +65,9 @@ function Desk() {
     setReopenId(change.id);
   };
   const [entries, setEntries] = useState(false); // the Entries page, apart from the tabs
-  const current = MODES.find((m) => m.value === mode) ?? MODES[0];
+  const tab = MODES.find((m) => m.value === mode) ?? MODES[0];
+  const blogging = tab.value === "update" && blog;
+  const current = blogging ? BLOG : tab;
   const Screen = current.screen;
 
   return (
@@ -139,7 +148,8 @@ function Desk() {
                   <EntriesScreen onReview={startReview} onEditWaiting={reopen} onLeave={() => setEntries(false)} />
                 ) : (
                   <>
-                    <Segmented options={MODES} value={mode} onChange={setMode} />
+                    <Segmented options={MODES} value={tab.value} onChange={setMode} />
+                    {tab.value === "update" && <Toggle label="Blog post" value={blog} onChange={setBlog} />}
                     <Body small mute>
                       {current.about}
                     </Body>
@@ -150,7 +160,7 @@ function Desk() {
                         position record, or delete it.
                       </Body>
                     </View>
-                    <Screen key={mode} onReview={startReview} />
+                    <Screen key={blogging ? "blog" : tab.value} onReview={startReview} />
                   </>
                 )}
               </>

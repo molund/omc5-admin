@@ -35,6 +35,9 @@ Both figures are written into `status.yaml` after `hung:`, to two decimals, on e
 - Cycle lengths and the velocity use working time (`workingHours`): every hour counts except the shutdown, including
   the gaps between shifts.
 - No holidays or other days off are allowed for. A stat holiday, a weather day or a breakdown counts as working time.
+- **Seen Nov. 7, 2026, not yet in the code:** the Friday night shift is pretty much nonexistent. The day shift works six
+  days a week and the night shift only five (Sunday to Thursday nights), so the working week is uneven, and a weekly
+  velocity (spans per week) is probably more meaningful than a daily one (days per span).
 
 ## Two clocks
 

@@ -19,6 +19,7 @@ import {
   sinceArrival,
   stepsWithEstimates,
   spanDays,
+  trendOf,
 } from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
@@ -742,6 +743,24 @@ test("a figure that changes keeps the one before it on the line after, and one t
   assert.equal(h.days_per_span_previous.value, "2.00");
   assert.equal(h.spans_per_week_previous.value, "2.40");
   assert.equal(fourth.split("\n").length, second.split("\n").length);
+});
+
+test("which way a velocity figure went: against its _previous, or against the file when the figure shown is newer", () => {
+  const h = parseStatus(
+    setVelocity(setVelocity(STATUS, { days: 2.3, spansPerWeek: 2.6 }).text, { days: 2.12, spansPerWeek: 2.83 }).text,
+  ).header;
+  // the file holds the figures shown: against _previous
+  assert.deepEqual(trendOf("2.12", h, "days_per_span"), { way: "down", from: "2.30" });
+  assert.deepEqual(trendOf("2.83", h, "spans_per_week"), { way: "up", from: "2.60" });
+  // a figure newer than the file (waiting changes, or worked out a new way): against the file's
+  assert.deepEqual(trendOf("2.20", h, "days_per_span"), { way: "up", from: "2.12" });
+  // nothing to compare with
+  assert.equal(trendOf("2.12", parseStatus(STATUS).header, "days_per_span"), null);
+  assert.equal(
+    trendOf("2.50", parseStatus(setVelocity(STATUS, { days: 2.5, spansPerWeek: 2.4 }).text).header, "days_per_span"),
+    null,
+  );
+  assert.equal(trendOf("2.12", null, "days_per_span"), null);
 });
 
 test("the old velocity comment is brought up to date when the figures are next written", () => {

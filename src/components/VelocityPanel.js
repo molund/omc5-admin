@@ -8,7 +8,7 @@ import { Fragment, useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { stepsWithEstimates, WINDOW } from "../lib/velocity.js";
+import { stepsWithEstimates, trendOf, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
@@ -73,12 +73,24 @@ export function VelocityPanel() {
           {/* closed: on one line, or one under the other when it's too narrow, never broken in the middle of a stat;
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
-            <Body style={STAT_LABEL}>
-              <Body style={[tw`font-bold`, STAT_NUMBER]}>{v.days.toFixed(2)}</Body> days/span
-            </Body>
-            <Body style={STAT_LABEL}>
-              <Body style={[tw`font-bold`, STAT_NUMBER]}>{v.spansPerWeek.toFixed(2)}</Body> spans/wk
-            </Body>
+            {[
+              [v.days.toFixed(2), "days_per_span", "days/span"],
+              [v.spansPerWeek.toFixed(2), "spans_per_week", "spans/wk"],
+            ].map(([shown, key, label]) => {
+              const t = trendOf(shown, desk.parsed?.header, key);
+              return (
+                <Body key={key} style={STAT_LABEL}>
+                  <Body style={[tw`font-bold`, STAT_NUMBER]}>{shown}</Body>
+                  {/* which way it went since its value before, and (opened) from what */}
+                  {t && (
+                    <Body mute style={STAT_LABEL}>
+                      {` ${t.way === "up" ? "▲" : "▼"}${open ? ` from ${t.from}` : ""}`}
+                    </Body>
+                  )}{" "}
+                  {label}
+                </Body>
+              );
+            })}
           </View>
           {open && (
             <Body small mute>

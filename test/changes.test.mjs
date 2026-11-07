@@ -571,3 +571,20 @@ test("the card's spans per week, from status.yaml's copy, and its chart, from de
   assert.equal(cardFor(status).chart, null);
   assert.equal(chartFor([]), null);
 });
+
+test("the review's diff shows only the lines that changed, each run with the line before it", async () => {
+  const { diff } = await import("../src/lib/deskChanges.js");
+  const before = ["a", "b", "c", "d", "e", "f", "g"].join("\n");
+  const after = ["a", "B", "c", "d", "e", "f2", "g", "h"].join("\n");
+  assert.deepEqual(diff(before, after), [
+    { start: 1, before: "a", removed: ["b"], added: ["B"] },
+    { start: 5, before: "e", removed: ["f"], added: ["f2"] },
+    { start: 7, before: "g", removed: [], added: ["h"] },
+  ]);
+  // a block written again the same, around one changed line: only that line
+  const block = ["x: 1", "  - one", "  - two", "  - three"];
+  assert.deepEqual(diff(block.join("\n"), [...block.slice(0, 2), "  - TWO", block[3]].join("\n")), [
+    { start: 2, before: "  - one", removed: ["  - two"], added: ["  - TWO"] },
+  ]);
+  assert.deepEqual(diff("same", "same"), []);
+});

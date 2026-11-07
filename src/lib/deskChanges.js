@@ -14,20 +14,45 @@ import { applyChange, Conflict, setDeskVelocity, setVelocity } from "./changes.j
 import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
 
-/** The line ranges a whole-file rewrite changed, as one hunk for the review. */
-function diff(oldText, newText) {
+/**
+ * The lines a rewrite changed, for the review: a hunk for each run of changed lines, with the line before it, and none for
+ * a line that came out the same (a line-by-line diff, the longest run of lines kept in common).
+ */
+export function diff(oldText, newText) {
   if (oldText === newText) return [];
   const a = oldText.split("\n"),
     b = newText.split("\n");
+  // the same lines at the start and the end are left out before the diff
   let start = 0;
   while (start < a.length && start < b.length && a[start] === b[start]) start++;
-  let endA = a.length - 1,
-    endB = b.length - 1;
-  while (endA >= start && endB >= start && a[endA] === b[endB]) {
+  let endA = a.length,
+    endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) {
     endA--;
     endB--;
   }
-  return [{ start, before: a[start - 1] ?? null, removed: a.slice(start, endA + 1), added: b.slice(start, endB + 1) }];
+  const x = a.slice(start, endA),
+    y = b.slice(start, endB);
+  // lcs[i][j]: the most lines x from i and y from j keep in common
+  const lcs = Array.from({ length: x.length + 1 }, () => new Uint32Array(y.length + 1));
+  for (let i = x.length - 1; i >= 0; i--)
+    for (let j = y.length - 1; j >= 0; j--)
+      lcs[i][j] = x[i] === y[j] ? lcs[i + 1][j + 1] + 1 : Math.max(lcs[i + 1][j], lcs[i][j + 1]);
+  const hunks = [];
+  let hunk = null;
+  const open = (j) =>
+    (hunk ??= hunks[hunks.push({ start: start + j, before: b[start + j - 1] ?? null, removed: [], added: [] }) - 1]);
+  let i = 0,
+    j = 0;
+  while (i < x.length || j < y.length) {
+    if (i < x.length && j < y.length && x[i] === y[j]) {
+      hunk = null;
+      i++;
+      j++;
+    } else if (j < y.length && (i === x.length || lcs[i][j + 1] >= lcs[i + 1][j])) open(j).added.push(y[j++]);
+    else open(j).removed.push(x[i++]);
+  }
+  return hunks;
 }
 
 /**
@@ -124,7 +149,8 @@ export function applyBoth(files, change) {
   const v = velocity(entries);
   const desk = setDeskVelocity(d.text, v, velocityHistory(entries)).text;
   const status = setVelocity(s.text, v);
-  return { status: status.text, desk, hunks: [...s.hunks, ...status.hunks], deskHunks: diff(files.desk, desk) };
+  // the review's hunks from the files before and after, so a line rewritten the same isn't shown as changed
+  return { status: status.text, desk, hunks: diff(files.status, status.text), deskHunks: diff(files.desk, desk) };
 }
 
 /**

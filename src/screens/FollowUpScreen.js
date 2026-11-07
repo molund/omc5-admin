@@ -89,7 +89,12 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
     <View style={tw`gap-3`}>
       <Panel>
         <Label
-          right={<Button kind="link" small title={picking ? "Close" : "Change"} onPress={() => setPicking(!picking)} />}
+          // with only one to choose from, there's nothing to change to
+          right={
+            notes.length > 1 && (
+              <Button kind="link" small title={picking ? "Close" : "Change"} onPress={() => setPicking(!picking)} />
+            )
+          }
         >
           {note.fields.post ? "Blog post" : "Update"}
         </Label>

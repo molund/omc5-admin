@@ -134,22 +134,35 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
     return name;
   }
 
-  async function addPhoto() {
+  /** Picks and prepares a photo, then hands its new photoId to `use`. */
+  async function withNewPhoto(use) {
     setError(null);
     const file = await pickPhoto();
     if (!file) return;
     setBusy(true);
     try {
-      const info = await preparePhoto(file);
-      const photoId = desk.addPhoto(info);
-      onChange([...blocks, { type: "photo", photoId, file: photoName(), caption: "" }]);
-      setFresh(photoId);
+      use(desk.addPhoto(await preparePhoto(file)));
     } catch (e) {
       setError(e.message);
     } finally {
       setBusy(false);
     }
   }
+
+  const addPhoto = () =>
+    withNewPhoto((photoId) => {
+      onChange([...blocks, { type: "photo", photoId, file: photoName(), caption: "" }]);
+      setFresh(photoId);
+    });
+
+  // a new picture in the same place, with the same caption. One not pushed yet keeps its name; one already on the site gets a
+  // new one, because the desk can't change a file that's already there (the old file stays in the repo, as a removed one does)
+  const replacePhoto = (i) =>
+    withNewPhoto((photoId) => {
+      const old = blocks[i];
+      if (old.photoId) desk.dropPhotos([old.photoId]);
+      set(i, { photoId, file: old.photoId ? old.file : photoName() });
+    });
 
   return (
     <View style={tw`gap-2.5`}>
@@ -184,7 +197,22 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
         const p = b.photoId ? desk.photos[b.photoId] : null;
         return (
           <Panel key={b.photoId ?? b.file ?? `p${i}`}>
-            <Label right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}>Photo</Label>
+            <Label
+              right={
+                <View style={tw`flex-row items-center gap-1`}>
+                  <Button
+                    kind="link"
+                    small
+                    title={busy ? "Resizing…" : "Replace"}
+                    disabled={busy}
+                    onPress={() => replacePhoto(i)}
+                  />
+                  <Handles i={i} n={blocks.length} move={move} remove={remove} />
+                </View>
+              }
+            >
+              Photo
+            </Label>
             {p ? (
               <Image
                 accessibilityLabel={b.caption || "The new photo"}
@@ -195,7 +223,7 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
             ) : b.photoId ? (
               <View style={tw`items-center justify-center rounded-md border border-dashed border-line bg-code py-6`}>
                 <Body small mute>
-                  This photo isn't on this device any more. Remove it and add it again.
+                  This photo isn't on this device any more. Replace it to add it again.
                 </Body>
               </View>
             ) : (

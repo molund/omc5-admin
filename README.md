@@ -44,7 +44,8 @@ is an ordinary change: it's reviewed, waits in the list, becomes one commit, and
   button, so editing an entry's words costs the velocity nothing. Deleting an entry takes its `desk.yaml` record with it.
 - **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address stops
   working. Photo files stay in the repo, whether a photo is removed or its post deleted, because the site's landing check
-  doesn't let the desk delete photos. A published photo's file name can't be edited, for the same reason.
+  doesn't let the desk delete photos. A published photo's file name can't be edited, for the same reason, so Replace on a
+  published photo adds the new one under a new name, keeping the caption and its place in the post.
 
 A **waiting change** can be reopened with Edit in the waiting list, or by tapping it under Entries. It opens in its usual
 editor and keeps its place in the list, so its commit does too. The draft isn't saved: Cancel, or closing the app, leaves the

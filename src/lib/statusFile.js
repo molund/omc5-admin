@@ -90,7 +90,10 @@ function parseFields(lines, indent) {
 /**
  * The file, read.
  * @param {string} text
- * @returns {{ lines: string[], header: Record<string, {line:number, value:string}>, notesLine: number, notes: Note[] }}
+ * @returns {{ lines: string[], header: Record<string, {line:number, end:number, value:string, list?:{key:string,
+ *   value:string, line:number}[]}>, notesLine: number, notes: Note[] }} A header key with a "- time: value" list under it
+ *   (the velocity's earlier values) has it as `list`, each item with any keys under it too (`span`, `stage`), and `end` is
+ *   its last line.
  *
  * @typedef {object} FollowUp
  * @property {string} key Its time stamp, as written.
@@ -116,12 +119,26 @@ export function parseStatus(text) {
     body = null,
     inFU = false,
     fu = null;
+  // the key above `notes:` whose "- time: value" list the lines below are (the velocity's earlier values)
+  let listOf = null;
   lines.forEach((line, i) => {
     let m;
     if ((m = line.match(/^([A-Za-z][A-Za-z_-]*):\s*(.*?)\s*$/))) {
-      if (!(m[1] in header)) header[m[1]] = { line: i, value: unquote(m[2]) };
+      if (!(m[1] in header)) header[m[1]] = { line: i, end: i, value: unquote(m[2]) };
+      listOf = notesLine < 0 && header[m[1]].line === i ? header[m[1]] : null;
       if (m[1] === "notes") notesLine = i;
       note = null;
+      return;
+    }
+    if (notesLine < 0 && listOf && (m = line.match(/^ {2}-\s+(\S+):\s*(.*?)\s*$/))) {
+      (listOf.list ??= []).push({ key: m[1], value: unquote(m[2]), line: i });
+      listOf.end = i;
+      return;
+    }
+    // an item's own keys under it, four spaces in: `span:` and `stage:`
+    if (notesLine < 0 && listOf?.list && (m = line.match(/^ {4}([A-Za-z][A-Za-z_-]*):\s*(.*?)\s*$/))) {
+      listOf.list.at(-1)[m[1]] = unquote(m[2]);
+      listOf.end = i;
       return;
     }
     if (notesLine >= 0 && (m = line.match(/^ {2}-\s+(\S+):\s+(.*?)\s*$/))) {

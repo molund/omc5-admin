@@ -10,8 +10,8 @@
 // "hung" with the span hung (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
 import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
-import { applyChange, Conflict, setVelocity } from "./changes.js";
-import { velocity } from "./velocity.js";
+import { applyChange, Conflict, setDeskVelocity, setVelocity } from "./changes.js";
+import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
 
 /** The line ranges a whole-file rewrite changed, as one hunk for the review. */
@@ -109,7 +109,8 @@ export function applyDeskChange(deskText, change, statusBefore) {
 }
 
 /**
- * Applies a change to both files, and writes the velocity it leaves into status.yaml.
+ * Applies a change to both files, and writes the velocity it leaves: into desk.yaml with its earlier values, and a copy of
+ * the figure into status.yaml.
  * @param {{ status: string, desk: string }} files
  * @returns {{ status: string, desk: string, hunks: object[], deskHunks: object[] }}
  * @throws {Conflict} when the change no longer fits status.yaml.
@@ -117,9 +118,13 @@ export function applyDeskChange(deskText, change, statusBefore) {
 export function applyBoth(files, change) {
   const s = applyChange(files.status, change, { deskKeys: parseDesk(files.desk).map((e) => e.key) });
   const d = applyDeskChange(files.desk, change, files.status);
-  // the velocity with this change's steps in it, near the top of status.yaml
-  const v = setVelocity(s.text, velocity(parseDesk(d.text)));
-  return { status: v.text, desk: d.text, hunks: [...s.hunks, ...v.hunks], deskHunks: d.hunks };
+  // the velocity with this change's steps in it, and its values at the earlier steps of the past 96 hours, at the top of
+  // desk.yaml (applyDeskChange writes the entries alone, so it's put back), and its copy near the top of status.yaml
+  const entries = parseDesk(d.text);
+  const v = velocity(entries);
+  const desk = setDeskVelocity(d.text, v, velocityHistory(entries)).text;
+  const status = setVelocity(s.text, v);
+  return { status: status.text, desk, hunks: [...s.hunks, ...status.hunks], deskHunks: diff(files.desk, desk) };
 }
 
 /**

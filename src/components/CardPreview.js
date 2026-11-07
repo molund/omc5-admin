@@ -7,12 +7,13 @@ import { Image, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "../theme/tw.js";
 import { cardAsOf } from "../lib/time.js";
 import { Icon } from "./Icon";
+import { Sparkline } from "./Sparkline";
 import { Label } from "./ui.js";
 
 const LOGO = "https://clayton-clipper.olund.ca/images/logo.png";
 const PROGRESS = "#8473a8"; // PROGRESS_COLOUR in the site's src/lib/layerSwitches.js
 const GOLD = "#b8944a"; // the word beside the logo (.eyebrow span in the site's src/app.css)
-// the spans per week arrow, [light, dark] (--up and --down in the site's src/app.css)
+// the spans per week chart's colour, [light, dark] (--up and --down in the site's src/app.css)
 const UP = ["#4f8a6b", "#7fbf9a"];
 const DOWN = ["#b0564f", "#e0928b"];
 // how far up each figure's box its dots sit, so that the big figure's and the small ones' fall on one line
@@ -98,21 +99,27 @@ function Card({ card }) {
           </Figure>
         </View>
       </View>
-      {/* "▲ 2.83 spans/wk velocity": the arrow green going up, red going down, in the site's shade for this card's theme */}
+      {/* "〰 2.83 spans/wk velocity": the chart green going up, red going down, grey flat, in the site's shade for this
+          card's theme */}
       {card.pace ? (
         // the figure dotted underneath, as the site's has a tip
-        <View style={tw`mt-2 flex-row flex-wrap items-baseline`}>
-          {card.way ? (
-            <Text
-              style={[tw`text-sm`, { color: (card.way === "up" ? UP : DOWN)[colors === themes.dark.colors ? 1 : 0] }]}
-            >
-              {`${card.way === "up" ? "▲" : "▼"}\u00a0`}
-            </Text>
+        <View style={tw`mt-2 flex-row flex-wrap items-center`}>
+          {card.chart ? (
+            <View style={tw`mr-1.5`}>
+              <Sparkline
+                chart={card.chart}
+                color={
+                  card.chart.way === "flat"
+                    ? colors.mute
+                    : (card.chart.way === "up" ? UP : DOWN)[colors === themes.dark.colors ? 1 : 0]
+                }
+              />
+            </View>
           ) : null}
           <Figure textStyle={tw`text-sm font-semibold text-ink`} color={colors.mute} drop={SMALL_DROP}>
             {card.pace}
           </Figure>
-          <Text style={tw`text-sm text-mute`}>{"\u00a0spans/wk velocity"}</Text>
+          <Text style={tw`text-sm text-mute`}>{" spans/wk velocity"}</Text>
         </View>
       ) : null}
       {when ? <Text style={tw`mt-2 text-xs text-mute`}>As of {when}</Text> : null}

@@ -186,7 +186,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
         />
       )}
       {target.type !== "position" && <StyleHints texts={[...(d.title ? [d.title] : []), ...blockTexts(d.blocks)]} />}
-      {target.type !== "position" && !preview.error && <CardPreview card={cardFor(preview.text)} />}
+      {target.type !== "position" && !preview.error && <CardPreview card={cardFor(preview.text, preview.deskText)} />}
       {preview.error && <Notice tone="problem">{preview.error}</Notice>}
       {problems.map((p) => (
         <Notice key={p} tone="problem">

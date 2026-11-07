@@ -50,7 +50,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
       )}
       <StagePicker text={memo} value={d.stage} onChange={(stage) => update({ stage })} floor={floor} span={d.span} />
       <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} />
-      <CardPreview card={cardFor(preview.text)} />
+      <CardPreview card={cardFor(preview.text, preview.deskText)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />
     </View>
   );

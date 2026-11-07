@@ -104,7 +104,7 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
       />
       <NoteToSelf value={memo} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
-      <CardPreview card={cardFor(preview.text)} />
+      <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (
         <Notice key={p} tone="problem">
           {p}

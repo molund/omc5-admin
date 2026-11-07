@@ -80,7 +80,7 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel, warning }) {
           )}
         </View>
       )}
-      {!preview.error && <CardPreview card={cardFor(preview.text)} label={cardLabel} />}
+      {!preview.error && <CardPreview card={cardFor(preview.text, preview.deskText)} label={cardLabel} />}
       <View style={tw`flex-row gap-2`}>
         <Button title="Back" onPress={onBack} style={tw`flex-1`} />
         <Button

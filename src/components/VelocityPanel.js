@@ -1,6 +1,7 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
-// the spans per week that makes with the shutdown allowed for, the cycles it's from, how long the gantry has been on its span, and each step logged, grouped by span, with its time (BC, 24-hour
-// clock) and the working time since its span's arrival.
+// the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
+// estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step logged, grouped by
+// span, with its time (BC, 24-hour clock) and the working time since its span's arrival.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
 import { View } from "react-native";
@@ -69,12 +70,29 @@ export function VelocityPanel() {
             <View style={tw`flex-1 gap-0.5`}>
               <Body small>{`Span ${c.from} to ${c.to}`}</Body>
               <Body small mute>
-                {`${c.by === "arrived at span" ? "Arrival to arrival" : `${STAGE_LABELS[c.by]}, span to span`}: ${stamp(c.start)} to ${stamp(c.end)}`}
+                {`Arrival to arrival: ${c.startEstimated ? "about " : ""}${stamp(c.start)} to ${c.endEstimated ? "about " : ""}${stamp(c.end)}`}
               </Body>
             </View>
             <Body small>{days(c.hours / 24)}</Body>
           </Row>
         ))}
+      {open && (
+        <View style={tw`gap-0.5 border-t border-line pt-2`}>
+          <Body small mute>
+            Share of the cycle, from each step to the next
+          </Body>
+          {v.shares.map((s) => (
+            <View key={s.stage} style={tw`flex-row items-baseline gap-2`}>
+              <Body small style={tw`flex-1`}>
+                {STAGE_LABELS[s.stage]}
+              </Body>
+              <Body small mute style={num}>
+                {`${Math.round(s.share * 100)}%`}
+              </Body>
+            </View>
+          ))}
+        </View>
+      )}
       {open && v.current && (
         <Row style={tw`border-t border-line pt-2`}>
           <Body small>{`On span ${v.current.span} since ${stamp(v.current.since)}`}</Body>

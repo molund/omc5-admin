@@ -64,9 +64,12 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   find none; drag it to change it. With Hung on, the span is at "hung" at least: the slider goes there by itself and can't go
   earlier. In the Claude app, "Ask Claude" reads the text for wording the rules don't know (the artifact's `sample`
   capability).
-- **Velocity.** The panel under the desk copy shows the working days per span over the last three spans, arrival to arrival
-  (or the next step both spans have), leaving out Saturday 6 p.m. to Sunday 6 p.m.; the spans per week that makes over a
-  week's 6 working days, so the shutdown is allowed for; how long the gantry has been on its span; and each step logged, with the working time since its span's arrival (`src/lib/velocity.js`).
+- **Velocity.** The panel under the desk copy shows the working days per span over the last three spans, arrival to arrival,
+  leaving out Saturday 6 p.m. to Sunday 6 p.m.; the spans per week that makes over a week's 6 working days, so the shutdown
+  is allowed for; each stage's share of the cycle; how long the gantry has been on its span; and each step logged, with the
+  working time since its span's arrival (`src/lib/velocity.js`). An arrival that wasn't logged is estimated from the steps
+  that were. Recent gaps between steps, counted in shift hours (7 a.m. to 5 p.m. and 8 p.m. to 6 a.m.), give each stage's
+  share, with stages known to follow closely held short, and the arrival is read off between the nearest steps either side.
 
 ## How it keeps and pushes changes
 

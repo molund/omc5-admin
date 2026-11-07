@@ -7,11 +7,21 @@ import { fileURLToPath } from "node:url";
 import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
 import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
-import { velocity, workingHours, cycles, sinceArrival, spanDays } from "../src/lib/velocity.js";
+import {
+  afterShiftHours,
+  arrivals,
+  velocity,
+  workingHours,
+  shiftHours,
+  stageShares,
+  cycles,
+  sinceArrival,
+  spanDays,
+} from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
 import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
-import { parseKey, weekdayShort } from "../src/lib/time.js";
+import { parseKey, toKey, weekdayShort } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
@@ -218,24 +228,126 @@ test("working time leaves out Saturday 6 p.m. to Sunday 6 p.m.", () => {
   assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 48);
 });
 
-test("the velocity: the last three spans, arrival to arrival or the next step both have", () => {
+test("shift hours count only the day and night shifts, and not the shutdown", () => {
+  const monday = (time) => at(`2026-11-09T${time}-07:00`);
+  // a whole day shift
+  assert.equal(shiftHours(monday("07:00"), monday("17:00")), 10);
+  // an hour of the day shift, the break, an hour of the night shift
+  assert.equal(shiftHours(monday("16:00"), monday("21:00")), 2);
+  // inside the break
+  assert.equal(shiftHours(monday("17:30"), monday("19:30")), 0);
+  // Friday's night shift runs into Saturday morning, up to 6 a.m.
+  assert.equal(shiftHours(at("2026-11-06T23:00-07:00"), at("2026-11-07T07:00-07:00")), 7);
+  // Saturday's day shift, then nothing until Sunday's night shift
+  assert.equal(shiftHours(at("2026-11-07T16:00-07:00"), at("2026-11-08T21:00-07:00")), 2);
+  // and back: across the break, and starting inside one
+  assert.deepEqual(afterShiftHours(monday("16:00"), 2), monday("21:00"));
+  assert.deepEqual(afterShiftHours(monday("18:00"), 1), monday("21:00"));
+});
+
+// a run of cycles with known shift hours from each stage to the next, the ones with a known length at that length
+const LENGTHS = {
+  "arrived at span": 0.5,
+  "hanging started": 5,
+  hung: 1,
+  "gluing started": 10,
+  glued: 1,
+  "post-tensioning started": 8,
+  "cables down": 2.5,
+  "hangers down": 4,
+  "supports started": 6,
+};
+const CYCLE = Object.values(LENGTHS).reduce((a, b) => a + b, 0);
+/** Every step of spans 40 to 43, then the arrival at 44. */
+function runOfCycles() {
+  const entries = [];
+  let t = at("2026-11-09T07:00-07:00");
+  for (let span = 40; span < 44; span++)
+    for (const [stage, hours] of Object.entries(LENGTHS)) {
+      entries.push({ key: toKey(t), span, stage });
+      t = afterShiftHours(t, hours);
+    }
+  entries.push({ key: toKey(t), span: 44, stage: "arrived at span" });
+  return entries;
+}
+
+test("each stage's share of the cycle comes back from the gaps between steps", () => {
+  const shares = stageShares(runOfCycles());
+  assert.deepEqual(
+    shares.map((s) => s.stage),
+    Object.keys(LENGTHS),
+  );
+  let sofar = 0;
+  for (const s of shares) {
+    assert.ok(Math.abs(s.share - LENGTHS[s.stage] / CYCLE) < 0.01, `${s.stage}: ${s.share}`);
+    assert.ok(Math.abs(s.position - sofar / CYCLE) < 0.01, `${s.stage}: ${s.position}`);
+    sofar += LENGTHS[s.stage];
+  }
+  assert.ok(Math.abs(shares.reduce((t, s) => t + s.share, 0) - 1) < 1e-9);
+});
+
+test("a stage never logged gets a share, and a stage known to follow closely stays short", () => {
+  const unlogged = stageShares(runOfCycles().filter((e) => e.stage !== "hangers down"));
+  assert.ok(unlogged.find((s) => s.stage === "hangers down").share > 0);
+  // hanging logged five hours after an arrival: the half hour holds, and the five go to hanging
+  const shares = stageShares([
+    { key: "2026-11-09T07:00-07:00", span: 40, stage: "arrived at span" },
+    { key: "2026-11-09T12:00-07:00", span: 40, stage: "hanging started" },
+    { key: "2026-11-10T12:00-07:00", span: 41, stage: "arrived at span" },
+  ]);
+  assert.ok(shares[0].share < 0.06, `arrival to hanging: ${shares[0].share}`);
+});
+
+test("steps before SHARES_SINCE don't change the shares", () => {
+  const entries = parseDesk(DESK);
+  const older = { key: "2026-11-01T21:00-07:00", span: 36, stage: "glued" };
+  assert.deepEqual(stageShares([...entries, older]), stageShares(entries));
+});
+
+test("an arrival: as logged if it was, close to the real one if it's estimated, and none without a step either side", () => {
+  const entries = runOfCycles();
+  const real = entries.find((e) => e.span === 42 && e.stage === "arrived at span");
+  assert.deepEqual(arrivals(entries)[42], { key: real.key, estimated: false });
+  const hidden = arrivals(entries.filter((e) => e !== real))[42];
+  assert.equal(hidden.estimated, true);
+  assert.ok(Math.abs(parseKey(hidden.key) - parseKey(real.key)) <= 30 * 60 * 1000, hidden.key);
+  // a span with no steps of its own, between two that have them
+  const skipped = arrivals(entries.filter((e) => e.span !== 42))[42];
+  assert.equal(skipped.estimated, true);
+  assert.ok(Math.abs(parseKey(skipped.key) - parseKey(real.key)) <= 60 * 60 * 1000, skipped.key);
+  // nothing before the hung to read an arrival from
+  assert.deepEqual(arrivals([{ key: "2026-11-09T12:00-07:00", span: 40, stage: "hung" }]), {});
+  assert.deepEqual(
+    Object.keys(
+      arrivals([
+        { key: "2026-11-09T12:00-07:00", span: 40, stage: "hung" },
+        { key: "2026-11-11T12:00-07:00", span: 41, stage: "arrived at span" },
+      ]),
+    ),
+    ["41"],
+  );
+  assert.deepEqual(arrivals([]), {});
+});
+
+test("the velocity: the last three spans, arrival to arrival, logged or estimated", () => {
   const entries = parseDesk(DESK);
   const v = velocity(entries, at("2026-11-05T13:00-07:00"));
   assert.deepEqual(
-    v.cycles.map((c) => [c.from, c.to, c.by, c.hours]),
+    v.cycles.map((c) => [c.from, c.to, c.startEstimated, c.endEstimated, c.hours]),
     [
-      [37, 38, "arrived at span", 44.5],
-      [36, 37, "arrived at span", 64.75],
-      [35, 36, "hung", 55.25],
+      [37, 38, false, false, 44.5],
+      [36, 37, false, false, 64.75],
+      [35, 36, true, false, 45.25],
     ],
   );
-  assert.equal(v.days.toFixed(2), "2.28");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.63");
+  assert.equal(v.days.toFixed(2), "2.15");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.80");
+  assert.equal(v.shares.length, 9);
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
-  // with no arrival at 35, span 35 to 36 is measured by the step both have: hung
+  // with no arrival at 35, it's estimated from the steps around it: span 35's hung was at 6:45 a.m.
   const c = cycles(entries).find((x) => x.to === 36);
-  assert.equal(c.by, "hung");
-  assert.equal(c.hours, 55.25);
+  assert.equal(c.start, "2026-10-28T23:30-07:00");
+  assert.equal(c.end, "2026-10-30T20:45-07:00");
   // each step logged on span 36, once at its earliest, in working time since its arrival: the shutdown doesn't count
   assert.deepEqual(
     sinceArrival(entries)

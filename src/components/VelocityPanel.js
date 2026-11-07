@@ -1,16 +1,16 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
 // the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
 // estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
-// with its time (BC, 24-hour clock) and the working time since its span's arrival: the ones logged, and the ones that
-// weren't, estimated the way a missing arrival is.
+// with its time (BC, 24-hour clock) and the working time from it to the next step: the ones logged, and the ones that
+// weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day.
 // Only the velocity itself shows until it's opened.
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { spanDays, stepsWithEstimates, WINDOW } from "../lib/velocity.js";
+import { stepsWithEstimates, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { clock24, stamp, weekdayShort } from "../lib/time.js";
+import { clock24, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -25,20 +25,22 @@ export function VelocityPanel() {
   const recent = v.current
     ? stepsWithEstimates(desk.deskEntries, v.shares).filter((t) => t.span >= v.current.span - WINDOW)
     : [];
-  // the steps under their span, in the same order
+  // the steps under their span, in the same order, each marked if it's the first on its calendar day
   const bySpan = [];
+  let lastDay = null;
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
-    bySpan.at(-1).steps.push(t);
+    const day = dayOf(t.key);
+    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay });
+    lastDay = day;
   }
-  const spanRanges = spanDays(desk.deskEntries);
-  // "Tues - Thurs": the weekday it arrived to the weekday the next span did ("?" while it's on this one)
-  const range = (span) => {
-    const d = spanRanges[span];
-    if (!d) return "";
-    return `${weekdayShort(d.start)} - ${d.end ? weekdayShort(d.end) : "?"}${d.shutdown ? " (minus Sunday)" : ""}`;
-  };
   const num = { fontVariant: ["tabular-nums"] };
+  // above the span's heading when its first step starts the day, so the day always comes before the span
+  const dayBar = (key) => (
+    <View style={tw`my-0.5 rounded-sm bg-line px-2`}>
+      <Body small>{weekdayShort(key)}</Body>
+    </View>
+  );
   return (
     <Panel>
       <Label
@@ -68,7 +70,7 @@ export function VelocityPanel() {
         </Body>
       )}
       {open &&
-        v.cycles.map((c) => (
+        [...v.cycles].reverse().map((c) => (
           <Row key={c.to} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
             <View style={tw`flex-1 gap-0.5`}>
               <Body small>{`Span ${c.from} to ${c.to}`}</Body>
@@ -105,23 +107,27 @@ export function VelocityPanel() {
       {open && recent.length > 0 && (
         <View style={tw`gap-1 border-t border-line pt-2`}>
           <Body small mute>
-            Steps, in working time since arriving at the span (est.: not logged, estimated)
+            Steps, with the working time from each to the next (est.: not logged, estimated)
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
-              <Body small style={tw`font-semibold`}>{`Span ${g.span}: ${range(g.span)}`}</Body>
-              {g.steps.map((t) => (
-                <View key={t.stage} style={tw`flex-row items-baseline gap-2 pl-3`}>
-                  <Body small mute={t.estimated} style={tw`flex-1`}>
-                    {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
-                  </Body>
-                  <Body small mute style={[tw`w-12 text-right`, num]}>
-                    {clock24(t.key)}
-                  </Body>
-                  <Body small mute style={[tw`w-16 text-right`, num]}>
-                    {hours(t.hours)}
-                  </Body>
-                </View>
+              {g.steps[0].newDay && dayBar(g.steps[0].key)}
+              <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
+              {g.steps.map((t, i) => (
+                <Fragment key={t.stage}>
+                  {t.newDay && i > 0 && dayBar(t.key)}
+                  <View style={tw`flex-row items-baseline gap-2 pl-3`}>
+                    <Body small mute={t.estimated} style={tw`flex-1`}>
+                      {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
+                    </Body>
+                    <Body small mute={t.estimated} style={[tw`w-12 text-right`, num]}>
+                      {clock24(t.key)}
+                    </Body>
+                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num]}>
+                      {t.stepHours == null ? "–" : hours(t.stepHours)}
+                    </Body>
+                  </View>
+                </Fragment>
               ))}
             </View>
           ))}

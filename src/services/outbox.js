@@ -188,8 +188,9 @@ export async function startSession(req) {
       trigger ? 'claude.use("mcp") resolved null' : "no pushTrigger in desk.config.json",
       byHand(req),
     );
+  let result;
   try {
-    await mcp.callTool(
+    result = await mcp.callTool(
       CONNECTOR,
       "fire_trigger",
       { trigger_id: trigger, text: `The desk's ${req.request} request ${req.id}, saved ${req.requestedAt}.` },
@@ -198,4 +199,9 @@ export async function startSession(req) {
   } catch (e) {
     throw explainStart(e, req);
   }
+  // a start that worked names the task it started; anything else (a deleted task, say) is the connector's error as text
+  const payload = result?.payload;
+  const text = typeof payload === "string" ? payload : JSON.stringify(payload ?? null);
+  const named = payload?.trigger?.id === trigger || new RegExp(`"id"\\s*:\\s*"${trigger}"`).test(text);
+  if (!named) throw explainStart({ code: "tool_error", message: text.slice(0, 300) }, req);
 }

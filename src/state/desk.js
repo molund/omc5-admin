@@ -1,7 +1,8 @@
 // The desk's state. Its database is its own copy of status.yaml (published with the artifact as status.yaml) plus the list of
 // waiting changes on top of it, kept on this device. What every screen shows is that copy with the changes applied.
 // Pushing hands the list to a Claude Code session, which syncs with main first, then commits each change and refreshes the
-// copy, listing what it committed in pushed.json; the desk then drops those from its list.
+// copy, listing what it committed in pushed.json; the desk then drops those from its list. A request saved in the outbox and
+// not yet handled is `pending`; the desk starts the session for it once (`started`, services/outbox.js).
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { commitMessage, photosOf } from "../lib/changes.js";
 import { applyAllBoth, applyBoth } from "../lib/deskChanges.js";
@@ -10,6 +11,7 @@ import { replaceChangeIn } from "../lib/entries.js";
 import { velocity } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { ownFile } from "../platform/claude";
+import { startSession } from "../services/outbox.js";
 import { load, save } from "../platform/storage";
 
 const DeskContext = createContext(null);
@@ -57,6 +59,10 @@ export function DeskProvider({ children }) {
   const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
   // on the phone, what the desk shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
   const [tokenInfo, setTokenInfo] = usePersisted("token", null);
+  // the request in the desk's outbox that no session has answered yet, and the session started for it:
+  // { id, state: "starting"|"started"|"failed"|"unsure", at?, error? }
+  const [pending, setPending] = useState(null);
+  const [started, setStarted] = usePersisted("started", null);
 
   // read the copy, and what the last push committed
   const reload = useCallback(async () => {
@@ -70,7 +76,11 @@ export function DeskProvider({ children }) {
       const pushed = await ownFile("pushed.json")
         .then(JSON.parse)
         .catch(() => null);
+      const outbox = await ownFile("outbox.json")
+        .then(JSON.parse)
+        .catch(() => null);
       setCopy({ text, desk: deskText, error: null, meta });
+      setPending(outbox?.id && outbox.id !== meta?.handled ? outbox : null);
       if (pushed?.pushed?.length) {
         const done = new Set(pushed.pushed);
         setChanges((cs) => cs.filter((c) => !done.has(c.id)));
@@ -85,6 +95,29 @@ export function DeskProvider({ children }) {
   useEffect(() => {
     reload();
   }, [reload]);
+
+  // a start the page reloaded in the middle of may or may not have reached Claude Code
+  useEffect(() => {
+    setStarted((s) => (s?.state === "starting" ? { ...s, state: "unsure" } : s));
+  }, []);
+
+  const start = useCallback(async (req) => {
+    setStarted({ id: req.id, state: "starting" });
+    try {
+      await startSession(req);
+      setStarted({ id: req.id, state: "started", at: new Date().toISOString() });
+    } catch (e) {
+      setStarted({
+        id: req.id,
+        state: e.unsure ? "unsure" : "failed",
+        error: { message: e.message, detail: e.detail ?? "", manual: e.manual ?? null },
+      });
+    }
+  }, []);
+  // each saved request starts its session once; starting it again is the person's choice
+  useEffect(() => {
+    if (pending && started?.id !== pending.id) start(pending);
+  }, [pending, started?.id, start]);
 
   // photos nothing refers to any more are forgotten
   useEffect(() => {
@@ -132,6 +165,11 @@ export function DeskProvider({ children }) {
       changes,
       photos,
       push,
+      pending,
+      /** The session started for the pending request, if any. */
+      started: pending && started?.id === pending.id ? started : null,
+      /** Starts the session for the pending request again. */
+      startAgain: () => pending && start(pending),
       kept: changesKept && photosKept,
       reload,
       /** The files as they were just before a waiting change, for changing that change. */
@@ -167,7 +205,7 @@ export function DeskProvider({ children }) {
       /** Drops changes that are on main now (pushed from the phone). */
       dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
-    [copy, working, view, changes, photos, push, tokenInfo, changesKept, photosKept, reload],
+    [copy, working, view, changes, photos, push, pending, started, tokenInfo, changesKept, photosKept, reload, start],
   );
   return createElement(DeskContext.Provider, { value }, children);
 }

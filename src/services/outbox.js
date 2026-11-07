@@ -1,10 +1,11 @@
-// Sending the desk's waiting changes to Claude. The desk can't reach GitHub or start a Claude Code session itself, but it
-// can save files into its own artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/.
-// Saving republishes the artifact, which wakes the Claude Code session that watches it. That session syncs with main,
-// applies each change with tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the
-// desk with copy.json and pushed.json, and clears the outbox.
+// Sending the desk's waiting changes to Claude. The desk can't reach GitHub itself, but it can save files into its own
+// artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/. The desk then starts the
+// "Answer the Status Desk" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector, which
+// wakes the Claude Code session it's bound to; that session follows docs/push-session.md. It syncs with main, applies each change with
+// tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the desk with copy.json and
+// pushed.json, and clears the outbox.
 import { Platform } from "react-native";
-import { capability } from "../platform/claude";
+import { capability, config } from "../platform/claude";
 import { toBlob } from "../platform/photos";
 import { photosOf } from "../lib/changes.js";
 
@@ -131,3 +132,76 @@ export async function requestPush(changes, photos) {
 
 /** Asks for a fresh copy of main's status.yaml. */
 export const requestRefresh = () => send(request("refresh"), {}, false);
+
+const CONNECTOR = "Claude Code Remote";
+
+/** What to paste into a new Claude Code chat when the desk can't start one itself. */
+export const byHand = (req) =>
+  `Answer the Clipper Status Desk's ${req.request} request ${req.id} in ${config().artifactUrl}, following docs/push-session.md in molund/omc5-admin.`;
+
+function explainStart(e, req) {
+  const detail = [e?.code, e?.message].filter(Boolean).join(" · ");
+  const fail = (message, unsure = false) =>
+    Object.assign(new DeskError(e?.code ?? "unknown", message, detail, byHand(req)), { unsure });
+  switch (e?.code) {
+    case "approval_required":
+    case "not_in_manifest":
+    case "consent_required":
+      return fail(
+        "Claude Code wasn't allowed to start from the desk. Allow Claude Code Remote when the desk asks (or in its Permissions menu), then start it again.",
+      );
+    case "server_not_connected":
+    case "server_not_found":
+    case "selection_required":
+      return fail(
+        "Claude Code Remote isn't connected. Add it in claude.ai Settings → Connectors, then start it again.",
+      );
+    case "needs_reauth":
+      return fail("Claude Code Remote needs reconnecting in claude.ai Settings → Connectors. Then start it again.");
+    case "blocked_by_policy":
+      return fail(
+        "Starting Claude Code from the desk isn't allowed for this account. Copy the request into a new chat.",
+      );
+    case "tool_error":
+      return fail("The scheduled task didn't start. Start it again, or copy the request into a new chat.");
+    case "not_granted":
+    case "capability_disabled":
+    case "capability_removed":
+      return fail("This view of the desk can't start Claude Code. Copy the request into a new Claude Code chat.");
+    default:
+      // the call may have reached Claude Code: don't start another unasked
+      return fail(
+        "The desk couldn't tell whether Claude Code started. Give it a few minutes; if nothing happens, start it again.",
+        true,
+      );
+  }
+}
+
+/** Starts the Claude Code session that answers a saved request: the desk's scheduled task. */
+export async function startSession(req) {
+  const trigger = config().pushTrigger;
+  const mcp = trigger ? await capability("mcp") : null;
+  if (!mcp)
+    throw new DeskError(
+      "no_mcp",
+      "This view of the desk can't start Claude Code. Copy the request into a new Claude Code chat.",
+      trigger ? 'claude.use("mcp") resolved null' : "no pushTrigger in desk.config.json",
+      byHand(req),
+    );
+  let result;
+  try {
+    result = await mcp.callTool(
+      CONNECTOR,
+      "fire_trigger",
+      { trigger_id: trigger, text: `The desk's ${req.request} request ${req.id}, saved ${req.requestedAt}.` },
+      { cache: false },
+    );
+  } catch (e) {
+    throw explainStart(e, req);
+  }
+  // a start that worked names the task it started; anything else (a deleted task, say) is the connector's error as text
+  const payload = result?.payload;
+  const text = typeof payload === "string" ? payload : JSON.stringify(payload ?? null);
+  const named = payload?.trigger?.id === trigger || new RegExp(`"id"\\s*:\\s*"${trigger}"`).test(text);
+  if (!named) throw explainStart({ code: "tool_error", message: text.slice(0, 300) }, req);
+}

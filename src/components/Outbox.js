@@ -1,5 +1,5 @@
 // The desk's copy and its waiting changes: where the copy came from, what's waiting to go to main, and the push.
-// Push and Refresh save a request into the desk's outbox, which wakes the Claude Code session that watches the desk
+// Push and Refresh save a request into the desk's outbox, and the desk starts a Claude Code session to answer it
 // (see services/outbox.js). The desk reloads when that session publishes the new copy. On the phone, Push asks for Face ID
 // and goes straight to GitHub (services/phonePush.js); the desk then follows the site's check until main has the changes.
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -48,9 +48,7 @@ function Failure({ error, onCopied, onSettings }) {
       ) : null}
       {error.manual && (
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
-          <Body small>
-            By hand: copy the request and paste it into the "Status.yaml block editor" chat in Claude Code.
-          </Body>
+          <Body small>By hand: copy the request and paste it into a new Claude Code chat.</Body>
           <Row style={tw`justify-end`}>
             {error.copied === true && (
               <Body small mute>
@@ -76,6 +74,60 @@ function Failure({ error, onCopied, onSettings }) {
             />
           )}
         </View>
+      )}
+    </View>
+  );
+}
+
+/** In the Claude app, after a request is saved: the Claude Code session the desk starts to answer it. */
+function Starting() {
+  const { tw } = useTw();
+  const desk = useDesk();
+  const [copied, setCopied] = useState(null);
+  const req = desk.pending;
+  if (!req) return null;
+  const s = desk.started;
+  const again = s && s.state !== "starting" && s.state !== "started";
+  return (
+    <View style={tw`gap-1.5`}>
+      {!s || s.state === "starting" ? (
+        <Body small mute>
+          Starting a Claude Code session to answer it…
+        </Body>
+      ) : s.state === "started" ? (
+        <Body small mute>
+          {`Claude Code session started ${asOf(toKey(new Date(s.at)))}. It takes a few minutes.`}
+        </Body>
+      ) : (
+        <Notice tone={s.state === "failed" ? "problem" : "warn"}>
+          {s.error?.message ??
+            "The desk may have started Claude Code before it reloaded. If nothing happens, start it again."}
+        </Notice>
+      )}
+      {s?.error?.detail ? (
+        <Body small mute style={tw`font-mono`}>
+          {s.error.detail}
+        </Body>
+      ) : null}
+      {again && (
+        <Row style={tw`justify-end`}>
+          {copied === true && (
+            <Body small mute>
+              Copied
+            </Body>
+          )}
+          {s.error?.manual && (
+            <Button
+              small
+              title="Copy the request"
+              onPress={() => copyText(s.error.manual).then((ok) => setCopied(ok ? true : "failed"))}
+            />
+          )}
+          <Button small title="Start Claude Code again" onPress={desk.startAgain} />
+        </Row>
+      )}
+      {copied === "failed" && s?.error?.manual && (
+        <Field multiline small mono value={s.error.manual} onChangeText={() => {}} label="The request" noPrompt />
       )}
     </View>
   );
@@ -286,9 +338,10 @@ export function Outbox({ onSettings, onEdit }) {
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
           <Body small>
             {p.kind === "push"
-              ? `Sent ${asOf(toKey(new Date(p.requestedAt)))}. Claude Code is syncing with main, committing and pushing. The desk reloads with the new copy when it's done.`
+              ? `Sent ${asOf(toKey(new Date(p.requestedAt)))}. Claude Code syncs with main, commits and pushes. The desk reloads with the new copy when it's done.`
               : `Asked ${asOf(toKey(new Date(p.requestedAt)))}. The desk reloads with main's copy when Claude Code has published it.`}
           </Body>
+          <Starting />
           <Row style={tw`justify-end`}>
             <Button small title="Check again" onPress={desk.reload} />
             <Button small title="Stop waiting" onPress={() => desk.setPush(null)} />

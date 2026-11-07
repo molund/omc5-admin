@@ -53,7 +53,7 @@ function Card({ card }) {
     <View
       style={[
         tw`self-start rounded-lg border border-line bg-panel px-3.5 pb-3.5 pt-3`,
-        { width: 240, maxWidth: "100%", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)" },
+        { width: 276, maxWidth: "100%", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)" },
       ]}
     >
       <View style={tw`flex-row items-center gap-2 pr-6`}>

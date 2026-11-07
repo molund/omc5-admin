@@ -124,10 +124,10 @@ export function VelocityPanel() {
                     <Body small mute={t.estimated} style={tw`flex-1`}>
                       {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
                     </Body>
-                    <Body small mute style={[tw`w-12 text-right`, num]}>
+                    <Body small mute={t.estimated} style={[tw`w-12 text-right`, num]}>
                       {clock24(t.key)}
                     </Body>
-                    <Body small mute style={[tw`w-16 text-right`, num]}>
+                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num]}>
                       {t.stepHours == null ? "–" : hours(t.stepHours)}
                     </Body>
                   </View>

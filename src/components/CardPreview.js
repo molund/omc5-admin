@@ -4,7 +4,7 @@
 // the site's: nothing here is pressed.
 import { useState } from "react";
 import { Image, Text, View } from "react-native";
-import { ThemeContext, useTw } from "../theme/tw.js";
+import { ThemeContext, themes, useTw } from "../theme/tw.js";
 import { cardAsOf } from "../lib/time.js";
 import { Icon } from "./Icon";
 import { Label } from "./ui.js";
@@ -12,6 +12,9 @@ import { Label } from "./ui.js";
 const LOGO = "https://clayton-clipper.olund.ca/images/logo.png";
 const PROGRESS = "#8473a8"; // PROGRESS_COLOUR in the site's src/lib/layerSwitches.js
 const GOLD = "#b8944a"; // the word beside the logo (.eyebrow span in the site's src/app.css)
+// the spans per week arrow, [light, dark] (--up and --down in the site's src/app.css)
+const UP = ["#4f8a6b", "#7fbf9a"];
+const DOWN = ["#b0564f", "#e0928b"];
 // how far up each figure's box its dots sit, so that the big figure's and the small ones' fall on one line
 const BIG_DROP = 2;
 const SMALL_DROP = 2;
@@ -80,6 +83,7 @@ function Card({ card }) {
         <Figure textStyle={tw`text-base font-semibold text-ink`} color={colors.mute} drop={SMALL_DROP}>
           {card.total}
         </Figure>
+        <Text style={tw`text-base text-mute`}>{" spans"}</Text>
       </View>
       <View style={tw`h-6 overflow-hidden rounded-md bg-line`}>
         <View style={[tw`h-full rounded-md`, { width: `${card.percent}%`, backgroundColor: PROGRESS }]} />
@@ -94,6 +98,19 @@ function Card({ card }) {
           </Figure>
         </View>
       </View>
+      {/* "▲ 2.83 spans/wk velocity": the arrow green going up, red going down, in the site's shade for this card's theme */}
+      {card.pace ? (
+        <Text style={tw`mt-2 text-sm text-mute`}>
+          {card.way ? (
+            <Text style={{ color: (card.way === "up" ? UP : DOWN)[colors === themes.dark.colors ? 1 : 0] }}>
+              {card.way === "up" ? "▲" : "▼"}
+              {" "}
+            </Text>
+          ) : null}
+          <Text style={tw`font-semibold text-ink`}>{card.pace}</Text>
+          {" spans/wk velocity"}
+        </Text>
+      ) : null}
       {when ? <Text style={tw`mt-2 text-xs text-mute`}>As of {when}</Text> : null}
       {card.text ? <Text style={tw`mt-2 text-sm text-ink`}>{card.text}</Text> : null}
       {card.button === "comments" ? (

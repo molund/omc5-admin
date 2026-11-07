@@ -523,3 +523,17 @@ test("the card's time reads as the site words it, today, recently and further ba
     assert.equal(cardAsOf(toKey(date)), asOf(date, true), `${back} days back`);
   }
 });
+
+test("the card's spans per week, and which way it went, as the site's card works them out", () => {
+  // none written yet: no line on the card
+  assert.equal(cardFor(BASE).pace, null);
+  const withPace = (now, before) =>
+    BASE.replace(
+      /^((?:hung|complete): .*)$/m,
+      `$1\nspans_per_week: ${now}${before ? `\nspans_per_week_previous: ${before}` : ""}`,
+    );
+  assert.deepEqual([cardFor(withPace("2.83", "2.79")).pace, cardFor(withPace("2.83", "2.79")).way], ["2.83", "up"]);
+  assert.equal(cardFor(withPace("2.70", "2.79")).way, "down");
+  assert.equal(cardFor(withPace("2.79", "2.79")).way, null);
+  assert.equal(cardFor(withPace("2.83")).way, null);
+});

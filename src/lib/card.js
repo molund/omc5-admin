@@ -19,7 +19,9 @@ export const figuresFor = (span) => ({
 
 /**
  * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
- *   ahead: number, total: number, percent: number }}
+ *   ahead: number, total: number, percent: number, pace: string|null, way: "up"|"down"|null, before: string|null }}
+ *   `pace`: the spans per week, as written; `way`: which way it went since `before`, its value before (as the site's card
+ *   works it out).
  */
 export function cardFor(text) {
   const parsed = parseStatus(text);
@@ -28,10 +30,15 @@ export function cardFor(text) {
   const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
   const word = fu ?? latest;
   const current = !!word && !!head.updated && compareKeys(word.key, head.updated) === 0;
+  const pace = parsed.header.spans_per_week?.value ?? null;
+  const before = parsed.header.spans_per_week_previous?.value ?? null;
   return {
     ...head,
     ...figuresFor(head.span),
     text: current ? word.fields.summary : "",
     button: current ? "comments" : "trackside",
+    pace,
+    before,
+    way: pace && before && +pace !== +before ? (+pace > +before ? "up" : "down") : null,
   };
 }

@@ -17,8 +17,8 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 
 Spans per week is written into `status.yaml` after `hung:`, as `spans-per-week`, to two decimals, on every push
 (`setVelocity` in `changes.js`), each change its own commit. Under it, `spans-per-week-previous` lists its values at the
-earlier steps of the past **96 hours** (`HISTORY_HOURS`), newest first, each with the span and stage of the step it was
-timed by:
+earlier steps on **the current span and the one before it** (`HISTORY_SPANS`; the current span is the furthest with a
+step logged), newest first, each with the span and stage of the step it was timed by:
 
 ```yaml
 spans-per-week: 2.83
@@ -30,12 +30,13 @@ spans-per-week-previous:
 
 - **Recalculated, not remembered.** On every push the lists are worked out again from `desk.yaml`
   (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So they backfill themselves, a
-  step logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
+  step logged late lands where its time stamp puts it, and values from steps on older spans are pruned.
 - **The arrow** (the desk's panel and the site's card) compares the figure with the newest earlier value; equal, no
   arrow.
-- **Earlier forms.** Through Nov. 7, 2026 the keys had underscores (`spans_per_week` and so on), `-previous` was a
-  single value, and days per span was written too (`days-per-span`). The next push replaces those with the list and
-  removes days per span; until then both the desk and the site still read the old forms of spans per week.
+- **Earlier forms.** Through Nov. 7, 2026 the list kept the past 96 hours, the keys had underscores (`spans_per_week`
+  and so on), `-previous` was a single value, and days per span was written too (`days-per-span`). The next push
+  replaces those with the list and removes days per span; until then both the desk and the site still read the old forms
+  of spans per week.
 
 ## The site's tooltip is simplified on purpose
 

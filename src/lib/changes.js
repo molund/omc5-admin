@@ -119,7 +119,8 @@ function setHeader(doc, values) {
 const VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
   "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
-  "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
+  "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
+  "# step each was timed by",
 ];
 // the first two lines the comment had while it also gave days per span
 const OLD_VELOCITY_START = [
@@ -127,8 +128,8 @@ const OLD_VELOCITY_START = [
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
 ];
 // the comments as they were written before, replaced by the one above where they're found: before the velocity was taken
-// over a week, while its keys had underscores, while it kept a single earlier value, and while it also gave days per
-// span (all Nov. 7, 2026)
+// over a week, while its keys had underscores, while it kept a single earlier value, while it also gave days per span,
+// and while it kept the earlier values of the past 96 hours (all Nov. 7, 2026)
 const OLD_VELOCITY_COMMENTS = [
   [
     "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
@@ -145,6 +146,11 @@ const OLD_VELOCITY_COMMENTS = [
     "# for), each with its values at the earlier steps of the past 96 hours (-previous), newest first, with the span and",
     "# stage of the step each was timed by",
   ],
+  [
+    VELOCITY_COMMENT[0],
+    VELOCITY_COMMENT[1],
+    "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
+  ],
 ];
 // every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026; days per span is no longer
 // written, and is removed where it's found
@@ -154,7 +160,7 @@ const VELOCITY_NAMES = ["days-per-span", "spans-per-week"].flatMap((k) =>
 
 /**
  * Writes the velocity into the file's header, after `hung:`, or where it already is: spans per week, with its
- * values at the earlier steps of the past 96 hours under it, newest first, as a `- time: value` list, each with the span
+ * values at the earlier steps on the current span and the one before it under it, newest first, as a `- time: value` list, each with the span
  * and stage of the step it was timed by (lib/velocity.js's velocityHistory). The whole block is written again from them each time, so older values drop out and missing ones are
  * filled in; the forms it had earlier on Nov. 7, 2026 (underscored keys, a single earlier value, days per span) are replaced.
  * @param {string} text

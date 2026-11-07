@@ -21,7 +21,7 @@ import {
   spanDays,
   trendOf,
   velocityHistory,
-  HISTORY_HOURS,
+  HISTORY_SPANS,
 } from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
@@ -710,8 +710,8 @@ test("a push writes the velocity after hung:, with its earlier values as a list,
   ];
   const once = setVelocity(STATUS, { spansPerWeek: 2.83 }, history).text;
   const h = parseStatus(once).header;
-  // (the fixture is from before Nov. 6, 2026, so its hung: line is still complete:) after it, its three lines of comment
-  assert.equal(h["spans-per-week"].line, (h.hung ?? h.complete).line + 4);
+  // (the fixture is from before Nov. 6, 2026, so its hung: line is still complete:) after it, its four lines of comment
+  assert.equal(h["spans-per-week"].line, (h.hung ?? h.complete).line + 5);
   assert.equal(h["spans-per-week"].value, "2.83");
   // no days per span
   assert.equal(h["days-per-span"], undefined);
@@ -836,7 +836,7 @@ test("which way a velocity figure went: against the newest earlier value, or the
   assert.equal(trendOf("2.83", null, "spans-per-week"), null);
 });
 
-test("the velocity's history: as worked out at each earlier step of the last 96 hours, with that step's span and stage", () => {
+test("the velocity's history: as worked out at each earlier step on the current span and the one before, with that step's span and stage", () => {
   const entries = runOfCycles();
   let t = parseKey(entries.at(-1).key);
   const names = Object.keys(LENGTHS);
@@ -847,10 +847,12 @@ test("the velocity's history: as worked out at each earlier step of the last 96 
   const last = parseKey(entries.at(-1).key);
   const history = velocityHistory(entries);
   assert.ok(history.length > 0);
-  // newest first, all before the latest step and within 96 hours of it
+  const top = Math.max(...entries.filter((e) => e.stage).map((e) => e.span));
+  // newest first, all before the latest step and on the current span or the one before
   for (const [i, h] of history.entries()) {
     const at = parseKey(h.key);
-    assert.ok(at < last && last - at <= HISTORY_HOURS * 3600 * 1000, h.key);
+    assert.ok(at < last, h.key);
+    assert.ok(entries.find((e) => e.key === h.key).span >= top - HISTORY_SPANS, h.key);
     if (i) assert.ok(at < parseKey(history[i - 1].key));
     // the velocity as it was then: only the steps logged by that moment
     const then = velocity(entries.filter((e) => parseKey(e.key) <= at));
@@ -859,8 +861,16 @@ test("the velocity's history: as worked out at each earlier step of the last 96 
     assert.equal(h.span, then.window.span);
     assert.equal(h.stage, entries.find((e) => e.key === h.key).stage);
   }
-  // a step more than 96 hours before the latest isn't in it
-  const old = entries.filter((e) => last - parseKey(e.key) > HISTORY_HOURS * 3600 * 1000);
+  // every earlier step on those spans with a velocity by then is in it, and none on an older span
+  const kept = entries.filter(
+    (e) =>
+      e.stage &&
+      e.span >= top - HISTORY_SPANS &&
+      parseKey(e.key) < last &&
+      velocity(entries.filter((x) => parseKey(x.key) <= parseKey(e.key)))?.spansPerWeek != null,
+  );
+  assert.deepEqual(new Set(history.map((h) => h.key)), new Set(kept.map((e) => e.key)));
+  const old = entries.filter((e) => e.stage && e.span < top - HISTORY_SPANS);
   assert.ok(old.length > 0);
   assert.ok(old.every((e) => !history.some((h) => h.key === e.key)));
   assert.deepEqual(velocityHistory([]), []);

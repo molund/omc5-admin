@@ -14,8 +14,9 @@ import { STAGES } from "./stages.js";
 export const WINDOW = 3;
 // the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
 const WEEK_HOURS = 168;
-// how far back status.yaml keeps the velocity's earlier values (velocityHistory)
-export const HISTORY_HOURS = 96;
+// how far back status.yaml keeps the velocity's earlier values (velocityHistory): the steps on the current span and
+// this many spans before it
+export const HISTORY_SPANS = 1;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
@@ -325,17 +326,18 @@ export function sinceArrival(entries) {
 }
 
 /**
- * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
- * steps logged by then, as if it were that moment: [{ key, spansPerWeek, span, stage }], newest first, `span` and
- * `stage` the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are
- * counted where their time stamps put them.
+ * The velocity at each earlier step on the current span (the furthest span with a step) and the span before it
+ * (`HISTORY_SPANS`), worked out again from the steps logged by then, as if it were that moment: [{ key, spansPerWeek,
+ * span, stage }], newest first, `span` and `stage` the step it was timed by. Steps on older spans aren't in it, so a push
+ * keeps only those two spans; steps logged late are counted where their time stamps put them.
  */
 export function velocityHistory(entries) {
   const steps = allSteps(entries);
   if (!steps.length) return [];
   const last = steps.at(-1).at.getTime();
-  const times = [...new Set(steps.map((t) => t.at.getTime()))].filter(
-    (t) => t < last && t >= last - HISTORY_HOURS * HOUR,
+  const top = Math.max(...steps.map((t) => t.span));
+  const times = [...new Set(steps.filter((t) => t.span >= top - HISTORY_SPANS).map((t) => t.at.getTime()))].filter(
+    (t) => t < last,
   );
   const out = [];
   for (const t of times.sort((a, b) => b - a)) {

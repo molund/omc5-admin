@@ -98,7 +98,7 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
 - If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into a
   new Claude Code chat. If it saved the request but couldn't start the session, it says why, with "Start Claude Code
   again" and a line to paste into a new chat instead.
-- Photos are resized in the browser (at most 800 px wide, JPEG quality 75, no metadata). On push they go into the outbox,
+- Photos are resized in the browser (at most 800 px wide, JPEG quality 85, no metadata). On push they go into the outbox,
   and the session copies them into `public/images/sorry-im-a-shitty-photographer/`.
 
 ## Layout
@@ -168,7 +168,7 @@ Sign in with an Apple ID under Xcode's signing settings the first time. With a f
 What works on the phone:
 
 - All the modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
-- Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 75, which drops the
+- Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 85, which drops the
   original's metadata.
 - The desk's copy of `status.yaml` is read from main on GitHub (the repo is public, so no token): at main's latest commit,
   kept for when the phone is offline. "Refresh from main" reads it again.

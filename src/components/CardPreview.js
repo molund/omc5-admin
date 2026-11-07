@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Image, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "../theme/tw.js";
 import { cardAsOf } from "../lib/time.js";
+import { inline } from "../lib/inline.js";
 import { Icon } from "./Icon";
 import { Sparkline } from "./Sparkline";
 import { Label } from "./ui.js";
@@ -123,7 +124,16 @@ function Card({ card }) {
         </View>
       ) : null}
       {when ? <Text style={tw`mt-2 text-xs text-mute`}>As of {when}</Text> : null}
-      {card.text ? <Text style={tw`mt-2 text-sm text-ink`}>{card.text}</Text> : null}
+      {card.text ? (
+        <Text style={tw`mt-2 text-sm text-ink`}>
+          {/* its links and bold as the site shows them; the links are only a picture, like the rest of the card */}
+          {inline(card.text).map((p, i) => (
+            <Text key={i} style={[p.bold && tw`font-bold`, p.href && tw`text-link`]}>
+              {p.text}
+            </Text>
+          ))}
+        </Text>
+      ) : null}
       {card.button === "comments" ? (
         <View style={tw`mt-2.5 min-h-8 flex-row items-center gap-1.5 rounded-md border border-line bg-panel px-2.5`}>
           <Icon name="comment" color={colors.ink} />

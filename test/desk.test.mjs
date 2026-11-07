@@ -254,8 +254,8 @@ const LENGTHS = {
   glued: 1,
   "post-tensioning started": 8,
   "cables down": 2.5,
-  "hangers down": 4,
-  "supports started": 6,
+  "hangers down": 1,
+  "supports started": 9,
 };
 const CYCLE = Object.values(LENGTHS).reduce((a, b) => a + b, 0);
 /** Every step of spans 40 to 43, then the arrival at 44. */

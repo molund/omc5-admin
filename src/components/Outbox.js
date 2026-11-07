@@ -112,7 +112,7 @@ function Landing({ p }) {
   );
   useEffect(() => {
     check();
-    const timer = setInterval(check, 30 * 1000);
+    const timer = setInterval(check, 15 * 1000);
     return () => clearInterval(timer);
   }, [check]);
 

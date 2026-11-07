@@ -3,7 +3,7 @@
 // (see services/outbox.js). The desk reloads when that session publishes the new copy. On the phone, Push asks for Face ID
 // and goes straight to GitHub (services/phonePush.js); the desk then follows the site's check until main has the changes.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Platform, View } from "react-native";
+import { ActivityIndicator, AppState, Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
@@ -167,18 +167,21 @@ function Landing({ p }) {
     },
     [p.head, p.landed],
   );
-  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one)
+  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one); none while the desk is
+  // in the background, and one as soon as it's back
   useEffect(() => {
     let on = true,
       timer;
     const loop = async () => {
-      await check();
+      if (AppState.currentState === "active") await check();
       if (on) timer = setTimeout(loop, followingWithToken(p.head) ? 5 * 1000 : 15 * 1000);
     };
     loop();
+    const sub = AppState.addEventListener("change", (s) => s === "active" && check());
     return () => {
       on = false;
       clearTimeout(timer);
+      sub.remove();
     };
   }, [check]);
   // the push isn't followed any more (done, or Stop waiting): the token goes

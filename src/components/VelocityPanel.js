@@ -14,7 +14,12 @@ import { clock24, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 // the long step names, shorter for this panel's rows
-const SHORT_LABELS = { "post-tensioning started": "Post-tensioning", "supports started": "Moving supports" };
+const SHORT_LABELS = {
+  "hanging started": "Hanging",
+  "gluing started": "Gluing",
+  "post-tensioning started": "Post-tensioning",
+  "supports started": "Moving supports",
+};
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)} h`;

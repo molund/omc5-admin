@@ -35,6 +35,12 @@ export function VelocityPanel() {
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
+  // above the span's heading when its first step starts the day, so the day always comes before the span
+  const dayBar = (key) => (
+    <View style={tw`my-0.5 rounded-sm bg-line px-2`}>
+      <Body small>{weekdayShort(key)}</Body>
+    </View>
+  );
   return (
     <Panel>
       <Label
@@ -105,14 +111,11 @@ export function VelocityPanel() {
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
+              {g.steps[0].newDay && dayBar(g.steps[0].key)}
               <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
-              {g.steps.map((t) => (
+              {g.steps.map((t, i) => (
                 <Fragment key={t.stage}>
-                  {t.newDay && (
-                    <View style={tw`my-0.5 rounded-sm bg-line px-2`}>
-                      <Body small>{weekdayShort(t.key)}</Body>
-                    </View>
-                  )}
+                  {t.newDay && i > 0 && dayBar(t.key)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <Body small mute={t.estimated} style={tw`flex-1`}>
                       {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}

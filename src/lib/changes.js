@@ -117,12 +117,20 @@ function setHeader(doc, values) {
 }
 
 const VELOCITY_COMMENT = [
+  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
+  "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
+  "# for), each with its value before it last changed (_previous)",
+];
+// the comment as it was written before Nov. 7, 2026, replaced by the one above where it's found
+const OLD_VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
   "# last three spans, and spans per week once the weekly shutdown is allowed for",
 ];
 
 /**
- * Writes the velocity's two figures into the file's header, after `hung:`, or updates them where they already are.
+ * Writes the velocity's two figures into the file's header, after `hung:`, or updates them where they already are. A
+ * figure that changes keeps the one before it, in `days_per_span_previous` or `spans_per_week_previous` on the line after
+ * it; one that doesn't change leaves that as it is.
  * @param {string} text
  * @param {{ days: number|null, spansPerWeek?: number }|null} v From lib/velocity.js; with no days the file is left as it is.
  * @returns {{ text: string, hunks: object[] }}
@@ -133,7 +141,18 @@ export function setVelocity(text, v) {
   const values = { days_per_span: v.days.toFixed(2), spans_per_week: v.spansPerWeek.toFixed(2) };
   const { header } = doc.parsed;
   if (header.days_per_span && header.spans_per_week) {
-    setHeader(doc, values);
+    for (const [k, value] of Object.entries(values)) {
+      const was = doc.parsed.header[k];
+      if (was.value === value) continue;
+      doc.replace(was.line, 1, [`${k}: ${value}`]);
+      const prev = doc.parsed.header[`${k}_previous`];
+      if (prev) doc.replace(prev.line, 1, [`${k}_previous: ${was.value}`]);
+      else doc.replace(was.line + 1, 0, [`${k}_previous: ${was.value}`]);
+    }
+    const first = Math.min(doc.parsed.header.days_per_span.line, doc.parsed.header.spans_per_week.line);
+    const at = first - OLD_VELOCITY_COMMENT.length;
+    if (OLD_VELOCITY_COMMENT.every((l, i) => doc.lines[at + i] === l))
+      doc.replace(at, OLD_VELOCITY_COMMENT.length, VELOCITY_COMMENT);
     return { text: doc.text, hunks: doc.hunks };
   }
   const after = header.hung ?? header.complete;

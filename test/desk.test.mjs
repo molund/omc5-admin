@@ -708,13 +708,57 @@ test("a push writes the velocity's two figures after hung:, and keeps them up to
   assert.equal(head.days_per_span.value, v.days.toFixed(2));
   assert.equal(head.spans_per_week.value, v.spansPerWeek.toFixed(2));
   // (the fixture is from before Nov. 6, 2026, so its hung: line is still complete:)
-  assert.equal(head.days_per_span.line, (head.hung ?? head.complete).line + 3);
-  // written again: changed in place, not added twice
+  // after hung: and the three lines of its comment
+  assert.equal(head.days_per_span.line, (head.hung ?? head.complete).line + 4);
+  // written again: changed in place, not added twice (the two new lines are their _previous values)
   const again = setVelocity(once, { days: 2, spansPerWeek: 3 }).text;
-  assert.equal(again.split("\n").length, once.split("\n").length);
+  assert.equal(again.split("\n").length, once.split("\n").length + 2);
+  assert.equal(
+    parseStatus(setVelocity(again, { days: 1, spansPerWeek: 6 }).text).header.days_per_span.line,
+    head.days_per_span.line,
+  );
   assert.equal(parseStatus(again).header.spans_per_week.value, "3.00");
   // no velocity yet: left as it is
   assert.equal(setVelocity(STATUS, null).text, STATUS);
+});
+
+test("a figure that changes keeps the one before it on the line after, and one that doesn't leaves it", () => {
+  const first = setVelocity(STATUS, { days: 2.5, spansPerWeek: 2.4 }).text;
+  assert.equal(parseStatus(first).header.days_per_span_previous, undefined);
+  // both change: each gets its _previous, right after it
+  const second = setVelocity(first, { days: 2, spansPerWeek: 3 }).text;
+  let h = parseStatus(second).header;
+  assert.equal(h.days_per_span.value, "2.00");
+  assert.equal(h.days_per_span_previous.value, "2.50");
+  assert.equal(h.days_per_span_previous.line, h.days_per_span.line + 1);
+  assert.equal(h.spans_per_week.value, "3.00");
+  assert.equal(h.spans_per_week_previous.value, "2.40");
+  assert.equal(h.spans_per_week_previous.line, h.spans_per_week.line + 1);
+  // only one changes: its _previous moves on, in place; the other's stays
+  const third = setVelocity(second, { days: 2, spansPerWeek: 3.004 }).text;
+  assert.equal(third, second);
+  const fourth = setVelocity(second, { days: 1.9, spansPerWeek: 3 }).text;
+  h = parseStatus(fourth).header;
+  assert.equal(h.days_per_span_previous.value, "2.00");
+  assert.equal(h.spans_per_week_previous.value, "2.40");
+  assert.equal(fourth.split("\n").length, second.split("\n").length);
+});
+
+test("the old velocity comment is brought up to date when the figures are next written", () => {
+  const old = STATUS.replace(
+    /^((?:hung|complete): .*)$/m,
+    [
+      "$1",
+      "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
+      "# last three spans, and spans per week once the weekly shutdown is allowed for",
+      "days_per_span: 2.15",
+      "spans_per_week: 2.79",
+    ].join("\n"),
+  );
+  const text = setVelocity(old, { days: 2.12, spansPerWeek: 2.83 }).text;
+  assert.ok(!text.includes("last three spans"));
+  assert.match(text, /latest step reported/);
+  assert.equal(parseStatus(text).header.spans_per_week_previous.value, "2.79");
 });
 
 test("steps that weren't logged are estimated close to the real ones, and a step still to come isn't", () => {

@@ -35,6 +35,8 @@ Use good grammar.
 
 Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
 
+In the code block, write any links as [text](url) and bold as **text**, and no other markdown. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.
+
 Here's the text:
 
 ${text}`;

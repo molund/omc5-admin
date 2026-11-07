@@ -98,7 +98,7 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
 - If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into a
   new Claude Code chat. If it saved the request but couldn't start the session, it says why, with "Start Claude Code
   again" and a line to paste into a new chat instead.
-- Photos are resized in the browser (at most 800 px wide, JPEG quality 85, no metadata). On push they go into the outbox,
+- Photos are resized in the browser (at most 1024 px wide, JPEG quality 85, no metadata). On push they go into the outbox,
   and the session copies them into `public/images/sorry-im-a-shitty-photographer/`.
 
 ## Layout
@@ -168,7 +168,7 @@ Sign in with an Apple ID under Xcode's signing settings the first time. With a f
 What works on the phone:
 
 - All the modes, the review step, drafts and waiting changes (kept in the phone's SQLite key-value store).
-- Photos: picked from the library, then resized to at most 800 px wide and saved as a JPEG at quality 85, which drops the
+- Photos: picked from the library, then resized to at most 1024 px wide and saved as a JPEG at quality 85, which drops the
   original's metadata.
 - The desk's copy of `status.yaml` is read from main on GitHub (the repo is public, so no token): at main's latest commit,
   kept for when the phone is offline. "Refresh from main" reads it again.
@@ -192,7 +192,7 @@ Push asks for Face ID, then, through GitHub's API:
 3. points the `desk` branch at the last commit.
 
 The site's "Land Status Desk changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the commits
-only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 800 px wide, no metadata), formats and builds the site, moves main up
+only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and builds the site, moves main up
 to them and deploys. The desk follows that run (the repo is public, so no token or Face ID); when it succeeds it drops the
 changes and reads main again, and when it fails it keeps them and links to the run.
 

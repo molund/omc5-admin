@@ -34,7 +34,7 @@ Nothing to commit: go to step 5 with no commits.
 1. Save `outbox.json` to a scratch file.
 2. For each photo in the request's `photos`, read its `path` from the artifact (`outbox/photos/<file>`) and save it as
    `public/images/sorry-im-a-shitty-photographer/<file>` in omc5. The desk has already resized it (at most 800 pixels
-   wide, JPEG quality 75, no metadata); check that it's so, and fix it if not.
+   wide, JPEG quality 85, no metadata); check that it's so, and fix it if not.
 3. For each change, in order:
    - `node <omc5-admin>/tools/apply-changes.mjs <outbox.json> status.yaml desk.yaml --only <id>`, run in omc5.
    - `CONFLICT`: leave the change out. It stays waiting on the desk, marked.

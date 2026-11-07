@@ -74,10 +74,11 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   `status.yaml` and `desk.yaml`, and `copy.json` says which commit of main it came from.
 - **Saving adds a change to a list on this device** (browser storage). Every screen shows the copy with the list applied.
   Drafts and photos are kept there too, until they're pushed.
-- **Push syncs first.** The desk can't reach GitHub or start a Claude Code session itself (the Claude app won't load the
-  Claude Code Remote connector for an artifact). So Push saves `outbox.json` (the changes, in order) and the new photos
-  under `outbox/photos/` into the desk's own artifact. That republish wakes the Claude Code session that watches the desk
-  (the "Status.yaml block editor" chat), which:
+- **Push syncs first.** The desk can't reach GitHub itself. So Push saves `outbox.json` (the changes, in order) and the
+  new photos under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer the Status Desk" scheduled
+  task (`pushTrigger` in `desk.config.json`) through the Claude Code Remote connector (the artifact's `mcp` capability,
+  `fire_trigger` only; the Claude app asks the first time). Each start is a fresh Claude Code session, which follows
+  `docs/push-session.md`:
   1. pulls main;
   2. applies each change, in order, to main's `status.yaml` and `desk.yaml` with `tools/apply-changes.mjs` (the same code
      as the desk);
@@ -90,8 +91,9 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
   update is gone, say) is skipped and stays in the list, marked.
 
 - **Refresh from main** saves a refresh request the same way. Waiting changes stay on top of the new copy.
-- If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into
-  that chat.
+- If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into a
+  new Claude Code chat. If it saved the request but couldn't start the session, it says why, with "Start Claude Code
+  again" and a line to paste into a new chat instead.
 - Photos are resized in the browser (at most 800 px wide, JPEG quality 75, no metadata). On push they go into the outbox,
   and the session copies them into `public/images/sorry-im-a-shitty-photographer/`.
 
@@ -114,7 +116,7 @@ src/lib/                     plain JS, no React: statusFile (reads status.yaml w
                              them), velocity, titles (date titles, slugs), time (BC time), card (the card rule), styleHints,
                              writingPrompt (the AI prompt a field's icon copies), entries (the Entries list, reopening)
 src/state/desk.js            the copy, the waiting changes, drafts and photos
-src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox
+src/services/outbox.js       Push and Refresh: the request saved into the desk's outbox, and the session started
 src/services/stageAI.js      "Ask Claude" for the gantry steps in a piece of text (the Claude app only)
 src/services/github.js       the phone's push: one commit per change on the desk branch, and following it onto main
 src/services/phonePush.js    Face ID, the token from the Keychain, then github.js
@@ -127,7 +129,8 @@ test/github.test.mjs         the phone's push, against a fake GitHub
 test/desk.test.mjs           the stage rules, desk.yaml and the velocity
 web/index.html               the artifact's page
 scripts/build.mjs            esbuild: dist/index.html, dist/app.js, dist/tools/apply-changes.mjs
-desk.config.json             the artifact's URL and the repo
+desk.config.json             the artifact's URL, the repo and the push session's scheduled task (pushTrigger)
+docs/push-session.md         what the push session does with a request
 ```
 
 A native build (Expo) would replace each `src/platform/*.web.js` with a `.native.js` file of the same shape (for example,
@@ -143,7 +146,8 @@ node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 
 `desk.yaml` is copied from beside `status.yaml`. Then publish `dist/index.html` as the artifact page, with `app.js`,
 `status.yaml`, `desk.yaml`, `copy.json` and `tools/apply-changes.mjs` beside it. Its capabilities are `artifact` (the desk
-saves its outbox into itself) and `sample` ("Ask Claude"). The source is published with it under `source/`.
+saves its outbox into itself), `sample` ("Ask Claude") and `mcp`, with `{servers: [{server: "Claude Code Remote", tools:
+["fire_trigger"]}]}` (it starts the push session). The source is published with it under `source/`.
 
 ## On an iPhone
 

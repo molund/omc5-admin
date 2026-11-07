@@ -14,6 +14,8 @@ import { STAGES } from "./stages.js";
 export const WINDOW = 3;
 // the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
 const WEEK_HOURS = 168;
+// how far back status.yaml keeps the velocity's earlier values (velocityHistory)
+export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
@@ -323,19 +325,48 @@ export function sinceArrival(entries) {
 }
 
 /**
+ * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
+ * steps logged by then, as if it were that moment: [{ key, days, spansPerWeek, span, stage }], newest first, `span` and
+ * `stage` the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are
+ * counted where their time stamps put them.
+ */
+export function velocityHistory(entries) {
+  const steps = allSteps(entries);
+  if (!steps.length) return [];
+  const last = steps.at(-1).at.getTime();
+  const times = [...new Set(steps.map((t) => t.at.getTime()))].filter(
+    (t) => t < last && t >= last - HISTORY_HOURS * HOUR,
+  );
+  const out = [];
+  for (const t of times.sort((a, b) => b - a)) {
+    const v = velocity(entries.filter((e) => parseKey(e.key).getTime() <= t));
+    if (v?.days != null)
+      out.push({
+        key: toKey(new Date(t)),
+        days: v.days,
+        spansPerWeek: v.spansPerWeek,
+        span: v.window.span,
+        stage: v.stage,
+      });
+  }
+  return out;
+}
+
+/**
  * Which way a velocity figure last went, from status.yaml's header: the figure shown (to two decimals) against the value
- * it had before. That's the file's `-previous` when the file already holds the figure shown, or else the file's own
- * value (the figure shown is new, with waiting changes or a new way of working it out). A file whose keys are still named
- * with underscores (before Nov. 7, 2026) is read too.
+ * it had before. That's the newest of the file's `-previous` values when the file already holds the figure shown, or
+ * else the file's own value (the figure shown is new, with waiting changes or a new way of working it out). The forms
+ * the file had earlier on Nov. 7, 2026 are read too: underscores in the keys, and a single `-previous` value.
  * @param {string} shown "2.83"
  * @param {object} header status.yaml's parsed header
  * @param {string} key "days-per-span" or "spans-per-week"
  * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
  */
 export function trendOf(shown, header, key) {
-  const field = (k) => (header?.[k] ?? header?.[k.replaceAll("-", "_")])?.value;
-  const now = field(key);
-  const from = now === shown ? field(`${key}-previous`) : now;
+  const field = (k) => header?.[k] ?? header?.[k.replaceAll("-", "_")];
+  const now = field(key)?.value;
+  const before = field(`${key}-previous`);
+  const from = now === shown ? (before?.list?.[0]?.value ?? (before?.value || undefined)) : now;
   if (from == null || +from === +shown) return null;
   return { way: +shown > +from ? "up" : "down", from };
 }

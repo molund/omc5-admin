@@ -536,4 +536,10 @@ test("the card's spans per week, and which way it went, as the site's card works
   assert.equal(cardFor(withPace("2.70", "2.79")).way, "down");
   assert.equal(cardFor(withPace("2.79", "2.79")).way, null);
   assert.equal(cardFor(withPace("2.83")).way, null);
+  // as a list of earlier values: the newest
+  const listed = BASE.replace(
+    /^((?:hung|complete): .*)$/m,
+    "$1\nspans-per-week: 2.83\nspans-per-week-previous:\n  - 2026-11-06T22:00-07:00: 2.90\n    span: 38\n    stage: hangers down\n  - 2026-11-05T10:00-07:00: 2.50\n    span: 38\n    stage: arrived at span",
+  );
+  assert.deepEqual([cardFor(listed).before, cardFor(listed).way], ["2.90", "down"]);
 });

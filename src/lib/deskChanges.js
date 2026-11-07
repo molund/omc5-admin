@@ -11,7 +11,7 @@
 import { parseStatus, headerOf } from "./statusFile.js";
 import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
 import { applyChange, Conflict, setVelocity } from "./changes.js";
-import { velocity } from "./velocity.js";
+import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
 
 /** The line ranges a whole-file rewrite changed, as one hunk for the review. */
@@ -117,8 +117,10 @@ export function applyDeskChange(deskText, change, statusBefore) {
 export function applyBoth(files, change) {
   const s = applyChange(files.status, change, { deskKeys: parseDesk(files.desk).map((e) => e.key) });
   const d = applyDeskChange(files.desk, change, files.status);
-  // the velocity with this change's steps in it, near the top of status.yaml
-  const v = setVelocity(s.text, velocity(parseDesk(d.text)));
+  // the velocity with this change's steps in it, and its values at the earlier steps of the past 72 hours, near the top of
+  // status.yaml
+  const entries = parseDesk(d.text);
+  const v = setVelocity(s.text, velocity(entries), velocityHistory(entries));
   return { status: v.text, desk: d.text, hunks: [...s.hunks, ...v.hunks], deskHunks: d.hunks };
 }
 

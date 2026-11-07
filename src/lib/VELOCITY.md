@@ -18,11 +18,25 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
 Both figures are written into `status.yaml` after `hung:`, as `days-per-span` and `spans-per-week`, to two decimals, on
-every push (`setVelocity` in `changes.js`), each change its own commit. A figure that moves keeps the value it had in
-`days-per-span-previous` or `spans-per-week-previous`, on the line after it; one that stays the same leaves its
-`-previous` as it was. The desk's velocity panel shows an arrow for which way each one last went. (Until Nov. 7, 2026 the
-keys had underscores, `days_per_span` and so on; the next push renames them, and both the desk and the site still read
-the old names.)
+every push (`setVelocity` in `changes.js`), each change its own commit. Under each, `days-per-span-previous` and
+`spans-per-week-previous` list its values at the earlier steps of the past **96 hours** (`HISTORY_HOURS`), newest first,
+each with the span and stage of the step it was timed by:
+
+```yaml
+spans-per-week: 2.83
+spans-per-week-previous:
+  - 2026-11-06T22:00-07:00: 2.81
+    span: 38
+    stage: hangers down
+```
+
+- **Recalculated, not remembered.** On every push the lists are worked out again from `desk.yaml`
+  (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So they backfill themselves, a
+  step logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
+- **The arrow** (the desk's panel and the site's card) compares the figure with the newest earlier value; equal, no
+  arrow.
+- **Earlier forms.** Through Nov. 7, 2026 the keys had underscores (`days_per_span` and so on), and `-previous` was a
+  single value. The next push replaces those with the lists; until then both the desk and the site still read them.
 
 ## The site's tooltip is simplified on purpose
 

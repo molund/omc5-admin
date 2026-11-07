@@ -30,10 +30,12 @@ export function cardFor(text) {
   const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
   const word = fu ?? latest;
   const current = !!word && !!head.updated && compareKeys(word.key, head.updated) === 0;
-  // (named with underscores before Nov. 7, 2026, as the site still reads too)
+  // `before`: the newest of its earlier values (the forms from earlier on Nov. 7, 2026 still read, as the site does:
+  // underscored keys, and a single earlier value)
   const h = parsed.header;
   const pace = (h["spans-per-week"] ?? h.spans_per_week)?.value ?? null;
-  const before = (h["spans-per-week-previous"] ?? h.spans_per_week_previous)?.value ?? null;
+  const earlier = h["spans-per-week-previous"] ?? h.spans_per_week_previous;
+  const before = earlier?.list?.[0]?.value ?? (earlier?.value || null);
   return {
     ...head,
     ...figuresFor(head.span),

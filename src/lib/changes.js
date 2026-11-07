@@ -119,67 +119,76 @@ function setHeader(doc, values) {
 const VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
-  "# for), each with its value before it last changed (-previous)",
+  "# for), each with its values at the earlier steps of the past 96 hours (-previous), newest first, with the span and",
+  "# stage of the step each was timed by",
 ];
 // the comments as they were written before, replaced by the one above where they're found: before the velocity was taken
-// over a week, and while its keys had underscores (both Nov. 7, 2026)
+// over a week, while its keys had underscores, and while it kept a single earlier value (all Nov. 7, 2026)
 const OLD_VELOCITY_COMMENTS = [
   [
     "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
     "# last three spans, and spans per week once the weekly shutdown is allowed for",
   ],
   [...VELOCITY_COMMENT.slice(0, 2), "# for), each with its value before it last changed (_previous)"],
+  [...VELOCITY_COMMENT.slice(0, 2), "# for), each with its value before it last changed (-previous)"],
+  [
+    ...VELOCITY_COMMENT.slice(0, 2),
+    "# for), each with its values at the earlier steps of the past 72 hours (-previous), newest first",
+  ],
 ];
-// the keys, with the names they had before Nov. 7, 2026, renamed where they're found
-const VELOCITY_KEYS = {
-  "days-per-span": "days_per_span",
-  "days-per-span-previous": "days_per_span_previous",
-  "spans-per-week": "spans_per_week",
-  "spans-per-week-previous": "spans_per_week_previous",
-};
+// every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026
+const VELOCITY_NAMES = ["days-per-span", "spans-per-week"].flatMap((k) =>
+  [k, `${k}-previous`].flatMap((n) => [n, n.replaceAll("-", "_")]),
+);
 
 /**
- * Writes the velocity's two figures into the file's header, after `hung:`, or updates them where they already are. A
- * figure that changes keeps the one before it, in `days-per-span-previous` or `spans-per-week-previous` on the line after
- * it; one that doesn't change leaves that as it is. Keys still named the old way (with underscores) are renamed.
+ * Writes the velocity into the file's header, after `hung:`, or where it already is: its two figures, each with its
+ * values at the earlier steps of the past 96 hours under it, newest first, as a `- time: value` list, each with the span
+ * and stage of the step it was timed by (lib/velocity.js's velocityHistory). The whole block is written again from them each time, so older values drop out and missing ones are
+ * filled in; the forms it had earlier on Nov. 7, 2026 (underscored keys, a single earlier value) are replaced.
  * @param {string} text
  * @param {{ days: number|null, spansPerWeek?: number }|null} v From lib/velocity.js; with no days the file is left as it is.
+ * @param {{ key: string, days: number, spansPerWeek: number, span: number, stage: string }[]} [history] The earlier
+ *   values, newest first.
  * @returns {{ text: string, hunks: object[] }}
  */
-export function setVelocity(text, v) {
+export function setVelocity(text, v, history = []) {
   const doc = new Doc(text);
   if (v?.days == null) return { text, hunks: [] };
-  for (const [key, old] of Object.entries(VELOCITY_KEYS)) {
-    const h = doc.parsed.header[old];
-    if (h && !doc.parsed.header[key]) doc.replace(h.line, 1, [`${key}: ${h.value}`]);
-  }
-  const values = { "days-per-span": v.days.toFixed(2), "spans-per-week": v.spansPerWeek.toFixed(2) };
+  const figure = (key, now, before) => [
+    `${key}: ${now.toFixed(2)}`,
+    ...(history.length
+      ? [
+          `${key}-previous:`,
+          ...history.flatMap((h) => [
+            `  - ${h.key}: ${before(h).toFixed(2)}`,
+            `    span: ${h.span}`,
+            `    stage: ${h.stage}`,
+          ]),
+        ]
+      : []),
+  ];
+  const block = [
+    ...VELOCITY_COMMENT,
+    ...figure("days-per-span", v.days, (h) => h.days),
+    ...figure("spans-per-week", v.spansPerWeek, (h) => h.spansPerWeek),
+  ];
   const { header } = doc.parsed;
-  if (header["days-per-span"] && header["spans-per-week"]) {
-    for (const [k, value] of Object.entries(values)) {
-      const was = doc.parsed.header[k];
-      if (was.value === value) continue;
-      doc.replace(was.line, 1, [`${k}: ${value}`]);
-      const prev = doc.parsed.header[`${k}-previous`];
-      if (prev) doc.replace(prev.line, 1, [`${k}-previous: ${was.value}`]);
-      else doc.replace(was.line + 1, 0, [`${k}-previous: ${was.value}`]);
-    }
-    const first = Math.min(doc.parsed.header["days-per-span"].line, doc.parsed.header["spans-per-week"].line);
-    for (const old of OLD_VELOCITY_COMMENTS) {
-      const at = first - old.length;
-      if (old.every((l, i) => doc.lines[at + i] === l)) {
-        doc.replace(at, old.length, VELOCITY_COMMENT);
-        break;
-      }
-    }
+  const found = VELOCITY_NAMES.map((n) => header[n]).filter(Boolean);
+  if (found.length) {
+    // the lines it has now, its comment just above them, written as one piece (as the desk writes it)
+    let from = Math.min(...found.map((h) => h.line));
+    const to = Math.max(...found.map((h) => h.end));
+    const comment = [VELOCITY_COMMENT, ...OLD_VELOCITY_COMMENTS].find((c) =>
+      c.every((l, i) => doc.lines[from - c.length + i] === l),
+    );
+    if (comment) from -= comment.length;
+    if (doc.lines.slice(from, to + 1).join("\n") !== block.join("\n")) doc.replace(from, to - from + 1, block);
     return { text: doc.text, hunks: doc.hunks };
   }
   const after = header.hung ?? header.complete;
   if (!after) throw new Conflict(`status.yaml has no "hung:" line.`);
-  doc.replace(after.line + 1, 0, [
-    ...VELOCITY_COMMENT,
-    ...Object.entries(values).map(([k, value]) => `${k}: ${value}`),
-  ]);
+  doc.replace(after.line + 1, 0, block);
   return { text: doc.text, hunks: doc.hunks };
 }
 

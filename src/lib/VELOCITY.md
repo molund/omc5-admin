@@ -89,10 +89,12 @@ These short hand-offs are held near a set length in shift hours (`KNOWN_HOURS`):
 - Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares.
 - Only consecutive spans make a cycle, and only when both arrivals are known, logged or estimated.
 
-## Estimated arrivals
+## Estimated arrivals and steps
 
 - A missing arrival is placed between the nearest logged steps before and after it, in a straight line on the shift
   clock, using the stage shares to say how far through the cycle each step was.
 - With no step on one side, there's no estimate, and that span's cycle isn't counted.
 - Estimates are rounded to the quarter hour.
+- Any other step that wasn't logged is estimated the same way, for the steps table in the velocity panel, where it's
+  marked "(est.)". A step still to come (nothing logged after it) isn't estimated.
 - They're worked out again every time, so an estimate can shift a little as new steps are logged.

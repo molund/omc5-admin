@@ -1,13 +1,14 @@
 // The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans and
 // the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
-// estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step logged, grouped by
-// span, with its time (BC, 24-hour clock) and the working time since its span's arrival.
+// estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
+// with its time (BC, 24-hour clock) and the working time since its span's arrival: the ones logged, and the ones that
+// weren't, estimated the way a missing arrival is.
 // Only the velocity itself shows until it's opened.
 import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { sinceArrival, spanDays, WINDOW } from "../lib/velocity.js";
+import { spanDays, stepsWithEstimates, WINDOW } from "../lib/velocity.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock24, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
@@ -21,7 +22,9 @@ export function VelocityPanel() {
   const [open, setOpen] = useState(false);
   const v = desk.velocity;
   if (!v) return null;
-  const recent = v.current ? sinceArrival(desk.deskEntries).filter((t) => t.span >= v.current.span - WINDOW) : [];
+  const recent = v.current
+    ? stepsWithEstimates(desk.deskEntries, v.shares).filter((t) => t.span >= v.current.span - WINDOW)
+    : [];
   // the steps under their span, in the same order
   const bySpan = [];
   for (const t of recent) {
@@ -102,15 +105,15 @@ export function VelocityPanel() {
       {open && recent.length > 0 && (
         <View style={tw`gap-1 border-t border-line pt-2`}>
           <Body small mute>
-            Steps logged, in working time since arriving at the span
+            Steps, in working time since arriving at the span (est.: not logged, estimated)
           </Body>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
               <Body small style={tw`font-semibold`}>{`Span ${g.span}: ${range(g.span)}`}</Body>
               {g.steps.map((t) => (
-                <View key={t.key} style={tw`flex-row items-baseline gap-2 pl-3`}>
-                  <Body small style={tw`flex-1`}>
-                    {STAGE_LABELS[t.stage]}
+                <View key={t.stage} style={tw`flex-row items-baseline gap-2 pl-3`}>
+                  <Body small mute={t.estimated} style={tw`flex-1`}>
+                    {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
                   </Body>
                   <Body small mute style={[tw`w-12 text-right`, num]}>
                     {clock24(t.key)}

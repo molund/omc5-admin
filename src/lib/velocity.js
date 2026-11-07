@@ -185,10 +185,7 @@ export function arrivals(entries, shares = stageShares(entries)) {
   const steps = allSteps(entries);
   if (!steps.length) return {};
   const by = stepsBySpan(entries);
-  const origin = steps[0].at;
-  const progress = steps
-    .map((t) => ({ position: t.span + shares[t.index].position, hours: shiftHours(origin, t.at) }))
-    .sort((a, b) => a.position - b.position);
+  const at = estimator(steps, shares);
   const spans = steps.map((t) => t.span);
   const out = {};
   for (let span = Math.min(...spans); span <= Math.max(...spans); span++) {
@@ -197,14 +194,55 @@ export function arrivals(entries, shares = stageShares(entries)) {
       out[span] = { key: logged, estimated: false };
       continue;
     }
-    const before = progress.filter((p) => p.position <= span).at(-1);
-    const after = progress.find((p) => p.position > span);
-    if (!before || !after) continue;
-    const part = (span - before.position) / (after.position - before.position);
-    const when = afterShiftHours(origin, before.hours + (after.hours - before.hours) * part);
-    out[span] = { key: toKey(new Date(Math.round(when.getTime() / QUARTER) * QUARTER)), estimated: true };
+    const key = at(span);
+    if (key) out[span] = { key, estimated: true };
   }
   return out;
+}
+
+/**
+ * When the gantry reached a point in its progress (a span number plus how far through that span's cycle), read off between
+ * the nearest steps either side of it in shift hours, to the quarter hour: a function of the point, giving a key, or null
+ * with no step on one side.
+ */
+function estimator(steps, shares) {
+  const origin = steps[0].at;
+  const progress = steps
+    .map((t) => ({ position: t.span + shares[t.index].position, hours: shiftHours(origin, t.at) }))
+    .sort((a, b) => a.position - b.position);
+  return (point) => {
+    const before = progress.filter((p) => p.position <= point).at(-1);
+    const after = progress.find((p) => p.position > point);
+    if (!before || !after) return null;
+    const part = (point - before.position) / (after.position - before.position);
+    const when = afterShiftHours(origin, before.hours + (after.hours - before.hours) * part);
+    return toKey(new Date(Math.round(when.getTime() / QUARTER) * QUARTER));
+  };
+}
+
+/**
+ * Like sinceArrival, but with the steps that weren't logged estimated too, and spans whose arrival is an estimate:
+ * [{ span, stage, key, hours, estimated }]. A step is estimated the way an arrival is, between the nearest steps either side
+ * of it, so a step still to come (nothing logged after it) isn't in it.
+ */
+export function stepsWithEstimates(entries, shares = stageShares(entries)) {
+  const steps = allSteps(entries);
+  if (!steps.length) return [];
+  const by = stepsBySpan(entries);
+  const at = estimator(steps, shares);
+  const arrived = arrivals(entries, shares);
+  const out = [];
+  for (const [span, arrival] of Object.entries(arrived)) {
+    for (const [index, stage] of STAGES.entries()) {
+      const logged = by[span]?.[stage];
+      const key = index === 0 ? arrival.key : (logged ?? at(Number(span) + shares[index].position));
+      if (!key) continue;
+      const hours = workingHours(parseKey(arrival.key), parseKey(key));
+      if (hours > 0 || index === 0)
+        out.push({ span: Number(span), stage, key, hours, estimated: index === 0 ? arrival.estimated : !logged });
+    }
+  }
+  return out.sort((a, b) => b.span - a.span || a.hours - b.hours);
 }
 
 /**

@@ -17,7 +17,10 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
-Both figures are written into `status.yaml` after `hung:`, to two decimals, on every push (`setVelocity` in `changes.js`).
+Both figures are written into `status.yaml` after `hung:`, to two decimals, on every push (`setVelocity` in `changes.js`),
+each change its own commit. A figure that moves keeps the value it had in `days_per_span_previous` or
+`spans_per_week_previous`, on the line after it; one that stays the same leaves its `_previous` as it was. The desk's
+velocity panel shows an arrow for which way each one last went.
 
 ## Time
 

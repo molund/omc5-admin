@@ -1,7 +1,7 @@
 // The map's progress card, as a version of status.yaml would leave it (by the card's new time-stamp rule), drawn like
 // src/ProgressCard.svelte in molund/omc5. It's in the opposite theme to the app's, so it stands apart from the form around it:
-// the site's dark card when the app is light, and its light card when the app is dark. The close button is only a picture of
-// the site's: nothing here is pressed.
+// the site's dark card when the app is light, and its light card when the app is dark. Nothing here is pressed, so it has
+// no close button, unlike the site's.
 import { useState } from "react";
 import { Image, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "../theme/tw.js";
@@ -69,9 +69,6 @@ function Card({ card }) {
           />
         )}
         <Text style={[tw`text-xs font-bold uppercase`, { color: GOLD, letterSpacing: 3.6 }]}>Progress</Text>
-      </View>
-      <View style={tw`absolute right-1.5 top-1.5 p-1`}>
-        <Icon name="close" color={colors.mute} size={18} />
       </View>
       <View style={tw`mb-2 mt-0.5 flex-row flex-wrap items-baseline`}>
         <Figure textStyle={tw`text-3xl font-semibold text-ink`} color={colors.mute} drop={BIG_DROP}>

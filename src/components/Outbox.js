@@ -118,8 +118,8 @@ function Landing({ p }) {
 
   const when = asOf(toKey(new Date(p.requestedAt)));
   const text = {
-    waiting: `Pushed to the desk branch ${when}. Waiting for GitHub to start the check.`,
-    running: `Pushed ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
+    waiting: `Pushed to desk branch ${when}. Waiting for GitHub to start the check.`,
+    running: `Pushed to desk branch ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
     failed: "The check failed, so nothing reached main. The changes are still waiting here.",
   }[status.state];
   return (
@@ -219,7 +219,11 @@ export function Outbox({ onSettings, onEdit }) {
 
       {desk.changes.length ? (
         <View style={tw`gap-2`}>
-          <Label>{`Waiting to push (${desk.changes.length})`}</Label>
+          <Label>
+            {p?.via === "github"
+              ? `Waiting for fast-forward to main (${desk.changes.filter((c) => p.ids?.includes(c.id)).length})`
+              : `Waiting to push (${desk.changes.length})`}
+          </Label>
           {desk.changes.map((c) => {
             const r = desk.results.get(c.id);
             const sent = !!p?.ids?.includes(c.id);

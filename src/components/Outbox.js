@@ -118,8 +118,8 @@ function Landing({ p }) {
 
   const when = asOf(toKey(new Date(p.requestedAt)));
   const text = {
-    waiting: `Pushed to the desk branch ${when}. Waiting for GitHub to start the check.`,
-    running: `Pushed ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
+    waiting: `Pushed to desk branch ${when}. Waiting for fast-forward to main.`,
+    running: `Pushed to desk branch ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
     failed: "The check failed, so nothing reached main. The changes are still waiting here.",
   }[status.state];
   return (

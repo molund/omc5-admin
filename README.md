@@ -1,8 +1,12 @@
 # Clipper Status Desk (omc5-admin)
 
-A little CMS for the Clayton Clipper site's `status.yaml` (molund/omc5). It's a React Native app styled with Tailwind
-(twrnc). It runs in the Claude app as an artifact, through react-native-web. It's the admin app for
-[molund/omc5](https://github.com/molund/omc5) (the Clayton Clipper site) and lives in this repo, apart from the site's.
+An iPhone app for posting Clayton Clipper updates from the construction site. On walks with Piper, Mike records where the
+gantry is, how far the span has got, notes and photos, and pushes them straight to the site's `status.yaml` from the
+phone. It's the admin app for [molund/omc5](https://github.com/molund/omc5) (the Clayton Clipper site) and lives in this
+repo, apart from the site's. It's built with Expo (React Native) and styled with Tailwind (twrnc).
+
+The same app also runs as an artifact in the Claude app, through react-native-web. That's secondary: it's used only when
+making changes to the app itself from the Claude iPhone app.
 
 ## Modes
 

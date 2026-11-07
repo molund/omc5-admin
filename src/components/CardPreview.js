@@ -100,16 +100,20 @@ function Card({ card }) {
       </View>
       {/* "▲ 2.83 spans/wk velocity": the arrow green going up, red going down, in the site's shade for this card's theme */}
       {card.pace ? (
-        <Text style={tw`mt-2 text-sm text-mute`}>
+        // the figure dotted underneath, as the site's has a tip
+        <View style={tw`mt-2 flex-row flex-wrap items-baseline`}>
           {card.way ? (
-            <Text style={{ color: (card.way === "up" ? UP : DOWN)[colors === themes.dark.colors ? 1 : 0] }}>
-              {card.way === "up" ? "▲" : "▼"}
-              {" "}
+            <Text
+              style={[tw`text-sm`, { color: (card.way === "up" ? UP : DOWN)[colors === themes.dark.colors ? 1 : 0] }]}
+            >
+              {`${card.way === "up" ? "▲" : "▼"}\u00a0`}
             </Text>
           ) : null}
-          <Text style={tw`font-semibold text-ink`}>{card.pace}</Text>
-          {" spans/wk velocity"}
-        </Text>
+          <Figure textStyle={tw`text-sm font-semibold text-ink`} color={colors.mute} drop={SMALL_DROP}>
+            {card.pace}
+          </Figure>
+          <Text style={tw`text-sm text-mute`}>{"\u00a0spans/wk velocity"}</Text>
+        </View>
       ) : null}
       {when ? <Text style={tw`mt-2 text-xs text-mute`}>As of {when}</Text> : null}
       {card.text ? <Text style={tw`mt-2 text-sm text-ink`}>{card.text}</Text> : null}

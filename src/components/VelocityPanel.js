@@ -22,6 +22,10 @@ const SHORT_LABELS = {
   "supports started": "Moving supports",
 };
 
+// the two stats: a tenth larger than text-lg numbers and text-sm words
+const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
+const STAT_LABEL = { fontSize: 15.4 };
+
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
@@ -68,11 +72,11 @@ export function VelocityPanel() {
           {/* closed: on one line, or one under the other when it's too narrow, never broken in the middle of a stat;
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
-            <Body>
-              <Body style={tw`text-lg font-bold`}>{v.days.toFixed(2)}</Body> days/span
+            <Body style={STAT_LABEL}>
+              <Body style={[tw`font-bold`, STAT_NUMBER]}>{v.days.toFixed(2)}</Body> days/span
             </Body>
-            <Body>
-              <Body style={tw`text-lg font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans/wk
+            <Body style={STAT_LABEL}>
+              <Body style={[tw`font-bold`, STAT_NUMBER]}>{v.spansPerWeek.toFixed(2)}</Body> spans/wk
             </Body>
           </View>
           {open && (

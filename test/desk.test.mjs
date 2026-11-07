@@ -218,7 +218,7 @@ test("working time leaves out Saturday 6 p.m. to Sunday 6 p.m.", () => {
   assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 48);
 });
 
-test("the velocity: the last two spans, arrival to arrival", () => {
+test("the velocity: the last three spans, arrival to arrival or the next step both have", () => {
   const entries = parseDesk(DESK);
   const v = velocity(entries, at("2026-11-05T13:00-07:00"));
   assert.deepEqual(
@@ -226,6 +226,7 @@ test("the velocity: the last two spans, arrival to arrival", () => {
     [
       [37, 38, "arrived at span", 44.5],
       [36, 37, "arrived at span", 64.75],
+      [35, 36, "hung", 55.25],
     ],
   );
   assert.equal(v.days.toFixed(2), "2.28");

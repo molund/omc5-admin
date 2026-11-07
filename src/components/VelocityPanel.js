@@ -1,4 +1,4 @@
-// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last two spans, the
+// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): working days per span over the last three spans, the
 // cycles it's from, how long the gantry has been on its span, and each step logged, grouped by span, with its time (BC, 24-hour
 // clock) and the working time since its span's arrival.
 // Only the velocity itself shows until it's opened.

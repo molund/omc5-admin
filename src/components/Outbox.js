@@ -219,7 +219,11 @@ export function Outbox({ onSettings, onEdit }) {
 
       {desk.changes.length ? (
         <View style={tw`gap-2`}>
-          <Label>{`${p?.via === "github" ? "Waiting for fast-forward to main" : "Waiting to push"} (${desk.changes.length})`}</Label>
+          <Label>
+            {p?.via === "github"
+              ? `Waiting for fast-forward to main (${desk.changes.filter((c) => p.ids?.includes(c.id)).length})`
+              : `Waiting to push (${desk.changes.length})`}
+          </Label>
           {desk.changes.map((c) => {
             const r = desk.results.get(c.id);
             const sent = !!p?.ids?.includes(c.id);

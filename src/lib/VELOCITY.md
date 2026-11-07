@@ -5,11 +5,14 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 
 ## What it calculates
 
-- **Days per span**: the average of the last three cycles (`WINDOW`), each from one span's arrival to the next span's, in
-  working days.
+- **Days per span**: the average of the last three cycles (`WINDOW`), in working days. Each cycle runs from a stage on one
+  span to the same stage on the next: **the stage reported most recently** (the last step logged in `desk.yaml`), so the
+  velocity moves with every step, not only at each arrival. Averaged, that's the time from that stage on the span three
+  back to the same stage now, over three.
 - **Spans per week**: 6 working days a week divided by the days per span.
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
-- **Estimated arrivals**: a span's arrival, when it wasn't logged, read off from the steps that were.
+- **Estimated stages**: that stage on an earlier span, or a span's arrival, when it wasn't logged, read off from the steps
+  that were.
 
 Both figures are written into `status.yaml` after `hung:`, to two decimals, on every push (`setVelocity` in `changes.js`).
 
@@ -92,11 +95,13 @@ These short hand-offs are held near a set length in shift hours (`KNOWN_HOURS`):
   with too high a span number moves this window.
 - **The earliest time stamp** for each step on each span. A tag means "this had happened by then".
 - Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares.
-- Only consecutive spans make a cycle, and only when both arrivals are known, logged or estimated.
+- Only consecutive spans make a cycle, and only when the stage is known on both, logged or estimated.
+- The newest cycle ends at the step logged last. If that step's span is lower than a span already logged (a late report),
+  the cycles end at its span.
 
 ## Estimated arrivals and steps
 
-- A missing arrival is placed between the nearest logged steps before and after it, in a straight line on the shift
+- A missing arrival (or the velocity's stage, on a span where it wasn't logged) is placed between the nearest logged steps before and after it, in a straight line on the shift
   clock, using the stage shares to say how far through the cycle each step was.
 - With no step on one side, there's no estimate, and that span's cycle isn't counted.
 - Estimates are rounded to the quarter hour.

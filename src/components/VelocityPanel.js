@@ -21,6 +21,8 @@ const SHORT_LABELS = {
   "post-tensioning started": "Post-tensioning",
   "supports started": "Moving supports",
 };
+// the stage a cycle is timed by, in full ("Hanging started to hanging started")
+const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 
 // the two stats: a tenth larger than text-lg numbers and text-sm words
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
@@ -81,7 +83,7 @@ export function VelocityPanel() {
           </View>
           {open && (
             <Body small mute>
-              {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
+              {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}, timed by the latest step reported (${stageName(v.stage).toLowerCase()}), from span to span. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
             </Body>
           )}
         </View>
@@ -96,7 +98,7 @@ export function VelocityPanel() {
             <View style={tw`flex-1 gap-0.5`}>
               <Body small>{`Span ${c.from} to ${c.to}`}</Body>
               <Body small mute>
-                {`Arrival to arrival: ${c.startEstimated ? "about " : ""}${stamp(c.start)} to ${c.endEstimated ? "about " : ""}${stamp(c.end)}`}
+                {`${stageName(c.stage)} to ${stageName(c.stage).toLowerCase()}: ${c.startEstimated ? "about " : ""}${stamp(c.start)} to ${c.endEstimated ? "about " : ""}${stamp(c.end)}`}
               </Body>
             </View>
             <Body small>{days(c.hours / 24)}</Body>

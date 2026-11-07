@@ -1,11 +1,12 @@
 // The Clayton Clipper's velocity: the working days it takes per span, from the steps tagged in desk.yaml, and the spans
 // per week that makes once a week's shutdown is allowed for.
 //
-// A span's cycle is the time from its arrival to the next span's. An arrival that wasn't logged is estimated from the steps
-// that were: the recent gaps between steps give each stage's share of the cycle, in shift hours (no time passes in a shift
-// break or the shutdown), and that places every step along the gantry's progress, to read the arrival off between them.
-// Working time leaves out only the weekly shutdown: Saturday night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday,
-// BC time. The velocity is the average of the last three spans' cycles.
+// A span's cycle is the time from a stage on it to the same stage on the next span: the stage reported most recently, so
+// the velocity moves with every step logged. A stage that wasn't logged on a span is estimated from the steps that were:
+// the recent gaps between steps give each stage's share of the cycle, in shift hours (no time passes in a shift break or
+// the shutdown), and that places every step along the gantry's progress, to read the stage off between them. Working time
+// leaves out only the weekly shutdown: Saturday night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time.
+// The velocity is the average of the last three spans' cycles.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
 
@@ -252,19 +253,44 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
 }
 
 /**
- * The cycles measured, newest first: { from: span, to: span, start, end, startEstimated, endEstimated, hours }.
- * Only consecutive spans, each arrival to the next, logged or estimated, in working time.
+ * When each span reached a stage: { [span]: { key, estimated } }, as logged, or read off the gantry's progress between the
+ * nearest steps either side, the way a missing arrival is (so the arrival's are `arrivals`). With no step on one side, the
+ * span isn't in it.
  */
-export function cycles(entries, arrived = arrivals(entries)) {
+function stageTimes(entries, shares, stage) {
+  if (stage === STAGES[0]) return arrivals(entries, shares);
+  const steps = allSteps(entries);
+  if (!steps.length) return {};
+  const by = stepsBySpan(entries);
+  const at = estimator(steps, shares);
+  const position = shares[STAGES.indexOf(stage)].position;
+  const spans = steps.map((t) => t.span);
+  const out = {};
+  for (let span = Math.min(...spans); span <= Math.max(...spans); span++) {
+    const logged = by[span]?.[stage];
+    const key = logged ?? at(span + position);
+    if (key) out[span] = { key, estimated: !logged };
+  }
+  return out;
+}
+
+/**
+ * The cycles measured, newest first: { from: span, to: span, stage, start, end, startEstimated, endEstimated, hours }.
+ * Only consecutive spans, each from a stage on one span to the same stage on the next (arrival, unless another is named),
+ * logged or estimated, in working time.
+ */
+export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]) {
+  const times = stageTimes(entries, shares, stage);
   const out = [];
-  for (const n of Object.keys(arrived)
+  for (const n of Object.keys(times)
     .map(Number)
     .sort((a, b) => b - a)) {
-    const [a, b] = [arrived[n - 1], arrived[n]];
+    const [a, b] = [times[n - 1], times[n]];
     if (!a) continue;
     out.push({
       from: n - 1,
       to: n,
+      stage,
       start: a.key,
       end: b.key,
       startEstimated: a.estimated,
@@ -294,17 +320,23 @@ export function sinceArrival(entries) {
 }
 
 /**
- * The velocity now.
- * @returns {{ days: number, spansPerWeek?: number, cycles: object[], shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ * The velocity now, timed by the stage reported most recently (so it moves with every step logged): from that stage on
+ * the span three back to the same stage on its own span, over three, the earlier ones estimated where they weren't logged.
+ * @returns {{ days: number, spansPerWeek?: number, stage: string, cycles: object[], shares: object[], current: { span: number, since: string, days: number }|null }|null}
  */
 export function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
-  const used = cycles(entries, arrivals(entries, shares)).slice(0, WINDOW);
+  // the step logged last (allSteps is in the order logged), and its stage
+  const last = allSteps(entries).at(-1);
+  const stage = last ? STAGES[last.index] : STAGES[0];
+  const used = cycles(entries, shares, stage)
+    .filter((c) => !last || c.to <= last.span)
+    .slice(0, WINDOW);
   const by = stepsBySpan(entries);
   const top = Math.max(0, ...Object.keys(by).map(Number));
   const since = top ? by[top]["arrived at span"] : null;
   const current = since ? { span: top, since, days: workingHours(parseKey(since), now) / 24 } : null;
-  if (!used.length) return current ? { days: null, cycles: [], shares, current } : null;
+  if (!used.length) return current ? { days: null, stage, cycles: [], shares, current } : null;
   const days = used.reduce((t, c) => t + c.hours, 0) / used.length / 24;
-  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, cycles: used, shares, current };
+  return { days, spansPerWeek: WORKING_DAYS_PER_WEEK / days, stage, cycles: used, shares, current };
 }

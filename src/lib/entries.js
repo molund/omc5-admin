@@ -1,8 +1,8 @@
 // What the Entries tab lists: every update and blog post in status.yaml, each with its follow-ups, and the position records:
 // a desk.yaml record with no post at its time stamp, or a note with no summary (an older position's note to self, which the
 // site doesn't show). Plain JS, no React.
-import { compareKeys } from "./time.js";
-import { followUpsNewestFirst } from "./statusFile.js";
+import { compareKeys, dayOf } from "./time.js";
+import { followUpsNewestFirst, newestFirst } from "./statusFile.js";
 import { STAGE_LABELS, stageOf } from "./stages.js";
 
 /**
@@ -49,6 +49,17 @@ export const replaceChangeIn = (changes, id, change, message, savedAt) =>
 
 /** Whether a waiting change can be reopened. A delete has nothing to edit: it can only be discarded. */
 export const canReopen = (change) => !/-delete$/.test(change.kind);
+
+/**
+ * The updates a new follow-up can go under: today's and yesterday's (BC days), newest first. Not blog posts, nor a position's
+ * note to self (no summary).
+ */
+export function recentUpdates(parsed, now = new Date()) {
+  const days = [dayOf(now), dayOf(new Date(now.getTime() - 24 * 3600 * 1000))];
+  return newestFirst(parsed?.notes ?? []).filter(
+    (n) => n.fields.summary && !n.fields.post && days.includes(dayOf(n.key)),
+  );
+}
 
 /**
  * The draft a waiting change reopens as, in the form its screen keeps: { screen, seed, target? }. `target` is for the changes

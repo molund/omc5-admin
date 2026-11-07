@@ -98,12 +98,14 @@ export function Segmented({ options, value, onChange, small }) {
           <Pressable
             key={o.value}
             accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
+            accessibilityState={{ selected: on, disabled: !!o.disabled }}
+            disabled={!!o.disabled}
             onPress={() => onChange(o.value)}
             style={[
               tw`flex-1 flex-row items-center justify-center gap-1.5 ${small ? "py-1" : "py-2"} px-1`,
               i > 0 && tw`border-l border-button-line`,
               on && tw`bg-accent`,
+              o.disabled && tw`opacity-40`,
             ]}
           >
             {o.icon && (

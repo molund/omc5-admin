@@ -15,6 +15,7 @@ import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
 import { EntriesScreen } from "./screens/EntriesScreen.js";
+import { recentUpdates } from "./lib/entries.js";
 import { WaitingEditor } from "./components/WaitingEditor.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
 import { Icon } from "./components/Icon";
@@ -32,7 +33,7 @@ const MODES = [
     value: "followup",
     label: "Follow-up",
     screen: FollowUpScreen,
-    about: "Add to an update or blog post, or edit a follow-up.",
+    about: "Add to today's or yesterday's update, or edit a follow-up.",
   },
 ];
 // a blog post is written under Update, with its switch on: each keeps its own draft
@@ -65,7 +66,11 @@ function Desk() {
     setReopenId(change.id);
   };
   const [entries, setEntries] = useState(false); // the Entries page, apart from the tabs
-  const tab = MODES.find((m) => m.value === mode) ?? MODES[0];
+  // Follow-up is off with no update from today or yesterday to add to (blog posts don't count): left on it, the desk shows
+  // Update instead
+  const canFollowUp = recentUpdates(desk.parsed).length > 0;
+  const modes = MODES.map((m) => (m.value === "followup" ? { ...m, disabled: !canFollowUp } : m));
+  const tab = modes.find((m) => m.value === mode && !m.disabled) ?? (mode === "followup" ? modes[1] : modes[0]);
   const blogging = tab.value === "update" && blog;
   const current = blogging ? BLOG : tab;
   const Screen = current.screen;
@@ -148,7 +153,7 @@ function Desk() {
                   <EntriesScreen onReview={startReview} onEditWaiting={reopen} onLeave={() => setEntries(false)} />
                 ) : (
                   <>
-                    <Segmented options={MODES} value={tab.value} onChange={setMode} />
+                    <Segmented options={modes} value={tab.value} onChange={setMode} />
                     {tab.value === "update" && <Toggle label="Blog post" value={blog} onChange={setBlog} />}
                     <Body small mute>
                       {current.about}

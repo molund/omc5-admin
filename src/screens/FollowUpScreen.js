@@ -1,4 +1,4 @@
-// Follow-up: pick an update or blog post, then add a follow-up or edit one it has. A new follow-up becomes the card's newest
+// Follow-up: pick today's or yesterday's update, then add a follow-up or edit one it has. A new follow-up becomes the card's newest
 // word; the Move controls are folded in, since follow-ups often report a move.
 import { useState } from "react";
 import { Pressable, View } from "react-native";
@@ -16,6 +16,7 @@ import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
+import { recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
 import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
 
@@ -31,8 +32,9 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
-  // entries with no summary (a position's note to self) aren't updates, so they can't be followed up
-  const notes = newestFirst(desk.parsed.notes).filter((n) => n.fields.summary);
+  // a new follow-up goes under today's or yesterday's update; a waiting one reopened keeps the update or blog post it's under
+  // (entries with no summary, a position's note to self, aren't updates, so they can't be followed up)
+  const notes = seed ? newestFirst(desk.parsed.notes).filter((n) => n.fields.summary) : recentUpdates(desk.parsed);
   const first = notes.find((n) => !n.fields.post) ?? notes[0];
   const fresh = (noteKey) => ({
     noteKey,
@@ -47,7 +49,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
-  if (!note) return <Notice>There are no updates to follow up yet.</Notice>;
+  if (!note) return <Notice>There's no update from today or yesterday to follow up.</Notice>;
 
   const fus = followUpsNewestFirst(note);
   const gantryChanged = d.span !== head.span || d.complete !== head.complete;

@@ -22,7 +22,7 @@ import {
 } from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
-import { canReopen, listEntries, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
+import { canReopen, listEntries, recentUpdates, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
 import { parseKey, toKey, weekdayShort } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -739,4 +739,31 @@ test("steps that weren't logged are estimated close to the real ones, and a step
     rows.filter((r) => r.span === 44).map((r) => r.stage),
     ["arrived at span"],
   );
+});
+
+test("a follow-up goes under today's or yesterday's update: not older ones, blog posts or a position's note to self", () => {
+  const note = (key, fields) => ({ key, followUps: [], fields: { summary: "Something happened.", ...fields } });
+  const parsed = {
+    notes: [
+      note("2026-11-05T22:00-07:00", {}), // the day before yesterday
+      note("2026-11-06T00:15-07:00", {}), // yesterday, just after midnight BC time
+      note("2026-11-07T08:45-07:00", {}), // today
+      note("2026-11-07", { post: true }), // today's blog post
+      note("2026-11-07T10:00-07:00", { summary: "" }), // a position's note to self
+    ],
+  };
+  // 9 a.m. on Nov. 7, BC time
+  const now = new Date("2026-11-07T09:00-07:00");
+  assert.deepEqual(
+    recentUpdates(parsed, now).map((n) => n.key),
+    ["2026-11-07T08:45-07:00", "2026-11-06T00:15-07:00"],
+  );
+  // just after midnight, BC time: yesterday is now Nov. 6
+  assert.deepEqual(
+    recentUpdates(parsed, new Date("2026-11-07T00:05-07:00")).map((n) => n.key),
+    ["2026-11-07T08:45-07:00", "2026-11-06T00:15-07:00"],
+  );
+  // two days later: none, so the tab is off
+  assert.deepEqual(recentUpdates(parsed, new Date("2026-11-09T09:00-07:00")), []);
+  assert.deepEqual(recentUpdates(null, now), []);
 });

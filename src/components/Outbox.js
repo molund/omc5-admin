@@ -168,7 +168,7 @@ function Landing({ p }) {
     [p.head, p.landed],
   );
   // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one); none while the desk is
-  // in the background, and one as soon as it's back
+  // in the background, and one as soon as it's back, however long it was away
   useEffect(() => {
     let on = true,
       timer;
@@ -177,7 +177,7 @@ function Landing({ p }) {
       if (on) timer = setTimeout(loop, followingWithToken(p.head) ? 5 * 1000 : 15 * 1000);
     };
     loop();
-    const sub = AppState.addEventListener("change", (s) => s === "active" && check());
+    const sub = AppState.addEventListener("change", (s) => s === "active" && check(true));
     return () => {
       on = false;
       clearTimeout(timer);

@@ -68,8 +68,8 @@ export async function preparePhoto(file) {
     const scale = Math.min(1, MAX_WIDTH / img.naturalWidth);
     const width = Math.round(img.naturalWidth * scale),
       height = Math.round(img.naturalHeight * scale);
-    // halve it while it's more than twice the size, then draw the rest: one big step skips over most of the pixels, which
-    // comes out grainy, where each halving averages neighbouring ones (and not every browser honours "high" smoothing)
+    // halve it while it's more than twice the size, then draw the rest: each halving averages neighbouring pixels, which
+    // comes out a little smoother than one big step (in WebKit, a noise pattern's grain dropped by about a sixth)
     let source = img;
     for (let w = img.naturalWidth, h = img.naturalHeight; w / 2 >= width;) {
       [w, h] = [Math.round(w / 2), Math.round(h / 2)];

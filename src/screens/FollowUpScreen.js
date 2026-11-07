@@ -157,7 +157,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
       <View style={tw`gap-3 rounded-lg border border-accent p-2.5`}>
         <Row>
           <Label>{d.editing ? `Editing the ${clock(d.editing)} follow-up` : "New follow-up"}</Label>
-          {d.editing && <Button kind="link" small title="Write a new one instead" onPress={() => start({})} />}
+          {d.editing && <Button kind="link" small title="Cancel edit" onPress={() => start({})} />}
         </Row>
         <TimeStampField
           value={d.time}
@@ -197,9 +197,11 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         </Notice>
       ))}
       <View style={tw`flex-row gap-2`}>
+        {/* editing: back to a new follow-up under the same update */}
         <Button
-          title="Clear"
+          title={d.editing ? "Cancel edit" : "Clear"}
           onPress={() => {
+            if (d.editing) return start({});
             drop();
             reset();
           }}

@@ -119,18 +119,29 @@ function setHeader(doc, values) {
 const VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
-  "# for), each with its value before it last changed (_previous)",
+  "# for), each with its value before it last changed (-previous)",
 ];
-// the comment as it was written before Nov. 7, 2026, replaced by the one above where it's found
-const OLD_VELOCITY_COMMENT = [
-  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
-  "# last three spans, and spans per week once the weekly shutdown is allowed for",
+// the comments as they were written before, replaced by the one above where they're found: before the velocity was taken
+// over a week, and while its keys had underscores (both Nov. 7, 2026)
+const OLD_VELOCITY_COMMENTS = [
+  [
+    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
+    "# last three spans, and spans per week once the weekly shutdown is allowed for",
+  ],
+  [...VELOCITY_COMMENT.slice(0, 2), "# for), each with its value before it last changed (_previous)"],
 ];
+// the keys, with the names they had before Nov. 7, 2026, renamed where they're found
+const VELOCITY_KEYS = {
+  "days-per-span": "days_per_span",
+  "days-per-span-previous": "days_per_span_previous",
+  "spans-per-week": "spans_per_week",
+  "spans-per-week-previous": "spans_per_week_previous",
+};
 
 /**
  * Writes the velocity's two figures into the file's header, after `hung:`, or updates them where they already are. A
- * figure that changes keeps the one before it, in `days_per_span_previous` or `spans_per_week_previous` on the line after
- * it; one that doesn't change leaves that as it is.
+ * figure that changes keeps the one before it, in `days-per-span-previous` or `spans-per-week-previous` on the line after
+ * it; one that doesn't change leaves that as it is. Keys still named the old way (with underscores) are renamed.
  * @param {string} text
  * @param {{ days: number|null, spansPerWeek?: number }|null} v From lib/velocity.js; with no days the file is left as it is.
  * @returns {{ text: string, hunks: object[] }}
@@ -138,21 +149,29 @@ const OLD_VELOCITY_COMMENT = [
 export function setVelocity(text, v) {
   const doc = new Doc(text);
   if (v?.days == null) return { text, hunks: [] };
-  const values = { days_per_span: v.days.toFixed(2), spans_per_week: v.spansPerWeek.toFixed(2) };
+  for (const [key, old] of Object.entries(VELOCITY_KEYS)) {
+    const h = doc.parsed.header[old];
+    if (h && !doc.parsed.header[key]) doc.replace(h.line, 1, [`${key}: ${h.value}`]);
+  }
+  const values = { "days-per-span": v.days.toFixed(2), "spans-per-week": v.spansPerWeek.toFixed(2) };
   const { header } = doc.parsed;
-  if (header.days_per_span && header.spans_per_week) {
+  if (header["days-per-span"] && header["spans-per-week"]) {
     for (const [k, value] of Object.entries(values)) {
       const was = doc.parsed.header[k];
       if (was.value === value) continue;
       doc.replace(was.line, 1, [`${k}: ${value}`]);
-      const prev = doc.parsed.header[`${k}_previous`];
-      if (prev) doc.replace(prev.line, 1, [`${k}_previous: ${was.value}`]);
-      else doc.replace(was.line + 1, 0, [`${k}_previous: ${was.value}`]);
+      const prev = doc.parsed.header[`${k}-previous`];
+      if (prev) doc.replace(prev.line, 1, [`${k}-previous: ${was.value}`]);
+      else doc.replace(was.line + 1, 0, [`${k}-previous: ${was.value}`]);
     }
-    const first = Math.min(doc.parsed.header.days_per_span.line, doc.parsed.header.spans_per_week.line);
-    const at = first - OLD_VELOCITY_COMMENT.length;
-    if (OLD_VELOCITY_COMMENT.every((l, i) => doc.lines[at + i] === l))
-      doc.replace(at, OLD_VELOCITY_COMMENT.length, VELOCITY_COMMENT);
+    const first = Math.min(doc.parsed.header["days-per-span"].line, doc.parsed.header["spans-per-week"].line);
+    for (const old of OLD_VELOCITY_COMMENTS) {
+      const at = first - old.length;
+      if (old.every((l, i) => doc.lines[at + i] === l)) {
+        doc.replace(at, old.length, VELOCITY_COMMENT);
+        break;
+      }
+    }
     return { text: doc.text, hunks: doc.hunks };
   }
   const after = header.hung ?? header.complete;

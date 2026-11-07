@@ -530,7 +530,7 @@ test("the card's spans per week, and which way it went, as the site's card works
   const withPace = (now, before) =>
     BASE.replace(
       /^((?:hung|complete): .*)$/m,
-      `$1\nspans_per_week: ${now}${before ? `\nspans_per_week_previous: ${before}` : ""}`,
+      `$1\nspans-per-week: ${now}${before ? `\nspans-per-week-previous: ${before}` : ""}`,
     );
   assert.deepEqual([cardFor(withPace("2.83", "2.79")).pace, cardFor(withPace("2.83", "2.79")).way], ["2.83", "up"]);
   assert.equal(cardFor(withPace("2.70", "2.79")).way, "down");

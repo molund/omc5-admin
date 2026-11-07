@@ -118,7 +118,7 @@ export function parseStatus(text) {
     fu = null;
   lines.forEach((line, i) => {
     let m;
-    if ((m = line.match(/^([A-Za-z_]+):\s*(.*?)\s*$/))) {
+    if ((m = line.match(/^([A-Za-z][A-Za-z_-]*):\s*(.*?)\s*$/))) {
       if (!(m[1] in header)) header[m[1]] = { line: i, value: unquote(m[2]) };
       if (m[1] === "notes") notesLine = i;
       note = null;

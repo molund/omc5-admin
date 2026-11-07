@@ -30,8 +30,10 @@ export function cardFor(text) {
   const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
   const word = fu ?? latest;
   const current = !!word && !!head.updated && compareKeys(word.key, head.updated) === 0;
-  const pace = parsed.header.spans_per_week?.value ?? null;
-  const before = parsed.header.spans_per_week_previous?.value ?? null;
+  // (named with underscores before Nov. 7, 2026, as the site still reads too)
+  const h = parsed.header;
+  const pace = (h["spans-per-week"] ?? h.spans_per_week)?.value ?? null;
+  const before = (h["spans-per-week-previous"] ?? h.spans_per_week_previous)?.value ?? null;
   return {
     ...head,
     ...figuresFor(head.span),

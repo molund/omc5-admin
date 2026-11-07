@@ -190,7 +190,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         where={`A follow-up has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
       />
       <StyleHints texts={blockTexts(d.blocks)} />
-      <CardPreview card={cardFor(preview.text)} />
+      <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (
         <Notice key={p} tone="problem">
           {p}

@@ -14,9 +14,8 @@ import { STAGES } from "./stages.js";
 export const WINDOW = 3;
 // the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
 const WEEK_HOURS = 168;
-// how far back status.yaml keeps the velocity's earlier values (velocityHistory): the steps on the current span and
-// this many spans before it
-export const HISTORY_SPANS = 1;
+// how far back desk.yaml keeps the velocity's earlier values (velocityHistory), from the latest step
+export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
@@ -326,18 +325,17 @@ export function sinceArrival(entries) {
 }
 
 /**
- * The velocity at each earlier step on the current span (the furthest span with a step) and the span before it
- * (`HISTORY_SPANS`), worked out again from the steps logged by then, as if it were that moment: [{ key, spansPerWeek,
- * span, stage }], newest first, `span` and `stage` the step it was timed by. Steps on older spans aren't in it, so a push
- * keeps only those two spans; steps logged late are counted where their time stamps put them.
+ * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
+ * steps logged by then, as if it were that moment: [{ key, spansPerWeek, span, stage }], newest first, `span` and `stage`
+ * the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are counted
+ * where their time stamps put them.
  */
 export function velocityHistory(entries) {
   const steps = allSteps(entries);
   if (!steps.length) return [];
   const last = steps.at(-1).at.getTime();
-  const top = Math.max(...steps.map((t) => t.span));
-  const times = [...new Set(steps.filter((t) => t.span >= top - HISTORY_SPANS).map((t) => t.at.getTime()))].filter(
-    (t) => t < last,
+  const times = [...new Set(steps.map((t) => t.at.getTime()))].filter(
+    (t) => t < last && t >= last - HISTORY_HOURS * HOUR,
   );
   const out = [];
   for (const t of times.sort((a, b) => b - a)) {
@@ -354,12 +352,13 @@ export function velocityHistory(entries) {
 }
 
 /**
- * Which way a velocity figure last went, from status.yaml's header: the figure shown (to two decimals) against the value
- * it had before. That's the newest of the file's `-previous` values when the file already holds the figure shown, or
- * else the file's own value (the figure shown is new, with waiting changes or a new way of working it out). The forms
- * the file had earlier on Nov. 7, 2026 are read too: underscores in the keys, and a single `-previous` value.
+ * Which way a velocity figure last went, from the header of the file holding its earlier values (desk.yaml's; status.yaml's
+ * before Nov. 8, 2026): the figure shown (to two decimals) against the value it had before. That's the newest of the
+ * file's `-previous` values when the file already holds the figure shown, or else the file's own value (the figure shown
+ * is new, with waiting changes or a new way of working it out). The forms status.yaml had on Nov. 7, 2026 are read too:
+ * underscores in the keys, and a single `-previous` value.
  * @param {string} shown "2.83"
- * @param {object} header status.yaml's parsed header
+ * @param {object} header The file's parsed header (statusFile.js's parseStatus reads desk.yaml's too)
  * @param {string} key "spans-per-week"
  * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
  */

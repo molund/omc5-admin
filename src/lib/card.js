@@ -3,7 +3,8 @@
 // text, and a Trackside button in place of Comments.
 
 import { parseStatus, headerOf, newestFirst, followUpsNewestFirst } from "./statusFile.js";
-import { compareKeys } from "./time.js";
+import { compareKeys, parseKey } from "./time.js";
+import { parseDesk } from "./deskFile.js";
 
 /** The card's figures that aren't in status.yaml: the site works them out from its map (src/MapView/gantryProgress.js in
  * molund/omc5). Update these if the map's spans change. */
@@ -18,31 +19,71 @@ export const figuresFor = (span) => ({
 });
 
 /**
- * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
- *   ahead: number, total: number, percent: number, pace: string|null, way: "up"|"down"|null, before: string|null }}
- *   `pace`: the spans per week, as written; `way`: which way it went since `before`, its value before (as the site's card
- *   works it out).
+ * The velocity chart's points, oldest first: desk.yaml's earlier values, then the figure now at its newest entry's time
+ * stamp, as the site's build draws them (src/lib/velocityChart.js in molund/omc5). A desk.yaml without the velocity yet
+ * (before Nov. 8, 2026) has none.
+ * @returns {{ key: string, value: number }[]}
  */
-export function cardFor(text) {
+export function velocityPoints(deskText) {
+  const h = parseStatus(deskText ?? "").header;
+  const now = h["spans-per-week"]?.value;
+  const newest = parseDesk(deskText ?? "")[0]?.key;
+  if (now == null || !newest) return [];
+  const earlier = (h["spans-per-week-previous"]?.list ?? []).map((i) => ({ key: i.key, value: +i.value })).reverse();
+  return [...earlier, { key: newest, value: +now }];
+}
+
+/**
+ * The chart for those points, as the site draws it: a line spaced by time across `width`, the y axis zoomed to the values
+ * (their range, a tenth more each side; a flat line through the middle when they're all the same), and the area under it.
+ * `way` is the last value against the first, for its colour. Null with fewer than two points.
+ * @returns {{ line: string, area: string, way: "up"|"down"|"flat" }|null} `line` and `area`: SVG path data.
+ */
+export function chartFor(points, width = 48, height = 16) {
+  if (points.length < 2) return null;
+  const times = points.map((p) => parseKey(p.key).getTime());
+  const values = points.map((p) => p.value);
+  const [t0, t1] = [Math.min(...times), Math.max(...times)];
+  const [lo, hi] = [Math.min(...values), Math.max(...values)];
+  const pad = (hi - lo) / 10;
+  // the line's own width kept inside the box
+  const inset = 1;
+  const x = (t, i) => (t1 > t0 ? ((t - t0) / (t1 - t0)) * width : (i / (points.length - 1)) * width);
+  const y = (v) => (hi > lo ? inset + (1 - (v - (lo - pad)) / (hi - lo + 2 * pad)) * (height - 2 * inset) : height / 2);
+  const xy = points.map((p, i) => [x(times[i], i), y(p.value)].map((n) => +n.toFixed(2)));
+  const line = xy.map(([a, b], i) => `${i ? "L" : "M"}${a} ${b}`).join(" ");
+  const first = values[0],
+    last = values.at(-1);
+  return {
+    line,
+    area: `${line} L${xy.at(-1)[0]} ${height} L${xy[0][0]} ${height} Z`,
+    way: last > first ? "up" : last < first ? "down" : "flat",
+  };
+}
+
+/**
+ * @param {string} text status.yaml
+ * @param {string} [deskText] desk.yaml, for the velocity chart
+ * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
+ *   ahead: number, total: number, percent: number, pace: string|null, chart: object|null }}
+ *   `pace`: the spans per week, as written (status.yaml's copy); `chart`: chartFor's, from desk.yaml's earlier values.
+ */
+export function cardFor(text, deskText) {
   const parsed = parseStatus(text);
   const head = headerOf(parsed);
   const latest = newestFirst(parsed.notes).find((n) => n.fields.summary && !n.fields.post);
   const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
   const word = fu ?? latest;
   const current = !!word && !!head.updated && compareKeys(word.key, head.updated) === 0;
-  // `before`: the newest of its earlier values (the forms from earlier on Nov. 7, 2026 still read, as the site does:
-  // underscored keys, and a single earlier value)
+  // (named with underscores on Nov. 7, 2026, as the site still reads too)
   const h = parsed.header;
   const pace = (h["spans-per-week"] ?? h.spans_per_week)?.value ?? null;
-  const earlier = h["spans-per-week-previous"] ?? h.spans_per_week_previous;
-  const before = earlier?.list?.[0]?.value ?? (earlier?.value || null);
   return {
     ...head,
     ...figuresFor(head.span),
     text: current ? word.fields.summary : "",
     button: current ? "comments" : "trackside",
     pace,
-    before,
-    way: pace && before && +pace !== +before ? (+pace > +before ? "up" : "down") : null,
+    chart: pace ? chartFor(velocityPoints(deskText)) : null,
   };
 }

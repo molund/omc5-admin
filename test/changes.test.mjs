@@ -10,7 +10,7 @@ import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
 import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
 import { slugFor, slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
 import { cardAsOf, pageHeading, parseKey, toKey } from "../src/lib/time.js";
-import { cardFor, figuresFor } from "../src/lib/card.js";
+import { cardFor, chartFor, figuresFor, velocityPoints } from "../src/lib/card.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const BASE = readFileSync(here("./fixtures/status.yaml"), "utf8");
@@ -524,22 +524,50 @@ test("the card's time reads as the site words it, today, recently and further ba
   }
 });
 
-test("the card's spans per week, and which way it went, as the site's card works them out", () => {
+test("the card's spans per week, from status.yaml's copy, and its chart, from desk.yaml's earlier values", () => {
   // none written yet: no line on the card
   assert.equal(cardFor(BASE).pace, null);
-  const withPace = (now, before) =>
-    BASE.replace(
-      /^((?:hung|complete): .*)$/m,
-      `$1\nspans-per-week: ${now}${before ? `\nspans-per-week-previous: ${before}` : ""}`,
-    );
-  assert.deepEqual([cardFor(withPace("2.83", "2.79")).pace, cardFor(withPace("2.83", "2.79")).way], ["2.83", "up"]);
-  assert.equal(cardFor(withPace("2.70", "2.79")).way, "down");
-  assert.equal(cardFor(withPace("2.79", "2.79")).way, null);
-  assert.equal(cardFor(withPace("2.83")).way, null);
-  // as a list of earlier values: the newest
-  const listed = BASE.replace(
-    /^((?:hung|complete): .*)$/m,
-    "$1\nspans-per-week: 2.83\nspans-per-week-previous:\n  - 2026-11-06T22:00-07:00: 2.90\n    span: 38\n    stage: hangers down\n  - 2026-11-05T10:00-07:00: 2.50\n    span: 38\n    stage: arrived at span",
-  );
-  assert.deepEqual([cardFor(listed).before, cardFor(listed).way], ["2.90", "down"]);
+  const status = BASE.replace(/^((?:hung|complete): .*)$/m, "$1\nspans-per-week: 2.83");
+  // desk.yaml: the velocity, its earlier values newest first, and its entries (the newest at 10:45 a.m. on Nov. 7)
+  const desk = (now, earlier) =>
+    [
+      "# desk",
+      `spans-per-week: ${now}`,
+      "spans-per-week-previous:",
+      ...earlier.flatMap(([key, value]) => [`  - ${key}: ${value}`, "    span: 38", "    stage: hung"]),
+      "entries:",
+      "  - 2026-11-07T10:45-07:00:",
+      "      span: 38",
+      "      stage: supports started",
+    ].join("\n");
+  const rising = desk("2.83", [
+    ["2026-11-06T22:00-07:00", "2.81"],
+    ["2026-11-05T10:00-07:00", "2.59"],
+  ]);
+  // the points, oldest first, the figure now at the newest entry's time
+  assert.deepEqual(velocityPoints(rising), [
+    { key: "2026-11-05T10:00-07:00", value: 2.59 },
+    { key: "2026-11-06T22:00-07:00", value: 2.81 },
+    { key: "2026-11-07T10:45-07:00", value: 2.83 },
+  ]);
+  const card = cardFor(status, rising);
+  assert.equal(card.pace, "2.83");
+  assert.equal(card.chart.way, "up");
+  // across the whole box, by time; the y axis zoomed to the values, the lowest at the bottom, the highest at the top
+  const xy = [...card.chart.line.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => [+m[1], +m[2]]);
+  assert.equal(xy.length, 3);
+  assert.equal(xy[0][0], 0);
+  assert.equal(xy[2][0], 48);
+  assert.ok(xy[0][1] > 12 && xy[2][1] < 4, card.chart.line);
+  assert.match(card.chart.area, / L48 16 L0 16 Z$/);
+  // the last value against the first: red going down, grey when the same, a flat line through the middle
+  assert.equal(cardFor(status, desk("2.40", [["2026-11-06T22:00-07:00", "2.81"]])).chart.way, "down");
+  const flat = cardFor(status, desk("2.83", [["2026-11-06T22:00-07:00", "2.83"]])).chart;
+  assert.equal(flat.way, "flat");
+  assert.equal(flat.line, "M0 8 L48 8");
+  // fewer than two points, or no desk.yaml velocity yet: no chart
+  assert.equal(cardFor(status, desk("2.83", [])).chart, null);
+  assert.equal(cardFor(status, "entries:\n").chart, null);
+  assert.equal(cardFor(status).chart, null);
+  assert.equal(chartFor([]), null);
 });

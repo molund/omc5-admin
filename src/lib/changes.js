@@ -116,20 +116,23 @@ function setHeader(doc, values) {
   }
 }
 
+// desk.yaml's velocity block: spans per week and its earlier values (a copy of the figure goes into status.yaml)
 const VELOCITY_COMMENT = [
-  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
-  "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
-  "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
-  "# step each was timed by",
+  "# the Clayton Clipper's velocity, written by the Status Desk on every push: spans per week, from how far the gantry got in",
+  "# the week up to the latest step reported (the weekly shutdown allowed for), with its values at the earlier steps of the",
+  "# past 96 hours (-previous), newest first, with the span and stage of the step each was timed by. status.yaml has a",
+  "# copy of spans-per-week; the site's build draws the rest as the progress card's chart",
+];
+// status.yaml's copy
+const COPY_COMMENT = [
+  "# the Clayton Clipper's velocity in spans per week, a copy of desk.yaml's (where its earlier values are), written by the",
+  "# Status Desk on every push",
 ];
 // the first two lines the comment had while it also gave days per span
 const OLD_VELOCITY_START = [
   "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
 ];
-// the comments as they were written before, replaced by the one above where they're found: before the velocity was taken
-// over a week, while its keys had underscores, while it kept a single earlier value, while it also gave days per span,
-// and while it kept the earlier values of the past 96 hours (all Nov. 7, 2026)
 const OLD_VELOCITY_COMMENTS = [
   [
     "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
@@ -147,9 +150,16 @@ const OLD_VELOCITY_COMMENTS = [
     "# stage of the step each was timed by",
   ],
   [
-    VELOCITY_COMMENT[0],
-    VELOCITY_COMMENT[1],
+    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+    "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
+  ],
+  // while the earlier values were in status.yaml, for the current span and the one before it
+  [
+    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+    "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
+    "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
+    "# step each was timed by",
   ],
 ];
 // every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026; days per span is no longer
@@ -159,50 +169,78 @@ const VELOCITY_NAMES = ["days-per-span", "spans-per-week"].flatMap((k) =>
 );
 
 /**
- * Writes the velocity into the file's header, after `hung:`, or where it already is: spans per week, with its
- * values at the earlier steps on the current span and the one before it under it, newest first, as a `- time: value` list, each with the span
- * and stage of the step it was timed by (lib/velocity.js's velocityHistory). The whole block is written again from them each time, so older values drop out and missing ones are
- * filled in; the forms it had earlier on Nov. 7, 2026 (underscored keys, a single earlier value, days per span) are replaced.
+ * Writes a velocity block into a file's header, replacing the one there (in any of the forms it has had, with its comment
+ * just above it), or else putting it where `place` says. Nothing changes when the block is already as it would be written.
  * @param {string} text
- * @param {{ spansPerWeek: number|null }|null} v From lib/velocity.js; with no velocity the file is left as it is.
- * @param {{ key: string, spansPerWeek: number, span: number, stage: string }[]} [history] The earlier
- *   values, newest first.
- * @returns {{ text: string, hunks: object[] }}
+ * @param {string[]} block Its lines, comment first.
+ * @param {(header: object) => number} place The line to put a new block at.
  */
-export function setVelocity(text, v, history = []) {
+function writeVelocity(text, block, place) {
   const doc = new Doc(text);
-  if (v?.spansPerWeek == null) return { text, hunks: [] };
-  const figure = (key, now, before) => [
-    `${key}: ${now.toFixed(2)}`,
-    ...(history.length
-      ? [
-          `${key}-previous:`,
-          ...history.flatMap((h) => [
-            `  - ${h.key}: ${before(h).toFixed(2)}`,
-            `    span: ${h.span}`,
-            `    stage: ${h.stage}`,
-          ]),
-        ]
-      : []),
-  ];
-  const block = [...VELOCITY_COMMENT, ...figure("spans-per-week", v.spansPerWeek, (h) => h.spansPerWeek)];
   const { header } = doc.parsed;
   const found = VELOCITY_NAMES.map((n) => header[n]).filter(Boolean);
   if (found.length) {
     // the lines it has now, its comment just above them, written as one piece (as the desk writes it)
     let from = Math.min(...found.map((h) => h.line));
     const to = Math.max(...found.map((h) => h.end));
-    const comment = [VELOCITY_COMMENT, ...OLD_VELOCITY_COMMENTS].find((c) =>
+    const comment = [VELOCITY_COMMENT, COPY_COMMENT, ...OLD_VELOCITY_COMMENTS].find((c) =>
       c.every((l, i) => doc.lines[from - c.length + i] === l),
     );
     if (comment) from -= comment.length;
     if (doc.lines.slice(from, to + 1).join("\n") !== block.join("\n")) doc.replace(from, to - from + 1, block);
     return { text: doc.text, hunks: doc.hunks };
   }
-  const after = header.hung ?? header.complete;
-  if (!after) throw new Conflict(`status.yaml has no "hung:" line.`);
-  doc.replace(after.line + 1, 0, block);
+  doc.replace(place(header), 0, block);
   return { text: doc.text, hunks: doc.hunks };
+}
+
+/**
+ * Writes status.yaml's copy of the velocity, spans per week, after `hung:`, or where it already is. The earlier values
+ * are desk.yaml's (setDeskVelocity): a status.yaml that still has them (in any of the forms they had on Nov. 7, 2026,
+ * when they were here) loses them.
+ * @param {string} text
+ * @param {{ spansPerWeek: number|null }|null} v From lib/velocity.js; with no velocity the file is left as it is.
+ * @returns {{ text: string, hunks: object[] }}
+ */
+export function setVelocity(text, v) {
+  if (v?.spansPerWeek == null) return { text, hunks: [] };
+  return writeVelocity(text, [...COPY_COMMENT, `spans-per-week: ${v.spansPerWeek.toFixed(2)}`], (header) => {
+    const after = header.hung ?? header.complete;
+    if (!after) throw new Conflict(`status.yaml has no "hung:" line.`);
+    return after.line + 1;
+  });
+}
+
+/**
+ * Writes desk.yaml's velocity block, above `entries:`, or where it already is: spans per week, with its values at the
+ * earlier steps of the past 96 hours under it, newest first, as a `- time: value` list, each with the span and stage of
+ * the step it was timed by (lib/velocity.js's velocityHistory). It's written again from them each time, so older values
+ * drop out and missing ones are filled in.
+ * @param {string} deskText
+ * @param {{ spansPerWeek: number|null }|null} v From lib/velocity.js; with no velocity the file is left as it is.
+ * @param {{ key: string, spansPerWeek: number, span: number, stage: string }[]} [history] The earlier values, newest first.
+ * @returns {{ text: string, hunks: object[] }}
+ */
+export function setDeskVelocity(deskText, v, history = []) {
+  if (v?.spansPerWeek == null) return { text: deskText, hunks: [] };
+  const block = [
+    ...VELOCITY_COMMENT,
+    `spans-per-week: ${v.spansPerWeek.toFixed(2)}`,
+    ...(history.length
+      ? [
+          "spans-per-week-previous:",
+          ...history.flatMap((h) => [
+            `  - ${h.key}: ${h.spansPerWeek.toFixed(2)}`,
+            `    span: ${h.span}`,
+            `    stage: ${h.stage}`,
+          ]),
+        ]
+      : []),
+  ];
+  return writeVelocity(deskText, block, (header) => {
+    if (!header.entries) throw new Conflict(`desk.yaml has no "entries:" line.`);
+    return header.entries.line;
+  });
 }
 
 function findNote(parsed, key) {

@@ -9,6 +9,7 @@ import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { stepsWithEstimates, trendOf, WINDOW } from "../lib/velocity.js";
+import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
@@ -74,7 +75,9 @@ export function VelocityPanel() {
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
             {[[v.spansPerWeek.toFixed(2), "spans-per-week", "spans/wk"]].map(([shown, key, label]) => {
-              const t = trendOf(shown, desk.parsed?.header, key);
+              // desk.yaml has the earlier values (status.yaml did, before Nov. 8, 2026)
+              const deskHeader = parseStatus(desk.deskText ?? "").header;
+              const t = trendOf(shown, deskHeader[key] ? deskHeader : desk.parsed?.header, key);
               return (
                 <Body key={key} style={STAT_LABEL}>
                   <Body style={[tw`font-bold`, STAT_NUMBER]}>{shown}</Body>

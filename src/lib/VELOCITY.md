@@ -15,28 +15,34 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
-Spans per week is written into `status.yaml` after `hung:`, as `spans-per-week`, to two decimals, on every push
-(`setVelocity` in `changes.js`), each change its own commit. Under it, `spans-per-week-previous` lists its values at the
-earlier steps on **the current span and the one before it** (`HISTORY_SPANS`; the current span is the furthest with a
-step logged), newest first, each with the span and stage of the step it was timed by:
+Spans per week is written on every push, to two decimals, each change its own commit, in two places:
 
-```yaml
-spans-per-week: 2.83
-spans-per-week-previous:
-  - 2026-11-06T22:00-07:00: 2.81
-    span: 38
-    stage: hangers down
-```
+- **`desk.yaml`**, above `entries:` (`setDeskVelocity` in `changes.js`): `spans-per-week`, and under it
+  `spans-per-week-previous`, its values at the earlier steps of **the past 96 hours** (`HISTORY_HOURS`, counted back from
+  the latest step), newest first, each with the span and stage of the step it was timed by:
 
-- **Recalculated, not remembered.** On every push the lists are worked out again from `desk.yaml`
-  (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So they backfill themselves, a
-  step logged late lands where its time stamp puts it, and values from steps on older spans are pruned.
-- **The arrow** (the desk's panel and the site's card) compares the figure with the newest earlier value; equal, no
-  arrow.
-- **Earlier forms.** Through Nov. 7, 2026 the list kept the past 96 hours, the keys had underscores (`spans_per_week`
-  and so on), `-previous` was a single value, and days per span was written too (`days-per-span`). The next push
-  replaces those with the list and removes days per span; until then both the desk and the site still read the old forms
-  of spans per week.
+  ```yaml
+  spans-per-week: 2.83
+  spans-per-week-previous:
+    - 2026-11-06T22:00-07:00: 2.81
+      span: 38
+      stage: hangers down
+  ```
+
+- **`status.yaml`**, after `hung:`, a copy of `spans-per-week` alone (`setVelocity`): the figure the site's card shows.
+
+- **Recalculated, not remembered.** On every push the list is worked out again from `desk.yaml`'s entries
+  (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So it backfills itself, a step
+  logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
+- **The chart.** The site's build (`src/lib/velocityChart.js` and `trackside/prerender.js` in molund/omc5) reads
+  `desk.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: the earlier values, then
+  the figure now at the newest entry's time, spaced by time, the y axis zoomed to their range (a tenth more each side),
+  no labels, green when the last is above the first, red below, grey the same. The desk's card preview draws the same
+  (`chartFor` in `card.js`).
+- **The arrow** on the desk's own velocity panel compares the figure with the newest earlier value; equal, no arrow.
+- **Earlier forms.** On Nov. 7, 2026 the earlier values were in `status.yaml`: as a list (for 96 hours, then for the
+  current span and the one before it), as a single value, with underscored keys (`spans_per_week` and so on), and with
+  days per span too. The next push leaves `status.yaml` with just the copy.
 
 ## The site's tooltip is simplified on purpose
 

@@ -41,7 +41,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
       <BlockEditor blocks={d.blocks} onChange={(blocks) => update({ blocks })} day={d.date} nameHint={d.title} />
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />
-      <CardPreview card={cardFor(preview.text)} label="The card stays as it is" />
+      <CardPreview card={cardFor(preview.text, preview.deskText)} label="The card stays as it is" />
       {problems.map((p) => (
         <Notice key={p} tone="problem">
           {p}

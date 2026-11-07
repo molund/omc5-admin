@@ -1,7 +1,7 @@
 // Sending the desk's waiting changes to Claude. The desk can't reach GitHub itself, but it can save files into its own
 // artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/. The desk then starts the
-// "Answer the Status Desk" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector: a
-// fresh Claude Code session that follows docs/push-session.md. It syncs with main, applies each change with
+// "Answer the Status Desk" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector, which
+// wakes the Claude Code session it's bound to; that session follows docs/push-session.md. It syncs with main, applies each change with
 // tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the desk with copy.json and
 // pushed.json, and clears the outbox.
 import { Platform } from "react-native";

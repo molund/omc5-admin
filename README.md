@@ -77,8 +77,8 @@ keyed by time stamps, like the notes, and each can have the span it's about, the
 - **Push syncs first.** The desk can't reach GitHub itself. So Push saves `outbox.json` (the changes, in order) and the
   new photos under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer the Status Desk" scheduled
   task (`pushTrigger` in `desk.config.json`) through the Claude Code Remote connector (the artifact's `mcp` capability,
-  `fire_trigger` only; the Claude app asks the first time). Each start is a fresh Claude Code session, which follows
-  `docs/push-session.md`:
+  `fire_trigger` only; the Claude app asks the first time). It wakes the Claude Code session the task is bound to (the
+  "Admin tool push state" chat, which has both repositories), and that session follows `docs/push-session.md`:
   1. pulls main;
   2. applies each change, in order, to main's `status.yaml` and `desk.yaml` with `tools/apply-changes.mjs` (the same code
      as the desk);

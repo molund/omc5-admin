@@ -65,15 +65,20 @@ export function VelocityPanel() {
       </Label>
       {v.days != null ? (
         <View style={tw`gap-0.5`}>
-          <Body>
-            <Body style={tw`text-2xl font-bold`}>{v.days.toFixed(2)}</Body> days per span
-          </Body>
-          <Body>
-            <Body style={tw`text-2xl font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans per week
-          </Body>
-          <Body small mute>
-            {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
-          </Body>
+          {/* on one line, or one under the other when it's too narrow, never broken in the middle of a stat */}
+          <View style={tw`flex-row flex-wrap items-baseline gap-x-4`}>
+            <Body>
+              <Body style={tw`text-lg font-bold`}>{v.days.toFixed(2)}</Body> days per span
+            </Body>
+            <Body>
+              <Body style={tw`text-lg font-bold`}>{v.spansPerWeek.toFixed(2)}</Body> spans per week
+            </Body>
+          </View>
+          {open && (
+            <Body small mute>
+              {`The last ${v.cycles.length === 1 ? "span" : `${v.cycles.length} spans`}. Days per span leaves out Saturday night and Sunday's day shift; spans per week allows for that shutdown.`}
+            </Body>
+          )}
         </View>
       ) : (
         <Body small mute>

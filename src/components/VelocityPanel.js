@@ -2,7 +2,8 @@
 // the spans per week that makes with the shutdown allowed for, the cycles it's from (an arrival that wasn't logged is an
 // estimate), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
 // with its time (BC) and the working time from it to the next step: the ones logged, and the ones that
-// weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day.
+// weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
+// steps added up.
 // Only the velocity itself shows until it's opened.
 import { Fragment, useState } from "react";
 import { View } from "react-native";
@@ -23,6 +24,8 @@ const SHORT_LABELS = {
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)} h`;
+// a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
+const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 
 export function VelocityPanel() {
   const { tw } = useTw();
@@ -142,6 +145,17 @@ export function VelocityPanel() {
                   </View>
                 </Fragment>
               ))}
+              <View style={tw`flex-row items-baseline gap-2 border-t border-line pl-3 pt-0.5`}>
+                <Body small style={tw`flex-1 font-semibold`}>
+                  {g.steps.at(-1).stepHours == null ? "Total so far" : "Total"}
+                </Body>
+                <Body small numberOfLines={1} style={[tw`text-right font-semibold`, { flexShrink: 0 }, num]}>
+                  {days(spanTotal(g.steps) / 24)}
+                </Body>
+                <Body small style={[tw`w-16 text-right font-semibold`, num]}>
+                  {hours(spanTotal(g.steps))}
+                </Body>
+              </View>
             </View>
           ))}
         </View>

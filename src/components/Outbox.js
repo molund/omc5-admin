@@ -3,7 +3,7 @@
 // (see services/outbox.js). The desk reloads when that session publishes the new copy. On the phone, Push asks for Face ID
 // and goes straight to GitHub (services/phonePush.js); the desk then follows the site's check until main has the changes.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Platform, View } from "react-native";
+import { ActivityIndicator, Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
@@ -196,9 +196,20 @@ function Landing({ p }) {
 }
 
 export function Outbox({ onSettings, onEdit }) {
-  const { tw } = useTw();
+  const { tw, colors } = useTw();
   const desk = useDesk();
   const [confirm, setConfirm] = useState(null); // "push" | "refresh"
+  const [refreshing, setRefreshing] = useState(false);
+
+  // the phone reads main itself: a spinner while it does, for long enough to see even when it's instant
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      await Promise.all([desk.reload(), new Promise((r) => setTimeout(r, 300))]);
+    } finally {
+      setRefreshing(false);
+    }
+  }
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const p = desk.push;
@@ -245,17 +256,18 @@ export function Outbox({ onSettings, onEdit }) {
       <Label
         right={
           !p &&
-          !sending && (
+          !sending &&
+          (refreshing ? (
+            <ActivityIndicator size="small" color={colors.accent} accessibilityLabel="Refreshing from main" />
+          ) : (
             <Button
               kind="link"
               small
               title="Refresh from main"
               // on the phone the desk reads main itself; in the Claude app it asks Claude Code to
-              onPress={() =>
-                Platform.OS === "web" ? setConfirm(confirm === "refresh" ? null : "refresh") : desk.reload()
-              }
+              onPress={() => (Platform.OS === "web" ? setConfirm(confirm === "refresh" ? null : "refresh") : refresh())}
             />
-          )
+          ))
         }
       >
         Desk copy

@@ -8,7 +8,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { requestPush, requestRefresh } from "../services/outbox.js";
 import { pushFromPhone } from "../services/phonePush.js";
-import { landingStatus } from "../services/github.js";
+import { followingWithToken, pushStatus, stopFollowing } from "../services/github.js";
 import { canReopen } from "../lib/entries.js";
 import { asOf, dateOf, toKey } from "../lib/time.js";
 import { copyText } from "../platform/clipboard";
@@ -137,7 +137,7 @@ function Starting() {
 function Landing({ p }) {
   const { tw } = useTw();
   const desk = useDesk();
-  const [status, setStatus] = useState({ state: "waiting", url: null });
+  const [status, setStatus] = useState({ stage: p.landed ? "deploying" : "waiting", url: null });
   const [problem, setProblem] = useState(null);
   const final = useRef(false);
   const tooOld = () => Date.now() - new Date(p.requestedAt) > 10 * 60 * 1000;
@@ -146,50 +146,72 @@ function Landing({ p }) {
     async (byHand) => {
       if (final.current || (!byHand && tooOld())) return;
       try {
-        const s = await landingStatus(p.head);
+        const s = await pushStatus(p.head);
         setProblem(null);
         setStatus(s);
-        if (s.state === "failed") final.current = true;
-        if (s.state === "landed") {
-          final.current = true;
+        if (["deploying", "live", "deploy-failed"].includes(s.stage) && !p.landed) {
+          // on main: the changes are done here, and the copy is main's again; the panel stays for the deploy
           desk.dropChanges(p.ids);
-          desk.setPush(null);
+          desk.setPush((q) => (q && q.head === p.head ? { ...q, landed: true } : q));
           desk.reload();
         }
+        if (["failed", "live", "deploy-failed"].includes(s.stage)) {
+          final.current = true;
+          stopFollowing(p.head);
+        }
+        // live: say so for a moment, then the panel goes
+        if (s.stage === "live") setTimeout(() => desk.setPush((q) => (q && q.head === p.head ? null : q)), 15 * 1000);
       } catch (e) {
         setProblem(e.message);
       }
     },
-    [p.head],
+    [p.head, p.landed],
   );
+  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one)
   useEffect(() => {
-    check();
-    const timer = setInterval(check, 15 * 1000);
-    return () => clearInterval(timer);
+    let on = true,
+      timer;
+    const loop = async () => {
+      await check();
+      if (on) timer = setTimeout(loop, followingWithToken(p.head) ? 5 * 1000 : 15 * 1000);
+    };
+    loop();
+    return () => {
+      on = false;
+      clearTimeout(timer);
+    };
   }, [check]);
+  // the push isn't followed any more (done, or Stop waiting): the token goes
+  useEffect(() => () => stopFollowing(p.head), [p.head]);
 
   const when = asOf(toKey(new Date(p.requestedAt)));
   const text = {
-    waiting: `Pushed to desk branch ${when}. Waiting for GitHub to start the check.`,
-    running: `Pushed to desk branch ${when}. The check is running: it checks the commits, builds the site and moves main up. It takes about two minutes.`,
-    failed: "The check failed, so nothing reached main. The changes are still waiting here.",
-  }[status.state];
+    waiting: `Pushed to the desk branch ${when}. Waiting for GitHub to start landing it on main.`,
+    landing: `Landing on main: GitHub checks the commits, builds the site and moves main up. It takes a minute or so.`,
+    failed: "The landing check failed, so nothing reached main. The changes are still waiting here.",
+    deploying: status.started
+      ? "On main. The site is deploying now, which takes about a minute."
+      : "On main. Waiting for GitHub to start the site's deploy.",
+    live: "Live on the site.",
+    "deploy-failed": "On main, but the site's deploy failed, so the site doesn't show it yet.",
+  }[status.stage];
+  const bad = status.stage === "failed" || status.stage === "deploy-failed";
   return (
     <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
-      {status.state === "failed" ? <Notice tone="problem">{text}</Notice> : <Body small>{text}</Body>}
+      {bad ? <Notice tone="problem">{text}</Notice> : <Body small>{text}</Body>}
       {p.skipped?.length > 0 && (
         <Notice>{`${p.skipped.length === 1 ? "One change" : `${p.skipped.length} changes`} didn't fit main and wasn't pushed. It's still waiting here.`}</Notice>
       )}
       {problem && <Notice tone="problem">{problem}</Notice>}
-      {status.state !== "failed" && tooOld() && (
+      {!bad && status.stage !== "live" && tooOld() && (
         <Body small mute>
-          No answer from the check yet.
+          No answer from GitHub yet.
         </Body>
       )}
       <Row style={tw`justify-end`}>
-        {status.url && <Link href={status.url} title={status.state === "failed" ? "See what failed" : "Watch it"} />}
-        {status.state !== "failed" && <Button small title="Check again" onPress={() => check(true)} />}
-        <Button small title="Stop waiting" onPress={() => desk.setPush(null)} />
+        {status.url && <Link href={status.url} title={bad ? "See what failed" : "Watch it"} />}
+        {!bad && status.stage !== "live" && <Button small title="Check again" onPress={() => check(true)} />}
+        <Button small title={status.stage === "live" ? "Done" : "Stop waiting"} onPress={() => desk.setPush(null)} />
       </Row>
     </View>
   );
@@ -255,7 +277,7 @@ export function Outbox({ onSettings, onEdit }) {
     <Panel>
       <Label
         right={
-          !p &&
+          (!p || p.landed) &&
           !sending &&
           (refreshing ? (
             <ActivityIndicator size="small" color={colors.accent} accessibilityLabel="Refreshing from main" />
@@ -345,7 +367,8 @@ export function Outbox({ onSettings, onEdit }) {
           Sending…
         </Body>
       )}
-      {p?.via === "github" && <Landing p={p} />}
+      {/* keyed by the push, so a new one starts its own */}
+      {p?.via === "github" && <Landing key={p.head} p={p} />}
       {p && p.via !== "github" && (
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
           <Body small>
@@ -369,7 +392,8 @@ export function Outbox({ onSettings, onEdit }) {
         </Notice>
       )}
       {error && <Failure error={error} onSettings={onSettings} onCopied={(copied) => setError({ ...error, copied })} />}
-      {!p && !sending && desk.changes.length > 0 && (
+      {/* a push already on main can still be deploying: the next one can go meanwhile */}
+      {(!p || p.landed) && !sending && desk.changes.length > 0 && (
         <Button
           kind="green"
           title={`Push ${fitting.length} change${fitting.length === 1 ? "" : "s"} to main`}

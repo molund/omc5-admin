@@ -36,7 +36,7 @@ function TokenForm({ onSaved, onCancel }) {
   return (
     <>
       <Body small mute>
-        {`Push needs a fine-grained token: repository ${REPO_NAME} only, Contents: read and write, nothing else, with an expiry date. Paste it once; it's kept in this iPhone's Keychain and never shown again.`}
+        {`Push needs a fine-grained token: repository ${REPO_NAME} only, Contents: read and write, and Actions: read-only (so the desk can follow a push more closely), nothing else, with an expiry date. Paste it once; it's kept in this iPhone's Keychain and never shown again.`}
       </Body>
       <Field
         value={value}

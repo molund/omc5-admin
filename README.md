@@ -178,8 +178,11 @@ What works on the phone:
 
 ### Pushing from the phone
 
-The phone pushes with Mike's fine-grained GitHub token: repository `molund/omc5` only, **Contents: read and write**, nothing
-else (not Workflows), with an expiry date. Paste it under the gear (Settings); "Check and save" refuses a classic token,
+The phone pushes with Mike's fine-grained GitHub token: repository `molund/omc5` only, **Contents: read and write** and
+**Actions: read-only**, nothing else (not Workflows), with an expiry date. Actions: read-only lets the desk follow a push's
+runs with the token Face ID unlocked for it, kept in memory only until the push is done: every 5 seconds instead of every
+15, under GitHub's limit of 5,000 requests an hour instead of 60. Without it, GitHub refuses the token for that, and the
+desk follows the push without one. Paste it under the gear (Settings); "Check and save" refuses a classic token,
 checks the token can see the repo and reads when it expires. It's kept in the iPhone's Keychain (expo-secure-store), on
 this device only (not in iCloud Keychain or backups), saved so that reading it needs Face ID. The desk keeps only its last
 four characters and expiry date, to show; it warns a week before the token expires.
@@ -193,8 +196,10 @@ Push asks for Face ID, then, through GitHub's API:
 
 The site's "Land Status Desk changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the commits
 only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and builds the site, moves main up
-to them and deploys. The desk follows that run (the repo is public, so no token or Face ID); when it succeeds it drops the
-changes and reads main again, and when it fails it keeps them and links to the run.
+to them, then starts the deploy with a `desk-pushed` event. The desk follows both runs (the repo is public, so no further
+Face ID: with the push's token when it can, as above, else without one): "Landing on main" while the first runs, then "deploying" and "Live on the site". When the landing succeeds it
+drops the changes and reads main again, and a new push can go while the site deploys; when either run fails it says so and
+links to the run (a failed landing keeps the changes).
 
 The token can write any file in the repo apart from workflows; the workflow is what limits a push to `status.yaml`, `desk.yaml`
 and photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the token on GitHub.

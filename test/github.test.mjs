@@ -20,7 +20,8 @@ await build({
   outfile: here("./.out/github.mjs"),
   logLevel: "silent",
 });
-const { checkToken, landingStatus, parseExpiry, pushChanges, AUTHOR } = await import(here("./.out/github.mjs"));
+const { checkToken, followWith, followingWithToken, pushStatus, parseExpiry, pushChanges, stopFollowing, AUTHOR } =
+  await import(here("./.out/github.mjs"));
 const BASE = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const API = "https://api.github.com/repos/molund/omc5";
 const T = "2026-11-05T08:30-07:00";
@@ -196,27 +197,91 @@ test("expiry headers, with UTC or an offset; none means it never expires", () =>
   assert.equal(parseExpiry("soon"), null);
 });
 
-test("the landing is followed through the desk workflow's run, without the token", async () => {
-  const run = (status, conclusion) => ({
+test("a push is followed through the landing run, then the deploy it starts, in one request each time", async () => {
+  // as GitHub lists them for the commit, newest first
+  const land = (status, conclusion) => ({
     path: ".github/workflows/desk.yml",
+    event: "push",
+    head_branch: "desk",
     status,
     conclusion,
     html_url: "https://github.com/molund/omc5/actions/runs/1",
   });
-  const other = { path: ".github/workflows/deploy.yml", status: "completed", conclusion: "success", html_url: "x" };
-  let gh = fakeGitHub({ runs: [other] });
-  assert.deepEqual(await landingStatus("abc"), { state: "waiting", url: null });
+  const deploy = (status, conclusion, event = "repository_dispatch") => ({
+    path: ".github/workflows/deploy.yml",
+    event,
+    head_branch: "main",
+    status,
+    conclusion,
+    html_url: "https://github.com/molund/omc5/actions/runs/2",
+  });
+  let gh = fakeGitHub({ runs: [] });
+  assert.deepEqual(await pushStatus("abc"), { stage: "waiting", url: null });
+  assert.equal(gh.calls.length, 1);
   assert.equal(gh.calls[0].auth, null);
   assert.match(gh.calls[0].path, /head_sha=abc/);
-  fakeGitHub({ runs: [other, run("in_progress", null)] });
-  assert.equal((await landingStatus("abc")).state, "running");
-  fakeGitHub({ runs: [run("completed", "success")] });
-  assert.equal((await landingStatus("abc")).state, "landed");
-  fakeGitHub({ runs: [run("completed", "failure")] });
-  assert.deepEqual(await landingStatus("abc"), {
-    state: "failed",
+  fakeGitHub({ runs: [land("in_progress", null)] });
+  assert.equal((await pushStatus("abc")).stage, "landing");
+  fakeGitHub({ runs: [land("completed", "failure")] });
+  assert.deepEqual(await pushStatus("abc"), { stage: "failed", url: "https://github.com/molund/omc5/actions/runs/1" });
+  // landed: on main, the deploy not started yet (a deploy for a push to main isn't the desk's)
+  fakeGitHub({ runs: [deploy("completed", "success", "push"), land("completed", "success")] });
+  assert.deepEqual(await pushStatus("abc"), {
+    stage: "deploying",
+    started: false,
     url: "https://github.com/molund/omc5/actions/runs/1",
   });
+  fakeGitHub({ runs: [deploy("in_progress", null), land("completed", "success")] });
+  assert.deepEqual(await pushStatus("abc"), {
+    stage: "deploying",
+    started: true,
+    url: "https://github.com/molund/omc5/actions/runs/2",
+  });
+  fakeGitHub({ runs: [deploy("completed", "success"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "live");
+  // cancelled for a newer deploy, which publishes these changes too
+  fakeGitHub({ runs: [deploy("completed", "cancelled"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "live");
+  fakeGitHub({ runs: [deploy("completed", "failure"), land("completed", "success")] });
+  assert.equal((await pushStatus("abc")).stage, "deploy-failed");
+});
+
+test("a push's runs are checked with its token while it's followed, and without it once GitHub refuses it", async () => {
+  // a fake GitHub that refuses the token when told to, and answers without one
+  const calls = [];
+  let refuse = false;
+  globalThis.fetch = async (url, init = {}) => {
+    const auth = init.headers?.Authorization ?? null;
+    calls.push(auth);
+    const ok = !(auth && refuse);
+    return { ok, status: ok ? 200 : 403, json: async () => ({ workflow_runs: [] }), text: async () => "" };
+  };
+  followWith("github_pat_x", "abc");
+  assert.equal(followingWithToken("abc"), true);
+  await pushStatus("abc");
+  assert.deepEqual(calls, ["Bearer github_pat_x"]);
+  // another push's runs don't get it
+  await pushStatus("def");
+  assert.equal(calls[1], null);
+  assert.equal(followingWithToken("def"), false);
+  // refused (no Actions: read): asked again without it, and it's forgotten
+  refuse = true;
+  assert.equal((await pushStatus("abc")).stage, "waiting");
+  assert.deepEqual(calls.slice(2), ["Bearer github_pat_x", null]);
+  assert.equal(followingWithToken("abc"), false);
+  await pushStatus("abc");
+  assert.equal(calls.at(-1), null);
+  // a newer push's token isn't dropped when an older one stops being followed
+  followWith("github_pat_y", "ghi");
+  stopFollowing("abc");
+  assert.equal(followingWithToken("ghi"), true);
+  stopFollowing("ghi");
+  assert.equal(followingWithToken("ghi"), false);
+});
+
+test("GitHub's limit on checks without a token says to wait, not that something's wrong", async () => {
+  globalThis.fetch = async () => ({ ok: false, status: 403, json: async () => ({}), text: async () => "" });
+  await assert.rejects(pushStatus("abc"), /too many checks/);
 });
 
 test("an edit and a delete push as one commit each, and don't touch any photo", async () => {

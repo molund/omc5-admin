@@ -17,6 +17,7 @@ import {
   stageShares,
   cycles,
   sinceArrival,
+  stepsWithEstimates,
   spanDays,
 } from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
@@ -711,4 +712,21 @@ test("a push writes the velocity's two figures after hung:, and keeps them up to
   assert.equal(parseStatus(again).header.spans_per_week.value, "3.00");
   // no velocity yet: left as it is
   assert.equal(setVelocity(STATUS, null).text, STATUS);
+});
+
+test("steps that weren't logged are estimated close to the real ones, and a step still to come isn't", () => {
+  const entries = runOfCycles();
+  const hidden = entries.filter((e) => e.span === 42 && e.stage !== "hung");
+  const rows = stepsWithEstimates(entries.filter((e) => !hidden.includes(e)));
+  for (const real of hidden) {
+    const row = rows.find((r) => r.span === 42 && r.stage === real.stage);
+    assert.equal(row.estimated, true, real.stage);
+    assert.ok(Math.abs(parseKey(row.key) - parseKey(real.key)) <= 60 * 60 * 1000, `${real.stage}: ${row.key}`);
+  }
+  assert.equal(rows.find((r) => r.span === 42 && r.stage === "hung").estimated, false);
+  // the newest span's arrival is logged, and nothing after it: no estimates past it
+  assert.deepEqual(
+    rows.filter((r) => r.span === 44).map((r) => r.stage),
+    ["arrived at span"],
+  );
 });

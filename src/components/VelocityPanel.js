@@ -13,7 +13,7 @@ import { STAGE_LABELS } from "../lib/stages.js";
 import { clock24, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
-// the long step names, shorter to fit the steps' rows
+// the long step names, shorter for this panel's rows
 const SHORT_LABELS = { "post-tensioning started": "Post-tensioning", "supports started": "Moving supports" };
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -92,7 +92,7 @@ export function VelocityPanel() {
           {v.shares.map((s) => (
             <View key={s.stage} style={tw`flex-row items-baseline gap-2`}>
               <Body small style={tw`flex-1`}>
-                {STAGE_LABELS[s.stage]}
+                {SHORT_LABELS[s.stage] ?? STAGE_LABELS[s.stage]}
               </Body>
               <Body small mute style={num}>
                 {`${Math.round(s.share * 100)}%`}

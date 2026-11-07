@@ -221,8 +221,8 @@ function estimator(steps, shares) {
 }
 
 /**
- * Like sinceArrival, but with the steps that weren't logged estimated too, and spans whose arrival is an estimate:
- * [{ span, stage, key, hours, estimated }]. A step is estimated the way an arrival is, between the nearest steps either side
+ * Like sinceArrival, but lowest span first, with the steps that weren't logged estimated too, and spans whose arrival is an
+ * estimate: [{ span, stage, key, hours, estimated }]. A step is estimated the way an arrival is, between the nearest steps either side
  * of it, so a step still to come (nothing logged after it) isn't in it.
  */
 export function stepsWithEstimates(entries, shares = stageShares(entries)) {
@@ -242,7 +242,7 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
         out.push({ span: Number(span), stage, key, hours, estimated: index === 0 ? arrival.estimated : !logged });
     }
   }
-  return out.sort((a, b) => b.span - a.span || a.hours - b.hours);
+  return out.sort((a, b) => a.span - b.span || a.hours - b.hours);
 }
 
 /**

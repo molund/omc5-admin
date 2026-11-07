@@ -724,6 +724,11 @@ test("steps that weren't logged are estimated close to the real ones, and a step
     assert.ok(Math.abs(parseKey(row.key) - parseKey(real.key)) <= 60 * 60 * 1000, `${real.stage}: ${row.key}`);
   }
   assert.equal(rows.find((r) => r.span === 42 && r.stage === "hung").estimated, false);
+  // lowest span first
+  assert.deepEqual(
+    rows.map((r) => r.span),
+    rows.map((r) => r.span).sort((a, b) => a - b),
+  );
   // the newest span's arrival is logged, and nothing after it: no estimates past it
   assert.deepEqual(
     rows.filter((r) => r.span === 44).map((r) => r.stage),

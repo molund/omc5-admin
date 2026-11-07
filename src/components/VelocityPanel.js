@@ -68,7 +68,7 @@ export function VelocityPanel() {
         </Body>
       )}
       {open &&
-        v.cycles.map((c) => (
+        [...v.cycles].reverse().map((c) => (
           <Row key={c.to} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
             <View style={tw`flex-1 gap-0.5`}>
               <Body small>{`Span ${c.from} to ${c.to}`}</Body>

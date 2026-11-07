@@ -1,11 +1,13 @@
 // The block editor: the summary first (it can't move), then paragraphs and photos in any order, with buttons to add more.
 // Picking a photo resizes it and opens its caption field straight away.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { pickPhoto, preparePhoto } from "../platform/photos";
 import { slugify } from "../lib/titles.js";
+import { parseStatus } from "../lib/statusFile.js";
+import { photosOf } from "../lib/changes.js";
 import { WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
 import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
 
@@ -106,6 +108,14 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [fresh, setFresh] = useState(null); // the photo whose caption gets the focus
+  // the photos in main's copy: one that isn't came in with a change still waiting to push, so it isn't on the site
+  const onMain = useMemo(() => filesIn(desk.base == null ? null : parseStatus(desk.base)), [desk.base]);
+  // such a photo's picture, kept with its waiting change: { [file]: photoId }
+  const waiting = useMemo(() => {
+    const out = {};
+    for (const c of desk.changes ?? []) for (const ph of photosOf(c)) if (ph.photoId) out[ph.file] = ph.photoId;
+    return out;
+  }, [desk.changes]);
 
   const set = (i, patch) => onChange(blocks.map((b, j) => (j === i ? { ...b, ...patch } : b)));
   const move = (i, d) => {
@@ -194,7 +204,8 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
             />
           );
-        const p = b.photoId ? desk.photos[b.photoId] : null;
+        // a new photo's picture, or the waiting change's when the photo came in with one
+        const p = desk.photos[b.photoId ?? waiting[b.file]] ?? null;
         return (
           <Panel key={b.photoId ?? b.file ?? `p${i}`}>
             <Label
@@ -226,8 +237,17 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
                   This photo isn't on this device any more. Replace it to add it again.
                 </Body>
               </View>
-            ) : (
+            ) : onMain.has(b.file) ? (
               <SitePhoto file={b.file} caption={b.caption} />
+            ) : (
+              <View
+                style={tw`items-center justify-center rounded-md border border-dashed border-line bg-code px-3 py-6`}
+              >
+                <Body small mute>
+                  This photo is in a change that hasn't been pushed, and its picture isn't on this device. Replace it to
+                  add it again.
+                </Body>
+              </View>
             )}
             <Field
               multiline

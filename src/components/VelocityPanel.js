@@ -128,7 +128,12 @@ export function VelocityPanel() {
                     <Body small mute={t.estimated} style={tw`flex-1`}>
                       {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
                     </Body>
-                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num]}>
+                    <Body
+                      small
+                      mute={t.estimated}
+                      numberOfLines={1}
+                      style={[tw`text-right`, { minWidth: 72, flexShrink: 0 }, num]}
+                    >
                       {clock(t.key)}
                     </Body>
                     <Body small mute={t.estimated} style={[tw`w-16 text-right`, num]}>

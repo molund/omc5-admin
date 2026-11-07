@@ -13,6 +13,14 @@ import { STAGE_LABELS } from "../lib/stages.js";
 import { clock24, dayOf, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
+// the long step names, shorter for this panel's rows
+const SHORT_LABELS = {
+  "hanging started": "Hanging",
+  "gluing started": "Gluing",
+  "post-tensioning started": "Post-tensioning",
+  "supports started": "Moving supports",
+};
+
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)} h`;
 
@@ -89,7 +97,7 @@ export function VelocityPanel() {
           {v.shares.map((s) => (
             <View key={s.stage} style={tw`flex-row items-baseline gap-2`}>
               <Body small style={tw`flex-1`}>
-                {STAGE_LABELS[s.stage]}
+                {SHORT_LABELS[s.stage] ?? STAGE_LABELS[s.stage]}
               </Body>
               <Body small mute style={num}>
                 {`${Math.round(s.share * 100)}%`}
@@ -118,7 +126,7 @@ export function VelocityPanel() {
                   {t.newDay && i > 0 && dayBar(t.key)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <Body small mute={t.estimated} style={tw`flex-1`}>
-                      {`${STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
+                      {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
                     </Body>
                     <Body small mute={t.estimated} style={[tw`w-12 text-right`, num]}>
                       {clock24(t.key)}

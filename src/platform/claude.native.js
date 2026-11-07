@@ -1,6 +1,7 @@
 // What claude.web.js gives the desk in the Claude app, for the phone. There's no Claude app around the desk here: no
-// capabilities (so no saving into an outbox), and the desk's copy of status.yaml is read straight from main on GitHub. The
-// repo is public, so no token is needed. The last copy read is kept, so the desk still opens when the phone is offline.
+// capabilities (so no saving into an outbox), and the desk's copy of status.yaml is read straight from main on GitHub, and
+// looked at again every minute (state/desk.js). The repo is public, so no token is needed. The last copy read is kept, so
+// the desk still opens when the phone is offline.
 import deskConfig from "../../desk.config.json";
 import { load, save } from "./storage";
 
@@ -21,15 +22,50 @@ async function get(url, accept) {
 // the copy last read, so status.yaml and copy.json (read one after the other) describe the same commit
 let latest = null;
 
+// The desk looks at main every minute, so the look avoids GitHub's API, which allows only 60 requests an hour without a
+// token (counting even an "unchanged" answer): main's commit comes from git's own list of the repo's branches (a few
+// hundred bytes), and a file at a commit from raw.githubusercontent.com. Either falls back to the API if it fails.
+
+/** The commit main is on now. */
+async function mainCommit() {
+  try {
+    const res = await fetch(`https://github.com/${OWNER}/${REPO}.git/info/refs?service=git-upload-pack`);
+    const sha = res.ok && (await res.text()).match(/([0-9a-f]{40}) refs\/heads\/main\b/)?.[1];
+    if (sha) return sha;
+  } catch {
+    // the API below
+  }
+  return (await get(`${API}/commits/main`, "application/vnd.github.sha")).trim();
+}
+
+/** A file as it is at a commit. */
+async function fileAt(sha, path) {
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/${sha}/${path}`);
+    if (res.ok) return res.text();
+  } catch {
+    // the API below
+  }
+  return get(`${API}/contents/${path}?ref=${sha}`, "application/vnd.github.raw+json");
+}
+
 /**
- * main's status.yaml and desk.yaml, at the commit main is on now (so a file the API's cache is behind on can't be mixed with
- * a newer commit's name). When GitHub can't be reached, the last copy kept on the phone. A main without desk.yaml has none.
+ * main's status.yaml and desk.yaml, at the commit main is on now (so a file a cache is behind on can't be mixed with a
+ * newer commit's name), read again only when main has moved. When GitHub can't be reached, the last copy kept on the
+ * phone. A main without desk.yaml has none.
  */
 async function readMain() {
   try {
-    const sha = (await get(`${API}/commits/main`, "application/vnd.github.sha")).trim();
-    const text = await get(`${API}/contents/status.yaml?ref=${sha}`, "application/vnd.github.raw+json");
-    const desk = await get(`${API}/contents/desk.yaml?ref=${sha}`, "application/vnd.github.raw+json").catch(() => null);
+    const sha = await mainCommit();
+    // main hasn't moved: the same copy, as of now
+    const same = latest?.meta.commit === sha ? latest : load("copy", null)?.meta?.commit === sha ? load("copy") : null;
+    if (same) {
+      const copy = { ...same, meta: { ...same.meta, syncedAt: new Date().toISOString() } };
+      save("copy", copy);
+      return copy;
+    }
+    const text = await fileAt(sha, "status.yaml");
+    const desk = await fileAt(sha, "desk.yaml").catch(() => null);
     const copy = { text, desk, meta: { commit: sha, syncedAt: new Date().toISOString() } };
     save("copy", copy);
     return copy;

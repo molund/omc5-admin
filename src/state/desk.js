@@ -4,6 +4,7 @@
 // copy, listing what it committed in pushed.json; the desk then drops those from its list. A request saved in the outbox and
 // not yet handled is `pending`; the desk starts the session for it once (`started`, services/outbox.js).
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AppState } from "react-native";
 import { commitMessage, photosOf } from "../lib/changes.js";
 import { applyAllBoth, applyBoth } from "../lib/deskChanges.js";
 import { EMPTY_DESK, parseDesk } from "../lib/deskFile.js";
@@ -94,6 +95,16 @@ export function DeskProvider({ children }) {
   }, []);
   useEffect(() => {
     reload();
+  }, [reload]);
+  // and every minute after, while the desk is on screen, and as soon as it's back on screen (on the phone, a look at main
+  // that finds it unchanged costs nothing against GitHub's limit: platform/claude.native.js)
+  useEffect(() => {
+    const timer = setInterval(() => AppState.currentState === "active" && reload(), 60 * 1000);
+    const sub = AppState.addEventListener("change", (s) => s === "active" && reload());
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
   }, [reload]);
 
   // a start the page reloaded in the middle of may or may not have reached Claude Code

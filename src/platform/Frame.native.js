@@ -15,6 +15,7 @@ export function Frame({ children }) {
           contentContainerStyle={tw`px-4 pb-10`}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="interactive"
+          delaysContentTouches={false}
           automaticallyAdjustKeyboardInsets
         >
           {children}

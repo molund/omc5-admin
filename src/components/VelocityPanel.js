@@ -23,7 +23,7 @@ const SHORT_LABELS = {
 };
 
 const days = (n) => `${n.toFixed(2)} days`;
-const hours = (h) => `${h.toFixed(2)} h`;
+const hours = (h) => `${h.toFixed(2)}h`;
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 

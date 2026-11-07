@@ -33,10 +33,13 @@ export function Label({ children, right }) {
   );
 }
 
-export function Body({ children, style, mute, small }) {
+export function Body({ children, style, mute, small, numberOfLines }) {
   const { tw } = useTw();
   return (
-    <Text style={[tw`${small ? "text-xs" : "text-sm"} leading-snug`, mute ? tw`text-mute` : tw`text-ink`, style]}>
+    <Text
+      numberOfLines={numberOfLines}
+      style={[tw`${small ? "text-xs" : "text-sm"} leading-snug`, mute ? tw`text-mute` : tw`text-ink`, style]}
+    >
       {children}
     </Text>
   );

@@ -195,7 +195,7 @@ test("follow-ups: added to a note with a list, to one without, and edited", asyn
   assert.equal(s.followUps.length, 1);
   assert.equal(s.followUps[0].summary, "Six segments are hung for span 38.");
   assert.equal(+s.updated, +new Date("2026-11-04T21:00-07:00"));
-  assert.equal(commitMessage(edit, withFu), "Edit the 8:45 p.m. follow-up to the Nov. 4 construction update");
+  assert.equal(commitMessage(edit, withFu), "Edit the 8:45pm follow-up to the Nov. 4 construction update");
 });
 
 test("a blog post is dated, filed below the day's updates and leaves the card alone", async () => {

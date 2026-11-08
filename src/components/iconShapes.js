@@ -23,12 +23,12 @@ export const ICONS = {
   messageArrowDown: [["path", { d: "M4 3.5h16.5v13h-9L5 21V3.5zM12.25 6.5v6.5M9.25 10l3 3 3-3", fill: "none" }]],
   // "copy a prompt for an AI"
   sparkle: [["path", { d: "M10 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4", fill: "none" }]],
-  // reading glasses: make a text box bigger, and back (the button shows it's on by its colour)
+  // reading glasses, round, with a bridge and a stub at each side instead of arms: make a text box bigger, and back (the button shows it's on by its colour)
   glasses: [
     [
       "path",
       {
-        d: "M2.3 13.5a4.2 4.2 0 1 0 8.4 0a4.2 4.2 0 1 0 -8.4 0M13.3 13.5a4.2 4.2 0 1 0 8.4 0a4.2 4.2 0 1 0 -8.4 0M10.7 13c.8-.8 1.8-.8 2.6 0M2.5 12L3.6 5.5M21.5 12L20.4 5.5",
+        d: "M2.9 12.5a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M13.1 12.5a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M10.5 10.8c.9-.8 2.1-.8 3 0M1.2 12.5h1.7M21.1 12.5h1.7",
         fill: "none",
       },
     ],

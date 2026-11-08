@@ -1,7 +1,7 @@
 // Notes, once the note to self: one line of text per entry, kept in desk.yaml (the desk's own file), which the site never reads.
 // Addendums and blocks don't have one: an addendum edits its parent's. It sits inside the Gantry step box (StagePicker.js)
 // wherever there is one; a blog post has no step, so its notes are a box of their own. It has the zoom, but no AI prompt.
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { stamp } from "../lib/time.js";
 import { Body, Field } from "./ui.js";
@@ -18,11 +18,16 @@ export const whereIs = (note) => `Saved with the ${stamp(note.key)} ${note.field
  */
 export function NoteToSelf({ value, onChange, where, inBox }) {
   const { tw } = useTw();
+  const name = (
+    <>
+      Notes <Text style={tw`font-normal text-mute`}>(optional)</Text>
+    </>
+  );
   return (
     <View style={[tw`gap-1.5`, inBox && tw`border-t border-line pt-2.5`]}>
       <Field
         multiline
-        {...(inBox ? { title: "Notes" } : { heading: "Notes" })}
+        {...(inBox ? { title: name } : { heading: name })}
         value={value}
         onChangeText={onChange}
         placeholder="Where it's at, e.g. 60% of the way through the lift"

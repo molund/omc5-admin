@@ -4,11 +4,11 @@ import { createContext, useContext, useEffect } from "react";
 
 export const BackContext = createContext(null);
 
-/** Hands the frame `back`, or null when there's nowhere to go back to. */
-export function useBack(back) {
+/** Hands the frame `back`, or null when there's nowhere to go back to, and how many steps back there are (`depth`). */
+export function useBack(back, depth) {
   const frame = useContext(BackContext);
   useEffect(() => {
-    frame?.set(back);
+    frame?.set(back, depth);
   });
-  useEffect(() => () => frame?.set(null), []);
+  useEffect(() => () => frame?.set(null, 0), []);
 }

@@ -73,7 +73,7 @@ function Desk() {
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   };
   // the frame's swipe from the left edge does the same, while there's somewhere to go back to
-  useBack(review || stack.length > 1 ? back : null);
+  useBack(review || stack.length > 1 ? back : null, stack.length - 1 + (review ? 1 : 0));
   const home = top.page === "home";
   const page = PAGES[top.page];
   const canFollowUp = recentUpdates(desk.parsed).length > 0;

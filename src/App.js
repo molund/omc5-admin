@@ -34,8 +34,7 @@ const PAGES = {
   settings: { title: "Settings" },
 };
 
-// Piper on every page's header: a small copy of the app icon, round because its background is the light
-// theme's, so it reads as a badge in the dark one too
+// Piper on every page's header: the site's favicon (public/favicon.ico in molund/omc5), transparent
 const LOGO = require("../assets/logo.png");
 
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
@@ -93,7 +92,7 @@ function Desk() {
             <Button kind="link" small title="‹ Back" style={tw`self-start py-0`} onPress={back} />
           )}
           <View style={tw`flex-row items-center gap-2.5`}>
-            <Image source={LOGO} style={tw`h-10 w-10 rounded-full`} />
+            <Image source={LOGO} style={tw`h-10 w-10`} />
             <Text accessibilityRole="header" style={tw`flex-1 text-2xl font-bold text-ink`}>
               {review ? "Review" : home ? "Status desk" : page.title}
             </Text>

@@ -119,6 +119,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
             // with no update from today or yesterday there's nothing to add an addendum to: the link is dimmed, and says why
             <View style={tw`opacity-40`}>
               <Link
+                label="Turn it into an addendum, not available: press to see why"
                 title="Turn it into an addendum"
                 onPress={() => Date.now() - closedAt.current > 100 && setWhy(true)}
               />

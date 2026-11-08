@@ -487,11 +487,12 @@ export function Row({ children, style }) {
 }
 
 /** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser), or with `onPress`, a link within the desk. */
-export function Link({ href, title, onPress }) {
+export function Link({ href, title, onPress, label }) {
   const { tw } = useTw();
   return (
     <Text
       accessibilityRole="link"
+      accessibilityLabel={label}
       {...(href ? { href, hrefAttrs: { target: "_blank", rel: "noopener" } } : {})}
       // on the web the <a> does it; the phone has no <a>, so it opens the URL itself
       onPress={onPress ?? (Platform.OS === "web" ? undefined : () => Linking.openURL(href))}

@@ -19,7 +19,7 @@ import { Button, Link, Notice } from "../components/ui.js";
 /**
  * @param {object} props
  * @param {(change: object, opts: object) => void} props.onReview
- * @param {(page: string) => void} [props.onSwitch] Turns this page into another one (Say something: Update).
+ * @param {(page: string) => void} [props.onSwitch] Turns this page into another one (Turn it into an update).
  */
 export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   const { tw } = useTw();
@@ -40,7 +40,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
     stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
-  // Say something: the same time stamp, gantry, step and notes, as an update, with its text still to write. An update draft
+  // Turn it into an update: the same time stamp, gantry, step and notes, as an update, with its text still to write. An update draft
   // already started keeps its text, and takes these values.
   const sayIt = () => {
     const update = readDraft("update", desk.draftsCleared) ?? { title: "", titleSet: false, blocks: emptyBlocks() };
@@ -79,7 +79,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
         notes={memo}
         onNotes={(m) => update({ memo: m })}
       />
-      {onSwitch && !seed && <Link title="Say something" onPress={sayIt} />}
+      {onSwitch && !seed && <Link title="Turn it into an update" onPress={sayIt} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />
     </View>

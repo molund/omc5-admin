@@ -30,6 +30,7 @@ export function HomeScreen({ go, onEdit, onOpen }) {
   return (
     <View style={tw`gap-3.5`}>
       <VelocityPanel onOpen={() => go("velocity")} />
+      <Outbox onSettings={() => go("settings")} onEdit={onEdit} />
       <View style={tw`gap-2`}>
         <Label>Add</Label>
         <View style={tw`flex-row gap-2`}>
@@ -59,7 +60,6 @@ export function HomeScreen({ go, onEdit, onOpen }) {
         )}
         <Link title="All entries ›" onPress={() => go("entries")} />
       </Panel>
-      <Outbox onSettings={() => go("settings")} onEdit={onEdit} />
     </View>
   );
 }

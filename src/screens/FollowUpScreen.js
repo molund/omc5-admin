@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { useDesk, useDraft } from "../state/desk.js";
+import { dropDraft, readDraft, useDesk, useDraft, writeDraft } from "../state/desk.js";
 import { headerOf, newestFirst, followUpsNewestFirst } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
 import { clock, dayOf, nowKey, stamp } from "../lib/time.js";
@@ -17,7 +17,7 @@ import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
-import { Body, Button, Label, Notice, Panel, Row, useTapAway, Warning } from "../components/ui.js";
+import { Body, Button, Confirm, Label, Link, Notice, Panel, Row, useTapAway, Warning } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
 const noteName = (n) =>
@@ -32,7 +32,12 @@ const RULE = "An addendum can only go under an update from today or yesterday (B
 /** In place of the page when no update qualifies. */
 export const NoUpdateWarning = () => <Warning>{RULE} There isn't one right now, so there's nothing to add to.</Warning>;
 
-export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
+/**
+ * @param {object} props
+ * @param {(change: object, opts: object) => void} props.onReview
+ * @param {(page: string) => void} [props.onSwitch] Turns this page into another one (Forget it: Position).
+ */
+export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
@@ -53,6 +58,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
   const [why, setWhy] = useState(false); // the note on why Change is off, shown after it's pressed
+  const [forgetting, setForgetting] = useState(false); // Forget it was pressed, and wants its confirmation
   // pressing Change while the note is open is a tap anywhere too, so it closes it, and Change mustn't open it again
   const closedAt = useRef(0);
   useTapAway(why, () => {
@@ -96,6 +102,24 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
     update({ ...fresh(note.key), ...patch });
   };
 
+  // Forget it, just post the position: the same time stamp, gantry, step and notes as a position, and the addendum's text and
+  // photos thrown away. The notes go along only if they were written here: untouched, they're the update's own, which the
+  // position has no use for. A position draft already started takes these values.
+  const forgetIt = () => {
+    writeDraft("move", desk.draftsCleared, {
+      ...readDraft("move", desk.draftsCleared),
+      time: d.time,
+      manualUntil: d.manualUntil,
+      span: d.span,
+      complete: d.complete,
+      stage: d.stage,
+      ...(d.memo !== undefined && { memo: d.memo }),
+    });
+    drop();
+    dropDraft(draftKey);
+    onSwitch("move");
+  };
+
   return (
     <View style={tw`gap-3`}>
       {/* the same order as Position and Update: the gantry, the time stamp and the step, then what the addendum says */}
@@ -119,6 +143,17 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         notesWhere={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
       />
 
+      {onSwitch && !seed && !d.editing && (
+        <View style={tw`gap-2`}>
+          <Link title="Forget it, just post the position" onPress={() => setForgetting(true)} />
+          {forgetting && (
+            <Confirm action="Forget it" onCancel={() => setForgetting(false)} onConfirm={forgetIt}>
+              Forget this addendum's summary, paragraphs and photos? The position keeps its time stamp, gantry, step and
+              notes.
+            </Confirm>
+          )}
+        </View>
+      )}
       {/* over the panels below it, while its note on why Change is off is open */}
       <Panel style={notes.length <= 1 && why && { zIndex: 10 }}>
         <Label

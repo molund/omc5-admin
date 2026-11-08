@@ -18,7 +18,7 @@ import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
 import { Body, Button, Label, Notice, Panel, Row } from "./ui.js";
 
-const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Follow-up" };
+const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Addendum" };
 
 /** What's being edited, from the working copy: { note, fu, record, gone }. */
 export function findTarget(desk, target) {
@@ -41,13 +41,13 @@ export function seedFor(desk, target) {
 /** What deleting does, for the review. */
 function deleteWarning(target, note, address) {
   if (target.type === "followup")
-    return "This follow-up comes off the site when you push. Its photo files stay in the repo.";
+    return "This addendum comes off the site when you push. Its photo files stay in the repo.";
   if (!note?.fields.summary)
     return "This record comes out of desk.yaml when you push, and any steps in it leave the velocity. The gantry's span and Hung stay as they are.";
   const count = note.followUps.length;
   return [
     `This comes off the site when you push, and ?post=${address} stops working.`,
-    count ? `${count === 1 ? "Its follow-up goes" : `Its ${count} follow-ups go`} with it.` : "",
+    count ? `${count === 1 ? "Its addendum goes" : `Its ${count} addenda go`} with it.` : "",
     "Its comment thread stays on GitHub with nothing linking to it, and its photo files stay in the repo.",
     "Any steps logged with it leave the velocity.",
   ]
@@ -180,7 +180,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           onChange={(m) => update({ memo: m })}
           where={
             target.type === "followup"
-              ? `A follow-up has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`
+              ? `An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`
               : ""
           }
         />

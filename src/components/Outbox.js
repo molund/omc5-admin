@@ -20,12 +20,12 @@ const WEEK = 7 * 24 * 60 * 60 * 1000;
 const KIND = {
   move: "Position",
   update: "Update",
-  followup: "Follow-up",
-  "followup-edit": "Follow-up edit",
+  followup: "Addendum",
+  "followup-edit": "Addendum edit",
   blog: "Blog",
   "note-edit": "Edit",
   "note-delete": "Delete",
-  "followup-delete": "Follow-up delete",
+  "followup-delete": "Addendum delete",
   "desk-edit": "Position record edit",
   "desk-delete": "Position record delete",
 };

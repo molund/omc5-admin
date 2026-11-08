@@ -27,9 +27,9 @@ const PAGES = {
   move: { title: "Position", screen: MoveScreen, about: "Position only: the span and Hung, with a time stamp." },
   update: { title: "Update", screen: UpdateScreen, about: "A status update. Its summary goes on the card." },
   followup: {
-    title: "Follow-up",
+    title: "Addendum",
     screen: FollowUpScreen,
-    about: "Add to today's or yesterday's update, or edit a follow-up.",
+    about: "Add to today's or yesterday's update, or edit an addendum.",
   },
   blog: { title: "Blog post", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
   velocity: { title: "Velocity" },
@@ -43,7 +43,7 @@ const PAGES = {
 const LOGO = require("../assets/logo.png");
 
 // what an entry is, in its page's title
-const EDITS = { update: "update", blog: "blog post", position: "position", followup: "follow-up" };
+const EDITS = { update: "update", blog: "blog post", position: "position", followup: "addendum" };
 
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
 const InReview = ({ id, children }) => (id ? <BeforeChange id={id}>{children}</BeforeChange> : children);

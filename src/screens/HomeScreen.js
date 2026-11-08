@@ -37,12 +37,12 @@ export function HomeScreen({ go, onEdit, onOpen }) {
           {add("Update", "update")}
         </View>
         <View style={tw`flex-row gap-2`}>
-          {add("Follow-up", "followup", !canFollowUp)}
+          {add("Addendum", "followup", !canFollowUp)}
           {add("Blog post", "blog")}
         </View>
         {!canFollowUp && (
           <Body small mute>
-            Follow-up needs an update from today or yesterday to add to.
+            An addendum needs an update from today or yesterday to add to.
           </Body>
         )}
       </View>

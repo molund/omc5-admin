@@ -12,7 +12,7 @@ import { Body, Button, Label, Notice, Panel } from "../components/ui.js";
 import { Icon } from "../components/Icon";
 
 const PAGE = 20;
-const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Follow-up" };
+const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Addendum" };
 // the tabs' icons, and a page without lines for a blog post
 const ICON = { update: "fileLines", blog: "file", position: "crosshair", followup: "messageArrowDown" };
 
@@ -125,7 +125,7 @@ export function EntriesScreen({ onOpen }) {
 
   const intro = (
     <Body small mute>
-      Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry step or note to
+      Open any update, blog post, addendum or position record to fix its title, text, photos, gantry step or note to
       self, or to delete it. Each change gets a review first, and nothing reaches the site until you push. Anything
       still waiting to push can be changed here too.
     </Body>

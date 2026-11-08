@@ -99,7 +99,8 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
         const old = latest.current;
         const next = applyEdit(old, text, sel.current, (at) => (p && p.at === at ? p.bold : null));
         commit(next);
-        // what came in was changed (a pasted line break became a space): the cursor goes after it, not where the phone put it
+        // what came in was changed (a pasted line break became a space, or markdown was read): the cursor goes after it,
+        // not where the phone put it
         if (plainOf(next) !== text)
           select(plainOf(next).length - (plainOf(old).length - editRange(old, text, sel.current).to));
       }}

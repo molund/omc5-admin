@@ -7,9 +7,10 @@ import { unstable_createElement } from "react-native";
 import { useTw } from "../theme/tw.js";
 import {
   fromMarkdown,
+  insertRuns,
   isBold,
-  oneLine,
   linkAt,
+  pastedRuns,
   plainOf,
   removeLink,
   replace,
@@ -196,8 +197,12 @@ export const RichInput = forwardRef(function RichInput(
     };
     const paste = (e) => {
       e.preventDefault();
-      // kept to one line: the line breaks become spaces
-      type(oneLine(e.clipboardData?.getData("text/plain")));
+      // on one line, its markdown bold and links shown as they'll look, the rest of its markdown taken out
+      const { start, end } = selection();
+      const st = styleFor(runs.current, start, end, start === end ? document.queryCommandState("bold") : undefined);
+      const add = pastedRuns(e.clipboardData?.getData("text/plain"), st);
+      const at = start + plainOf(add).length;
+      redraw(insertRuns(runs.current, start, end, add), { start: at, end: at });
     };
     const drop = (e) => e.preventDefault();
     const moved = () => {

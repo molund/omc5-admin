@@ -63,6 +63,51 @@ export const oneLine = (text) =>
     .replace(/^\s*[\r\n]\s*|\s*[\r\n]\s*$/g, "")
     .replace(/\s*[\r\n]\s*/g, " ");
 
+// a web address the site links (inline.js), in a pasted link
+const ADDRESS = String.raw`(?:https?:\/\/|\/|\?)[^\s()<>]+`;
+// a backslash-escaped character, kept out of the way while the markdown is read, as a private-use one
+const hide = (s) => s.replace(/\\([\\`*_{}[\]()#+\-.!>~|<])/g, (_, c) => String.fromCharCode(0xe000 + c.charCodeAt(0)));
+const unhide = (s) => s.replace(/[-]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0xe000));
+
+/**
+ * Pasted text as runs in the style `st`, on one line (oneLine). Its markdown bold and links become bold and links; all
+ * other markdown (headings, lists, quotes, rules, code, italics, strikethrough, images, links the site can't use) is
+ * taken out, leaving the text.
+ */
+export function pastedRuns(text, st = {}) {
+  const lines = [];
+  for (const line of hide(String(text ?? "")).split(/\r\n?|\n/)) {
+    // code fences, rules and heading underlines go whole
+    if (/^\s*(?:```|~~~)/.test(line) || /^\s*(?:([-*_])\s*(?:\1\s*){2,}|={2,}\s*)$/.test(line)) continue;
+    lines.push(
+      line
+        .replace(/^\s*(?:>\s?)+(?=\S)/, "") // quotes
+        .replace(/^\s*#{1,6}\s+|\s+#+\s*$/g, "") // headings
+        .replace(/^\s*(?:[-*+]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/, ""), // list items and task boxes
+    );
+  }
+  const md = oneLine(lines.join("\n"))
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1") // images: their description
+    .replace(new RegExp(String.raw`<(${ADDRESS})>`, "g"), "[$1]($1)") // <https://…>
+    .replace(new RegExp(String.raw`\[([^\]]+)\]\(\s*<?(${ADDRESS})>?(?:\s+["'(][^)]*)?\s*\)`, "g"), "[$1]($2)") // a title
+    .replace(new RegExp(String.raw`\[([^\]]+)\]\((?!${ADDRESS}\))[^)]*\)`, "g"), "$1") // a link the site can't use
+    .replace(/(`+)(.+?)\1/g, "$2") // code
+    .replace(/~~(?=\S)(.+?)(?<=\S)~~/g, "$1") // strikethrough
+    .replace(/\*\*\*(?=\S)(.+?)(?<=\S)\*\*\*|___(?=\S)(.+?)(?<=\S)___/g, (_, a, b) => `**${a ?? b}**`) // bold italics
+    .replace(/(^|[^*\w])\*(?=[^\s*])([^*]+?)(?<=[^\s*])\*(?![*\w])/g, "$1$2") // italics
+    .replace(/(^|[^_\w])_(?=[^\s_])([^_]+?)(?<=[^\s_])_(?![_\w])/g, "$1$2");
+  return tidy(
+    inline(md).map((p) => ({ ...p, text: unhide(p.text), bold: p.bold || st.bold, href: p.href ?? st.href })),
+  );
+}
+
+/** [from, to) replaced by runs. */
+export function insertRuns(runs, from, to, add) {
+  const chars = explode(runs);
+  chars.splice(from, to - from, ...explode(add));
+  return tidy(chars);
+}
+
 /**
  * Where the box's text changed to `next`: [from, to) of the old text replaced by `text`. The change is taken to be at the
  * selection it had (`sel`, { start, end }) when the text agrees with that, as it does for typing, pasting and corrections;
@@ -94,18 +139,14 @@ export function editRange(runs, next, sel) {
 }
 
 /**
- * The runs after the box's text changed to `next` (editRange), what came in kept to one line (oneLine). `bold` is passed to
- * styleFor, or is a function giving it for where the change is.
+ * The runs after the box's text changed to `next` (editRange), what came in read as a paste (pastedRuns): on one line,
+ * with only its bold and links kept. `bold` is passed to styleFor, or is a function giving it for where the change is.
  */
 export function applyEdit(runs, next, sel, bold) {
   const { from, to, text } = editRange(runs, next, sel);
-  return replace(
-    runs,
-    from,
-    to,
-    oneLine(text),
-    styleFor(runs, from, to, typeof bold === "function" ? bold(from) : bold),
-  );
+  const st = styleFor(runs, from, to, typeof bold === "function" ? bold(from) : bold);
+  // one character is typed, not pasted: it goes in as it is, unless it's a line break
+  return insertRuns(runs, from, to, text.length > 1 ? pastedRuns(text, st) : [{ text: oneLine(text), ...st }]);
 }
 
 /** The link around [start, end), or touching the cursor: { start, end, href, text }, or null. */

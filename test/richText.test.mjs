@@ -9,6 +9,7 @@ import {
   isBold,
   linkAt,
   oneLine,
+  pastedRuns,
   plainOf,
   removeLink,
   setLink,
@@ -112,4 +113,20 @@ test("pasted line breaks become spaces", () => {
   assert.equal(oneLine("\n\none  \n\n  two\n"), "one two");
   assert.equal(oneLine("word "), "word ");
   assert.equal(plainOf(applyEdit(fromMarkdown("a b"), "a x\ny b", { start: 2, end: 2 })), "a x y b");
+});
+
+test("pasted markdown keeps its bold and links, and loses the rest", () => {
+  const md = (text, st) => toMarkdown(pastedRuns(text, st));
+  assert.equal(md("some **bold** and [a link](https://x.ca)"), "some **bold** and [a link](https://x.ca)");
+  assert.equal(md("# Heading\n\n- one *two*\n- `three` ~~four~~\n> quote"), "Heading one two three four quote");
+  assert.equal(md("1. ***both*** and _it_\n2. [ ] task\n\n---\n"), "**both** and it task");
+  assert.equal(md("![photo](a.jpg) [mail](mailto:a@b.ca) <https://x.ca>"), "photo mail [https://x.ca](https://x.ca)");
+  assert.equal(
+    md('[t](https://x.ca "title") a\\*b\\* snake_case_name 2 * 3'),
+    "[t](https://x.ca) a*b* snake_case_name 2 * 3",
+  );
+  assert.equal(md("```\ncode\n```"), "code");
+  assert.equal(md("plain", { bold: true }), "**plain**");
+  assert.equal(toMarkdown(applyEdit(fromMarkdown("a b"), "a **x** b", { start: 2, end: 2 })), "a **x** b");
+  assert.equal(plainOf(applyEdit(fromMarkdown("a"), "a>", { start: 1, end: 1 })), "a>");
 });

@@ -988,12 +988,3 @@ test("the velocity over a week: a steady pace comes back, the window moves with 
   const short = entries.filter((e) => e.span >= 43);
   assert.equal(velocity(short).spansPerWeek, null);
 });
-
-test("desk.yaml's `note:` was `note-to-self:`: the old key is still read, and written back as `note:`", () => {
-  const old = `entries:\n  - 2026-11-05T21:30-07:00:\n      span: 38\n      note-to-self: "kept"\n`;
-  const [e] = parseDesk(old);
-  assert.equal(e.noteToSelf, "kept");
-  const written = formatDesk([e]);
-  assert.match(written, /\n {6}note: "kept"\n/);
-  assert.ok(!written.includes("note-to-self"));
-});

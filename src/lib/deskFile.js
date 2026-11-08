@@ -63,9 +63,7 @@ export function parseDesk(text) {
             .split(",")
             .map((s) => currentName(s.trim())),
         ) ?? null;
-    // `note-to-self` is what a note was called when it was in status.yaml, and desk.yaml before it was renamed: still read, so a
-    // copy of the file from before isn't read as having no notes (and written back without them)
-    else if (k === "note" || k === "note-to-self") cur.noteToSelf = unquote(v);
+    else if (k === "note") cur.noteToSelf = unquote(v);
   }
   return sortEntries(entries);
 }

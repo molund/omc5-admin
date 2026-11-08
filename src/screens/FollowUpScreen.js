@@ -49,7 +49,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
-  if (!note) return <Notice>There's no update from today or yesterday to follow up.</Notice>;
+  if (!note) return <Notice>There's no update from today or yesterday to add an addendum to.</Notice>;
 
   const fus = followUpsNewestFirst(note);
   const gantryChanged = d.span !== head.span || d.complete !== head.complete;
@@ -128,7 +128,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
       </Panel>
 
       <Panel>
-        <Label>{fus.length ? `Follow-ups (${fus.length})` : "No follow-ups yet"}</Label>
+        <Label>{fus.length ? `Addenda (${fus.length})` : "No addenda yet"}</Label>
         {fus.map((f) => (
           <Row key={f.key} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
             <Body small mute style={{ width: 64 }}>
@@ -156,7 +156,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
 
       <View style={tw`gap-3 rounded-lg border border-accent p-2.5`}>
         <Row>
-          <Label>{d.editing ? `Editing the ${clock(d.editing)} follow-up` : "New follow-up"}</Label>
+          <Label>{d.editing ? `Editing the ${clock(d.editing)} addendum` : "New addendum"}</Label>
           {d.editing && <Button kind="link" small title="Cancel edit" onPress={() => start({})} />}
         </Row>
         <TimeStampField
@@ -187,7 +187,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
       <NoteToSelf
         value={memo}
         onChange={(m) => update({ memo: m })}
-        where={`A follow-up has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
+        where={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
       />
       <StyleHints texts={blockTexts(d.blocks)} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
@@ -208,7 +208,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         />
         <Button
           kind="green"
-          title={d.editing ? "Review the edit" : "Review the follow-up"}
+          title={d.editing ? "Review the edit" : "Review the addendum"}
           disabled={problems.length > 0}
           style={tw`flex-1`}
           onPress={() => onReview(change, { after: reset })}

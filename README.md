@@ -21,15 +21,15 @@ Further reading: [`src/lib/VELOCITY.md`](src/lib/VELOCITY.md) (every assumption 
 
 ### Modes
 
-| Mode          | What it writes                                                | The card shows                    |
-| ------------- | ------------------------------------------------------------- | --------------------------------- |
-| **Position**  | `updated`, `span`, `hung`                                     | no text, a Trackside button       |
-| **Update**    | the same, plus a note: title, summary, photos and paragraphs  | the summary, Comments             |
-| **Blog post** | a note keyed by date alone, with `post: true`                 | unchanged                         |
-| **Follow-up** | a follow-up under an update, and `updated` if it's the newest | the follow-up's summary, Comments |
+| Mode          | What it writes                                                  | The card shows                   |
+| ------------- | --------------------------------------------------------------- | -------------------------------- |
+| **Position**  | `updated`, `span`, `hung`                                       | no text, a Trackside button      |
+| **Update**    | the same, plus a note: title, summary, photos and paragraphs    | the summary, Comments            |
+| **Blog post** | a note keyed by date alone, with `post: true`                   | unchanged                        |
+| **Addendum**  | a `follow-up` under an update, and `updated` if it's the newest | the addendum's summary, Comments |
 
 - **Blog post** isn't a tab of its own: it's Update with its Blog post switch on.
-- **Follow-up** picks today's or yesterday's update (the newest by default), then adds a follow-up or edits one it has.
+- **Addendum** picks today's or yesterday's update (the newest by default), then adds an addendum or edits one it has.
   It can move the gantry too. The tab is off when there's no such update.
 - **The card** follows its new rule: an entry shows on it only when its time stamp equals `updated`. That rule needs a
   change to `src/ProgressCard.svelte` on the site; until then, the live card keeps showing the newest update's latest
@@ -48,17 +48,17 @@ Thursday, Nov. 5, 2026") unless you write your own, on any update, even with oth
 
 ### Changing what's saved
 
-The **Entries** page, reached by the link under the tabs, lists every update, blog post, follow-up and position record,
+The **Entries** page, reached by the link under the tabs, lists every update, blog post, addendum and position record,
 newest first. (A position record is a `desk.yaml` entry with no post at its time stamp, or a note with no summary.) Tap
 one to edit or delete it. An edit or delete is an ordinary change: it's reviewed, waits in the list, becomes one commit,
 and can be discarded until it's pushed.
 
 - **Time stamps** are locked on updates and blog posts, because the site builds their comment thread's title and page
-  anchor from them. To really move one, delete it and post it again. A follow-up can still be moved: its comments are
+  anchor from them. To really move one, delete it and post it again. An addendum can still be moved: its comments are
   its parent's.
 - **Addresses:** the site works out `?post=` addresses from titles, and a repeated title gets `-2` by age. An edit or
   delete that would change any note's address writes a `slug:` that keeps it.
-- **The card:** deleting what the card shows moves `updated` back to the newest time left (a status update, a follow-up
+- **The card:** deleting what the card shows moves `updated` back to the newest time left (a status update, an addendum
   or a position, not a blog post). Span and Hung don't change; use Position for those.
 - **Steps:** an entry's stage loads into the step picker. Deleting an entry takes its `desk.yaml` record with it.
 - **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address
@@ -78,9 +78,9 @@ have the span it's about, the step of the gantry's cycle it reports (`docs/gantr
 to self. A change writes both files in the same commit.
 
 - **Notes to self.** Every entry can have one. Update (and a blog post) writes the new entry's, starting from the note
-  of a position already at the same time stamp; Follow-up edits its parent's; Position writes one at its own time stamp.
+  of a position already at the same time stamp; Addendum edits its parent's; Position writes one at its own time stamp.
   Empty text removes it.
-- **Gantry step.** Position, Update and Follow-up have a step picker. It's off until "Report a step" is switched on, so
+- **Gantry step.** Position, Update and Addendum have a step picker. It's off until "Report a step" is switched on, so
   an entry doesn't report a step by accident. It then starts at the furthest step the rules find in what you write
   (`src/lib/stages.js`: "moved to span 38", "fully glued", "started moving its supports" and so on); drag it to change
   it. It can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A

@@ -3,7 +3,7 @@
 
 export const WRITES_INTRO = "a blog intro paragraph";
 export const WRITES_SECONDARY = "a blog secondary paragraph";
-export const WRITES_FOLLOW_UP = "a follow-up to the attached blog post";
+export const WRITES_FOLLOW_UP = "an addendum to the attached blog post";
 
 const STYLE_GUIDE = `- Spans: lowercase, "span 50", like "page 5"; capitalised only at the start of a sentence.
 - Spans and girders: a span is the space between two supports, numbered along the route; a girder is a precast concrete or steel one connecting two supports, as opposed to the segmental spans the gantry builds from segments. Always call a precast concrete or steel one a "girder" and avoid "span" or "beam" for it; use the span's number only to say where it goes ("both precast concrete girders for span 34").

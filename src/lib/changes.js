@@ -351,7 +351,7 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       setHeader(doc, { updated: later(change.time, head.updated) });
       const note = findNote(doc.parsed, change.noteKey);
       if (note.followUps.some((f) => f.key === change.time))
-        throw new Conflict(`That note already has a follow-up at ${clock(change.time)}.`);
+        throw new Conflict(`That note already has an addendum at ${clock(change.time)}.`);
       const lines = followUpLines(change.time, change.blocks);
       if (note.fuLine >= 0) doc.replace(note.fuEnd + 1, 0, lines);
       else doc.replace(note.end + 1, 0, ["    follow-up:", ...lines]);
@@ -360,9 +360,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
     case "followup-edit": {
       const note = findNote(doc.parsed, change.noteKey);
       const fu = note.followUps.find((f) => f.key === change.fuKey);
-      if (!fu) throw new Conflict(`The ${clock(change.fuKey)} follow-up isn't in status.yaml any more.`);
+      if (!fu) throw new Conflict(`The ${clock(change.fuKey)} addendum isn't in status.yaml any more.`);
       if (change.time !== change.fuKey && note.followUps.some((f) => f.key === change.time))
-        throw new Conflict(`That note already has a follow-up at ${clock(change.time)}.`);
+        throw new Conflict(`That note already has an addendum at ${clock(change.time)}.`);
       doc.replace(fu.start, fu.end - fu.start + 1, followUpLines(change.time, change.blocks));
       // it was the card's newest word: the card follows its new time
       if (change.fuKey === head.updated && change.time !== change.fuKey) setHeader(doc, { updated: change.time });
@@ -386,7 +386,7 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
     case "followup-delete": {
       const note = findNote(doc.parsed, change.noteKey);
       const fu = note.followUps.find((f) => f.key === change.fuKey);
-      if (!fu) throw new Conflict(`The ${clock(change.fuKey)} follow-up isn't in status.yaml any more.`);
+      if (!fu) throw new Conflict(`The ${clock(change.fuKey)} addendum isn't in status.yaml any more.`);
       // the last one takes the list's `follow-up:` line with it
       removeLines(doc, note.followUps.length === 1 ? note.fuLine : fu.start, fu.end);
       fallBack(doc, [fu.key], head.updated, deskKeys);
@@ -449,15 +449,15 @@ export function commitMessage(change, before) {
     case "blog":
       return `Add the blog post "${change.title}"`;
     case "followup":
-      return `Add a follow-up to ${named}`;
+      return `Add an addendum to ${named}`;
     case "followup-edit":
-      return `Edit the ${clock(change.fuKey)} follow-up to ${named}`;
+      return `Edit the ${clock(change.fuKey)} addendum to ${named}`;
     case "note-edit":
       return `Edit ${named}`;
     case "note-delete":
       return `Delete ${named}`;
     case "followup-delete":
-      return `Delete the ${clock(change.fuKey)} follow-up to ${named}`;
+      return `Delete the ${clock(change.fuKey)} addendum to ${named}`;
     case "desk-edit":
       return `Edit the ${clock(change.key)} position record from ${monthDay(change.key)}`;
     case "desk-delete":

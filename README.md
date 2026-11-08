@@ -209,7 +209,7 @@ capabilities:
 
 ### Platform files
 
-Each platform need has one file per platform, in `src/platform/` and for a few components (`Icon`, `Sparkline`). The app
+Each platform need has one file per platform, in `src/platform/` and for a few components (`Icon`, `Sparkline`, `RichInput`, `KeyboardBar`). The app
 imports it without an extension: the web build (esbuild) picks `.web.js` and Expo's Metro picks `.native.js`. The two
 files of a pair have the same shape.
 

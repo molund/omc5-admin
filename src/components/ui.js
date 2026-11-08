@@ -5,6 +5,8 @@ import { useTw } from "../theme/tw.js";
 import { copyText } from "../platform/clipboard";
 import { writingPrompt } from "../lib/writingPrompt.js";
 import { Icon } from "./Icon";
+import { RichInput } from "./RichInput";
+import { useRich } from "./richContext.js";
 
 /** A white panel with a hairline border. */
 export function Panel({ children, style, tone }) {
@@ -206,6 +208,8 @@ export function ZoomScope({ children }) {
  * asks for ("a blog intro paragraph"); without it, the text for the field by its name. `noPrompt` leaves the icon off.
  * With a `heading`, the field is one box: the title (tap it to type) and the icons share its top line, `right` going before
  * the icons, and the text goes under them.
+ * A `rich` field shows its bold and links as they'll look, and edits the markdown behind them; its zoom and prompt buttons
+ * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link.
  */
 export function Field({
   value,
@@ -222,6 +226,7 @@ export function Field({
   secure,
   heading,
   right,
+  rich,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -232,11 +237,13 @@ export function Field({
   const inputRef = useRef(null);
   const [restHeight, setRestHeight] = useState(null);
   const [focused, setFocused] = useState(false);
-  // on the web, a click outside the box; the phone's taps go through ZoomScope
+  const richScope = useRich();
+  const [richState, setRichState] = useState(null); // { bold, link } where the cursor is, for the toolbar
+  // on the web, a click outside the box; the phone's taps go through ZoomScope. The rich text toolbar isn't outside it.
   useEffect(() => {
     if (!zoomed || Platform.OS !== "web") return undefined;
     const outside = (e) => {
-      if (!box.current?.contains(e.target)) zoom.setActive(null);
+      if (!box.current?.contains(e.target) && !e.target.closest?.("[data-rich-toolbar]")) zoom.setActive(null);
     };
     document.addEventListener("click", outside, true);
     return () => document.removeEventListener("click", outside, true);
@@ -254,6 +261,15 @@ export function Field({
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(null), 1500);
   }
+  // a rich field tells the toolbar about itself while it has the focus
+  useEffect(() => {
+    if (!rich || !richScope) return;
+    richScope.report(
+      id,
+      focused && { name, editor: inputRef, zoomed, toggleZoom, copied, copyPrompt, noPrompt, ...richState },
+    );
+  }, [rich, focused, zoomed, copied, richState, value]);
+  useEffect(() => () => rich && richScope?.report(id, null), []);
   const icons = (
     <>
       <Pressable
@@ -288,9 +304,11 @@ export function Field({
         </Text>
       </View>
     ) : null;
+  const Input = rich ? RichInput : TextInput;
   const input = (
-    <TextInput
+    <Input
       ref={inputRef}
+      {...(rich && { onState: setRichState })}
       onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
@@ -351,7 +369,7 @@ export function Field({
             <Text style={tw`text-sm font-semibold text-ink`}>{heading}</Text>
           </Pressable>
           {right}
-          {!noPrompt && icons}
+          {!noPrompt && !rich && icons}
         </View>
         {notice}
         {input}
@@ -359,7 +377,7 @@ export function Field({
     );
   const body = (
     <>
-      {!noPrompt && <View style={tw`flex-row justify-end gap-1`}>{icons}</View>}
+      {!noPrompt && !rich && <View style={tw`flex-row justify-end gap-1`}>{icons}</View>}
       {notice}
       {input}
     </>

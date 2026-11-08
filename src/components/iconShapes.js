@@ -41,4 +41,14 @@ export const ICONS = {
     ],
   ],
   check: [["path", { d: "M5 12.5l4.5 4.5L19 7.5", fill: "none" }]],
+  // a link, for the rich text boxes' toolbar
+  link: [
+    [
+      "path",
+      {
+        d: "M10 13.5a4.5 4.5 0 0 0 6.36.36l3-3a4.5 4.5 0 0 0-6.36-6.36l-1.5 1.5M14 10.5a4.5 4.5 0 0 0-6.36-.36l-3 3a4.5 4.5 0 0 0 6.36 6.36l1.5-1.5",
+        fill: "none",
+      },
+    ],
+  ],
 };

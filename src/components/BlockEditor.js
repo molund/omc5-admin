@@ -1,5 +1,6 @@
 // The block editor: the summary first (it can't move), then paragraphs and photos in any order, with buttons to add more.
-// Picking a photo resizes it and opens its caption field straight away.
+// Picking a photo resizes it and opens its caption field straight away. The summary, paragraphs and captions are rich text
+// boxes, with Bold and Link on a toolbar over the keyboard (RichScope.js).
 import { useEffect, useMemo, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -10,6 +11,7 @@ import { parseStatus } from "../lib/statusFile.js";
 import { photosOf } from "../lib/changes.js";
 import { WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
 import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
+import { RichScope } from "./RichScope.js";
 
 export const emptyBlocks = () => [{ type: "summary", text: "" }];
 
@@ -102,7 +104,13 @@ function SitePhoto({ file, caption }) {
  * @param {string} props.nameHint The title or summary, for photo names
  * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
  */
-export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
+export const BlockEditor = (props) => (
+  <RichScope>
+    <Blocks {...props} />
+  </RichScope>
+);
+
+function Blocks({ blocks, onChange, day, nameHint, followUp }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -186,6 +194,7 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
               value={b.text}
               onChangeText={(text) => set(i, { text })}
               placeholder="What happened?"
+              rich
               label="Summary"
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
             />
@@ -200,6 +209,7 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
               value={b.text}
               onChangeText={(text) => set(i, { text })}
               placeholder="More detail"
+              rich
               label={`Paragraph ${i}`}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
             />
@@ -255,6 +265,7 @@ export function BlockEditor({ blocks, onChange, day, nameHint, followUp }) {
               value={b.caption}
               onChangeText={(caption) => set(i, { caption })}
               placeholder="What it shows"
+              rich
               label="Caption"
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}

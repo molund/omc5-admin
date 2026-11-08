@@ -24,12 +24,12 @@ export const ICONS = {
   // "copy a prompt for an AI"
   sparkle: [["path", { d: "M10 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4", fill: "none" }]],
   // reading glasses, round, with a bridge and a stub at each side instead of arms: make a text box bigger, and back (the button shows it's on by its colour);
-  // as tall as the sparkle, so wider than the grid (see WIDTHS)
+  // 85% as tall as the sparkle, so wider than the grid (see WIDTHS)
   glasses: [
     [
       "path",
       {
-        d: "M5.65 11.5a8.5 8.5 0 1 0 17 0a8.5 8.5 0 1 0 -17 0M27.35 11.5a8.5 8.5 0 1 0 17 0a8.5 8.5 0 1 0 -17 0M21.81 7.89c1.91-1.7 4.46-1.7 6.38 0M2.05 11.5h3.6M44.35 11.5h3.6",
+        d: "M5.06 11.5a7.225 7.225 0 1 0 14.45 0a7.225 7.225 0 1 0 -14.45 0M23.49 11.5a7.225 7.225 0 1 0 14.45 0a7.225 7.225 0 1 0 -14.45 0M18.79 8.43c1.62-1.45 3.79-1.45 5.42 0M1.99 11.5h3.07M37.94 11.5h3.06",
         fill: "none",
       },
     ],
@@ -72,4 +72,4 @@ export const ICONS = {
 };
 
 // The width of an icon's grid when it isn't the usual 24 (it's always 24 tall); it's drawn that much wider than its size.
-export const WIDTHS = { glasses: 50 };
+export const WIDTHS = { glasses: 43 };

@@ -218,11 +218,11 @@ files of a pair have the same shape.
 What the app calls something can differ from its name in the code and the files. That's allowed, as long as it's listed
 here. Look here before renaming anything, and add a row when a new difference appears.
 
-| In the app        | In the code and the files                                                                                   | Why the difference                                                                                |
-| ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Addendum**      | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update |
-| **Working notes** | `NoteToSelf`, `noteToSelf`; desk.yaml's `note:` key                                                         | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
-| **GitHub sync**   | `Outbox`, and "the desk's copy" in comments                                                                 | the panel is the desk's copy of main, its waiting changes and the push; the code's name is older  |
+| In the app      | In the code and the files                                                                                   | Why the difference                                                                                |
+| --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Addendum**    | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update |
+| **Notes**       | `NoteToSelf`, `noteToSelf`; desk.yaml's `note:` key                                                         | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
+| **GitHub sync** | `Outbox`, and "the desk's copy" in comments                                                                 | the panel is the desk's copy of main, its waiting changes and the push; the code's name is older  |
 
 The wording the desk writes for you follows the app: the suggested commit messages say "addendum", while the files they
 change still have `follow-up:`. Storage keys from before Home (`mode`, `blog`, `draft.edit`) are no longer read.

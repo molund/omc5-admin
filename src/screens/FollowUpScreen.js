@@ -13,7 +13,6 @@ import { TimeStampField } from "../components/TimeStampField.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { recentUpdates } from "../lib/entries.js";
@@ -201,6 +200,9 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           onChange={(stage) => update({ stage })}
           floor={floor}
           span={d.editing ? null : d.span}
+          notes={memo}
+          onNotes={(m) => update({ memo: m })}
+          notesWhere={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
         />
         <BlockEditor
           blocks={d.blocks}
@@ -212,11 +214,6 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
         {!d.editing && <GantryFold value={d} current={head} onChange={(g) => update(g)} offLabel="Gantry unchanged" />}
       </View>
 
-      <NoteToSelf
-        value={memo}
-        onChange={(m) => update({ memo: m })}
-        where={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
-      />
       <StyleHints texts={blockTexts(d.blocks)} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (

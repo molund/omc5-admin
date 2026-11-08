@@ -7,6 +7,7 @@ import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
+import { NoteToSelf } from "./NoteToSelf.js";
 import { Body, Button, Label, Panel, Row, Toggle } from "./ui.js";
 
 const THUMB = 26;
@@ -102,8 +103,11 @@ export const chosenStage = (value, floor = STAGES[0]) => (value ? atLeast(value,
  * @param {(stage: string|undefined) => void} props.onChange
  * @param {string} [props.floor] The earliest stage allowed (floorStage), hung once the span is hung.
  * @param {number|null} [props.span] The span it's for.
+ * @param {string} [props.notes] The entry's notes, shown at the bottom of the box when `onNotes` is given.
+ * @param {(text: string) => void} [props.onNotes]
+ * @param {string} [props.notesWhere] A line under the notes saying whose they are.
  */
-export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) {
+export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere }) {
   const { tw } = useTw();
   const found = stagesIn(text);
   const on = value !== undefined;
@@ -169,6 +173,7 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span }) 
           )}
         </Row>
       )}
+      {onNotes && <NoteToSelf inBox value={notes ?? ""} onChange={onNotes} where={notesWhere} />}
     </Panel>
   );
 }

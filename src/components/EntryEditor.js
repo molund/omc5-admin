@@ -133,7 +133,21 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   }
   const preview = desk.preview(change);
   const unchanged = !preview.error && !preview.hunks.length && !preview.deskHunks.length;
-  const steps = <StagePicker text={text} value={d.stage} onChange={(s) => update({ stage: s })} span={record?.span} />;
+  const steps = (
+    <StagePicker
+      text={text}
+      value={d.stage}
+      onChange={(s) => update({ stage: s })}
+      span={record?.span}
+      notes={memo}
+      onNotes={(m) => update({ memo: m })}
+      notesWhere={
+        target.type === "followup"
+          ? `An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`
+          : ""
+      }
+    />
+  );
   const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key), fu);
   const deleteChange =
     target.type === "followup"
@@ -181,17 +195,8 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           followUp={target.type === "followup"}
         />
       )}
-      {(target.type !== "position" || !!record) && (
-        <NoteToSelf
-          value={memo}
-          onChange={(m) => update({ memo: m })}
-          where={
-            target.type === "followup"
-              ? `An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`
-              : ""
-          }
-        />
-      )}
+      {/* a blog post has no step, so its notes aren't in a step box */}
+      {isPost && <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} />}
       {target.type !== "position" && <StyleHints texts={[...(d.title ? [d.title] : []), ...blockTexts(d.blocks)]} />}
       {target.type !== "position" && !preview.error && <CardPreview card={cardFor(preview.text, preview.deskText)} />}
       {preview.error && <Notice tone="problem">{preview.error}</Notice>}

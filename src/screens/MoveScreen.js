@@ -12,7 +12,6 @@ import { compareKeys, nowKey, asOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { NoteToSelf } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { Button, Notice } from "../components/ui.js";
 
@@ -48,8 +47,15 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
       {compareKeys(d.time, head.updated) < 0 && (
         <Notice>That's earlier than the last update ({asOf(head.updated)}).</Notice>
       )}
-      <StagePicker text={memo} value={d.stage} onChange={(stage) => update({ stage })} floor={floor} span={d.span} />
-      <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} />
+      <StagePicker
+        text={memo}
+        value={d.stage}
+        onChange={(stage) => update({ stage })}
+        floor={floor}
+        span={d.span}
+        notes={memo}
+        onNotes={(m) => update({ memo: m })}
+      />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />
     </View>

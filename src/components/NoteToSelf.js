@@ -1,5 +1,6 @@
-// The note to self: one line of text per entry, kept in desk.yaml (the desk's own file), which the site never reads.
-// Follow-ups and blocks don't have one: a follow-up edits its parent's.
+// Notes, once the note to self: one line of text per entry, kept in desk.yaml (the desk's own file), which the site never reads.
+// Addendums and blocks don't have one: an addendum edits its parent's. It sits inside the Gantry step box (StagePicker.js)
+// wherever there is one; a blog post has no step, so its notes are a box of their own. It has the zoom, but no AI prompt.
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { stamp } from "../lib/time.js";
@@ -8,17 +9,25 @@ import { Body, Field } from "./ui.js";
 /** "Saved with the Wed, Nov. 4, 2026 · 8:15am update." */
 export const whereIs = (note) => `Saved with the ${stamp(note.key)} ${note.fields.post ? "blog post" : "update"}.`;
 
-export function NoteToSelf({ value, onChange, where }) {
+/**
+ * @param {object} props
+ * @param {string} props.value
+ * @param {(text: string) => void} props.onChange
+ * @param {string} [props.where] A line under it saying whose it is.
+ * @param {boolean} [props.inBox] It's inside another box (the Gantry step's): a title over it, not a box of its own.
+ */
+export function NoteToSelf({ value, onChange, where, inBox }) {
   const { tw } = useTw();
   return (
-    <View style={tw`gap-1.5`}>
+    <View style={[tw`gap-1.5`, inBox && tw`border-t border-line pt-2.5`]}>
       <Field
         multiline
-        heading="Working notes"
+        {...(inBox ? { title: "Notes" } : { heading: "Notes" })}
         value={value}
         onChangeText={onChange}
         placeholder="Where it's at, e.g. 60% of the way through the lift"
-        label="Working notes"
+        label="Notes"
+        noAi
         style={tw`min-h-14`}
       />
       {!!where && (

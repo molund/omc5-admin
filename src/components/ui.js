@@ -234,7 +234,8 @@ export function ZoomScope({ children }) {
  * A text field, with icons over its top right corner: one that zooms the box, and one that copies an AI prompt for its text. `writes` is what the prompt
  * asks for ("a blog intro paragraph"); without it, the text for the field by its name. `noPrompt` leaves the icon off.
  * With a `heading`, the field is one box: the title (tap it to type) and the icons share its top line, `right` going before
- * the icons, and the text goes under them.
+ * the icons, and the text goes under them. With a `title` instead, the title and the icons share a line above the box, for a
+ * field inside another box. `noAi` leaves the AI prompt's icon off and keeps the zoom.
  * A `rich` field shows its bold and links as they'll look, and edits the markdown behind them; its zoom and prompt buttons
  * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link. Its Enter key calls `onEnter`, when
  * given, instead of starting a new line, and a paste with line breaks calls `onSplit(blocks, cursor)` (richText.js's
@@ -254,8 +255,10 @@ export function Field({
   noPrompt,
   secure,
   heading,
+  title,
   right,
   rich,
+  noAi,
   onEnter,
   onSplit,
   cursorAt,
@@ -317,14 +320,16 @@ export function Field({
       >
         <Icon name={zoomed ? "zoomOut" : "zoomIn"} size={20} color={zoomed ? colors["accent-ink"] : colors.mute} />
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Copy an AI prompt for ${name}`}
-        onPress={copyPrompt}
-        style={({ hovered }) => [tw`h-8 w-8 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
-      >
-        <Icon name={copied ? "check" : "sparkle"} size={20} color={copied ? colors.green : colors.mute} />
-      </Pressable>
+      {!noAi && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Copy an AI prompt for ${name}`}
+          onPress={copyPrompt}
+          style={({ hovered }) => [tw`h-8 w-8 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
+        >
+          <Icon name={copied ? "check" : "sparkle"} size={20} color={copied ? colors.green : colors.mute} />
+        </Pressable>
+      )}
     </>
   );
   const notice =
@@ -409,7 +414,13 @@ export function Field({
     );
   const body = (
     <>
-      {!noPrompt && !rich && <View style={tw`flex-row justify-end gap-1`}>{icons}</View>}
+      {!noPrompt &&
+        !rich &&
+        (title ? (
+          <Label right={<View style={tw`flex-row gap-1`}>{icons}</View>}>{title}</Label>
+        ) : (
+          <View style={tw`flex-row justify-end gap-1`}>{icons}</View>
+        ))}
       {notice}
       {input}
     </>

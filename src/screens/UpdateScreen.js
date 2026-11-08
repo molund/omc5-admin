@@ -13,7 +13,6 @@ import { TitleField, titleProblems } from "../components/TitleField.js";
 import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
@@ -86,6 +85,8 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         onChange={(stage) => update({ stage })}
         floor={floor}
         span={d.span}
+        notes={memo}
+        onNotes={(memo) => update({ memo })}
       />
       <TitleField
         kind="update"
@@ -102,7 +103,6 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
       />
-      <NoteToSelf value={memo} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (

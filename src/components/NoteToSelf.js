@@ -14,11 +14,11 @@ export function NoteToSelf({ value, onChange, where }) {
     <View style={tw`gap-1.5`}>
       <Field
         multiline
-        heading="Note to self"
+        heading="Working notes"
         value={value}
         onChangeText={onChange}
-        placeholder="Anything to remember"
-        label="Note to self"
+        placeholder="Where it's at, e.g. 60% of the way through the lift"
+        label="Working notes"
         style={tw`min-h-14`}
       />
       {!!where && (

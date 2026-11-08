@@ -168,7 +168,7 @@ function Desk() {
                     <View style={tw`gap-0.5`}>
                       <Link title="Edit or delete what's already saved" onPress={() => setEntries(true)} />
                       <Body small mute>
-                        Fix the title, text, photos, gantry step or note to self of any update, blog post, follow-up or
+                        Fix the title, text, photos, gantry step or working notes of any update, blog post, follow-up or
                         position record, or delete it.
                       </Body>
                     </View>

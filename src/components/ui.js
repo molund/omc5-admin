@@ -321,7 +321,7 @@ export function Field({
         accessibilityState={{ selected: zoomed }}
         onPress={toggleZoom}
         style={({ hovered }) => [
-          tw`h-8 w-8 items-center justify-center rounded-md`,
+          tw`h-8 items-center justify-center rounded-md px-1.5`,
           zoomed && tw`bg-accent`,
           hovered && tw`opacity-80`,
         ]}

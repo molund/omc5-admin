@@ -295,7 +295,7 @@ export function Outbox({ onSettings, onEdit }) {
           ))
         }
       >
-        Desk copy
+        GitHub Sync
       </Label>
       <Body small mute>
         {copyLine}

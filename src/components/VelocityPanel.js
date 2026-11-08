@@ -151,6 +151,16 @@ export function VelocityPanel({ full, onOpen }) {
           <Body small mute>
             Steps, with the working time from each to the next (est.: not logged, estimated)
           </Body>
+          {/* the same columns as the rows below: when each step started, and how long it ran */}
+          <View style={tw`flex-row items-baseline gap-2 pl-3`}>
+            <View style={tw`flex-1`} />
+            <Body small mute numberOfLines={1} style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }]}>
+              Start
+            </Body>
+            <Body small mute style={tw`w-16 text-right`}>
+              Duration
+            </Body>
+          </View>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
               {g.steps[0].newDay && dayBar(g.steps[0].key)}

@@ -3,7 +3,7 @@
 // the site's dark card when the app is light, and its light card when the app is dark. Nothing here is pressed, so it has
 // no close button, unlike the site's.
 import { useState } from "react";
-import { Image, Text, View } from "react-native";
+import { Image, PixelRatio, Platform, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "../theme/tw.js";
 import { cardAsOf } from "../lib/time.js";
 import { inline } from "../lib/inline.js";
@@ -46,6 +46,11 @@ function Figure({ children, textStyle, color, drop }) {
   );
 }
 
+// the site's card is 276 wide. With larger text (the phone's text size setting) the card grows by as much, so its lines break where
+// they do at the normal size: at 135%, the velocity line is 252 wide against the 248 inside a 276 card, and would wrap
+const CARD_WIDTH = 276;
+const cardWidth = () => Math.round(CARD_WIDTH * (Platform.OS === "web" ? 1 : Math.max(1, PixelRatio.getFontScale())));
+
 function Card({ card }) {
   const { tw, colors } = useTw();
   const [logoFailed, setLogoFailed] = useState(false);
@@ -54,7 +59,7 @@ function Card({ card }) {
     <View
       style={[
         tw`self-start rounded-lg border border-line bg-panel px-3.5 pb-3.5 pt-3`,
-        { width: 276, maxWidth: "100%", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)" },
+        { width: cardWidth(), maxWidth: "100%", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.25)" },
       ]}
     >
       <View style={tw`flex-row items-center gap-2 pr-6`}>

@@ -448,6 +448,20 @@ export function Warning({ children, style }) {
   );
 }
 
+/** What asks before something is deleted: a note under what's about to go, with Cancel and the action. */
+export function Confirm({ children, action = "Delete", onCancel, onConfirm }) {
+  const { tw } = useTw();
+  return (
+    <View accessibilityRole="alert" style={tw`gap-2 rounded-md border border-del-ink bg-del p-2.5`}>
+      <Text style={tw`text-xs leading-snug text-del-ink`}>{children}</Text>
+      <Row style={tw`justify-end`}>
+        <Button small title="Cancel" onPress={onCancel} />
+        <Button small kind="danger" title={action} onPress={onConfirm} />
+      </Row>
+    </View>
+  );
+}
+
 export function Row({ children, style }) {
   const { tw } = useTw();
   return <View style={[tw`flex-row flex-wrap items-center justify-between gap-2`, style]}>{children}</View>;

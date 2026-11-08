@@ -1,6 +1,7 @@
 // Changing something already saved: an update or blog post (its time stamp is locked, because its comment thread and page
 // anchor come from it), a follow-up, or a position record. It makes an ordinary change: reviewed, kept on this device and
 // not on the site until it's pushed.
+import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -16,7 +17,7 @@ import { StagePicker, chosenStage } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
-import { Body, Button, Label, Notice, Panel, Row } from "./ui.js";
+import { Body, Button, Confirm, Label, Notice, Panel, Row } from "./ui.js";
 
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Addendum" };
 
@@ -68,6 +69,7 @@ function deleteWarning(target, note, address) {
 export function EntryEditor({ target, draft: d, update, onClose, onReview, noDelete, noBack }) {
   const { tw } = useTw();
   const desk = useDesk();
+  const [asking, setAsking] = useState(false); // Delete was pressed, and wants its confirmation
   const { note, fu, record, gone } = findTarget(desk, target);
 
   const header = (
@@ -128,6 +130,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   const preview = desk.preview(change);
   const unchanged = !preview.error && !preview.hunks.length && !preview.deskHunks.length;
   const steps = <StagePicker text={text} value={d.stage} onChange={(s) => update({ stage: s })} span={record?.span} />;
+  const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key));
   const deleteChange =
     target.type === "followup"
       ? { kind: "followup-delete", noteKey: note.key, fuKey: target.key }
@@ -193,19 +196,19 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           {p}
         </Notice>
       ))}
+      {asking && (
+        <Confirm
+          onCancel={() => setAsking(false)}
+          onConfirm={() => {
+            setAsking(false);
+            onReview(deleteChange, { after: onClose, warning });
+          }}
+        >
+          {`Delete this ${TYPE[target.type].toLowerCase()}? ${warning}`}
+        </Confirm>
+      )}
       <View style={tw`flex-row gap-2`}>
-        {!noDelete && (
-          <Button
-            kind="danger"
-            title="Delete"
-            onPress={() =>
-              onReview(deleteChange, {
-                after: onClose,
-                warning: deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key)),
-              })
-            }
-          />
-        )}
+        {!noDelete && <Button kind="danger" title="Delete" onPress={() => setAsking(true)} />}
         <Button
           kind="green"
           title={unchanged ? "No changes yet" : "Review the edit"}

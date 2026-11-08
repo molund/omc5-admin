@@ -12,7 +12,7 @@ import { followingWithToken, pushStatus, stopFollowing } from "../services/githu
 import { canReopen } from "../lib/entries.js";
 import { asOf, dateOf, toKey } from "../lib/time.js";
 import { copyText } from "../platform/clipboard";
-import { Body, Button, Field, Label, Link, Notice, Panel, Row } from "./ui.js";
+import { Body, Button, Confirm, Field, Label, Link, Notice, Panel, Row } from "./ui.js";
 
 const PHONE = Platform.OS !== "web";
 const WEEK = 7 * 24 * 60 * 60 * 1000;
@@ -225,6 +225,7 @@ export function Outbox({ onSettings, onEdit }) {
   const desk = useDesk();
   const [confirm, setConfirm] = useState(null); // "push" | "refresh"
   const [refreshing, setRefreshing] = useState(false);
+  const [discarding, setDiscarding] = useState(null); // the waiting change Discard was pressed on, wanting its confirmation
 
   // the phone reads main itself: a spinner while it does, for long enough to see even when it's instant
   async function refresh() {
@@ -327,8 +328,20 @@ export function Outbox({ onSettings, onEdit }) {
                     </Body>
                   </View>
                   {!sent && canReopen(c) && <Button small kind="link" title="Edit" onPress={() => onEdit(c)} />}
-                  {!sent && <Button kind="danger" small title="Discard" onPress={() => desk.removeChange(c.id)} />}
+                  {!sent && <Button kind="danger" small title="Discard" onPress={() => setDiscarding(c.id)} />}
                 </Row>
+                {discarding === c.id && (
+                  <Confirm
+                    action="Discard"
+                    onCancel={() => setDiscarding(null)}
+                    onConfirm={() => {
+                      setDiscarding(null);
+                      desk.removeChange(c.id);
+                    }}
+                  >
+                    Discard this waiting change? It won't be pushed.
+                  </Confirm>
+                )}
                 {r && !r.ok && <Notice tone="problem">{`Doesn't fit the copy any more: ${r.error}`}</Notice>}
               </View>
             );

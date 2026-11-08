@@ -10,7 +10,7 @@ import { slugify } from "../lib/titles.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { photosOf } from "../lib/changes.js";
 import { WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
-import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
+import { Body, Button, Confirm, Field, Label, Notice, Panel } from "./ui.js";
 import { RichScope } from "./RichScope.js";
 
 export const emptyBlocks = () => [{ type: "summary", text: "" }];
@@ -154,6 +154,28 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
     if (blocks[i].photoId) desk.dropPhotos([blocks[i].photoId]);
     onChange(blocks.filter((_, j) => j !== i));
   };
+  // Remove asks first, unless it's a paragraph with nothing in it. The block asked about is kept by what names it, not its
+  // place, because Enter and a paste can add blocks above it while the question is open.
+  const idOf = (b) => b.k ?? b.photoId ?? b.file;
+  const [removing, setRemoving] = useState(null);
+  const ask = (i) => {
+    if (blocks[i].type === "text" && !blocks[i].text.trim()) return remove(i);
+    setRemoving(idOf(blocks[i]));
+  };
+  const confirmRemove = (b, what) =>
+    removing != null &&
+    removing === idOf(b) && (
+      <Confirm
+        action="Remove"
+        onCancel={() => setRemoving(null)}
+        onConfirm={() => {
+          setRemoving(null);
+          remove(blocks.findIndex((x) => idOf(x) === idOf(b)));
+        }}
+      >
+        {`Remove this ${what}?`}
+      </Confirm>
+    );
 
   function photoName() {
     const taken = filesIn(desk.parsed);
@@ -220,22 +242,24 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
           );
         if (b.type === "text")
           return (
-            <Field
-              key={b.k ?? `t${i}`}
-              multiline
-              heading="Paragraph"
-              right={<Handles i={i} n={blocks.length} move={move} remove={remove} />}
-              value={b.text}
-              onChangeText={(text) => set(i, { text })}
-              placeholder="More detail"
-              rich
-              onEnter={() => newAfter(i)}
-              onSplit={(texts, at) => splitAt(i, "text", texts, at)}
-              autoFocus={fresh === b.k}
-              cursorAt={fresh === b.k ? freshAt : null}
-              label={`Paragraph ${i}`}
-              writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
-            />
+            <View key={b.k ?? `t${i}`} style={tw`gap-2`}>
+              <Field
+                multiline
+                heading="Paragraph"
+                right={<Handles i={i} n={blocks.length} move={move} remove={ask} />}
+                value={b.text}
+                onChangeText={(text) => set(i, { text })}
+                placeholder="More detail"
+                rich
+                onEnter={() => newAfter(i)}
+                onSplit={(texts, at) => splitAt(i, "text", texts, at)}
+                autoFocus={fresh === b.k}
+                cursorAt={fresh === b.k ? freshAt : null}
+                label={`Paragraph ${i}`}
+                writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
+              />
+              {confirmRemove(b, "paragraph")}
+            </View>
           );
         // a new photo's picture, or the waiting change's when the photo came in with one
         const p = desk.photos[b.photoId ?? waiting[b.file]] ?? null;
@@ -251,7 +275,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
                     disabled={busy}
                     onPress={() => replacePhoto(i)}
                   />
-                  <Handles i={i} n={blocks.length} move={move} remove={remove} />
+                  <Handles i={i} n={blocks.length} move={move} remove={ask} />
                 </View>
               }
             >
@@ -321,6 +345,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               )}
             </View>
             {!b.caption.trim() && <Notice>Every photo gets a caption.</Notice>}
+            {confirmRemove(b, "photo and its caption")}
           </Panel>
         );
       })}

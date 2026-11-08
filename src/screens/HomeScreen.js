@@ -1,4 +1,4 @@
-// Home: where the desk opens. The gantry's velocity, GitHub Sync (the desk's copy and its waiting changes), a button for
+// Home: where the desk opens. The gantry's velocity, GitHub sync (the desk's copy and its waiting changes), a button for
 // each way to add something, and the way to what's already saved. Each button opens its page (App.js), and Back comes
 // home again.
 import { View } from "react-native";

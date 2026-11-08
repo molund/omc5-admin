@@ -28,6 +28,9 @@ const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
 const STAT_LABEL = { fontSize: 15.4 };
 
+// a logged step further than this from when it was expected (working hours) shows in bold red
+const OFF_HOURS = 2;
+
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
@@ -57,6 +60,7 @@ export function VelocityPanel({ full, onOpen }) {
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
+  const off = tw`font-bold text-del-ink`;
   // above the span's heading when its first step starts the day, so the day always comes before the span
   const dayBar = (key) => (
     <View style={tw`my-0.5 rounded-sm bg-line px-2`}>
@@ -155,18 +159,18 @@ export function VelocityPanel({ full, onOpen }) {
                 <Fragment key={t.stage}>
                   {t.newDay && i > 0 && dayBar(t.key)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
-                    <Body small mute={t.estimated} style={tw`flex-1`}>
+                    <Body small mute={t.estimated} style={[tw`flex-1`, t.offHours > OFF_HOURS && off]}>
                       {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
                     </Body>
                     <Body
                       small
                       mute={t.estimated}
                       numberOfLines={1}
-                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}
+                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num, t.offHours > OFF_HOURS && off]}
                     >
                       {clock(t.key)}
                     </Body>
-                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num]}>
+                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num, t.offHours > OFF_HOURS && off]}>
                       {t.stepHours == null ? "–" : hours(t.stepHours)}
                     </Body>
                   </View>

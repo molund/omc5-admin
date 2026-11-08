@@ -230,7 +230,8 @@ function estimator(steps, shares) {
  * Like sinceArrival, but lowest span first, with the steps that weren't logged estimated too, and spans whose arrival is an
  * estimate: [{ span, stage, key, hours, stepHours, estimated }]. `stepHours` is the working time from the step to the next one,
  * a span's last running to the next span's arrival, and null with no next step to run to. A step is estimated the way an arrival is, between the nearest steps either side
- * of it, so a step still to come (nothing logged after it) isn't in it.
+ * of it, so a step still to come (nothing logged after it) isn't in it. A logged step also has `offHours`: the working time between
+ * it and when it was expected, estimated the same way from the other steps (null with no other step on one side of it).
  */
 export function stepsWithEstimates(entries, shares = stageShares(entries)) {
   const steps = allSteps(entries);
@@ -253,8 +254,19 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
   return out.map((t, i) => {
     const next = out[i + 1];
     const stepHours = next && next.span <= t.span + 1 ? workingHours(parseKey(t.key), parseKey(next.key)) : null;
-    return { ...t, stepHours };
+    return { ...t, stepHours, offHours: t.estimated ? null : offHours(steps, shares, t) };
   });
+}
+
+// how far a logged step is from when it was expected: estimated as if it hadn't been logged, from the other steps, in working hours
+function offHours(steps, shares, t) {
+  const index = STAGES.indexOf(t.stage);
+  const others = steps.filter((s) => s.span !== t.span || s.index !== index);
+  if (!others.length) return null;
+  const expected = estimator(others, shares)(t.span + shares[index].position);
+  if (!expected) return null;
+  const [a, b] = [parseKey(t.key), parseKey(expected)];
+  return a < b ? workingHours(a, b) : workingHours(b, a);
 }
 
 /**

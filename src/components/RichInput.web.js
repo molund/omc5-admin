@@ -15,6 +15,7 @@ import {
   removeLink,
   replace,
   setLink,
+  splitPaste,
   styleFor,
   tidy,
   toMarkdown,
@@ -97,6 +98,8 @@ export const RichInput = forwardRef(function RichInput(
     onChangeText,
     onState,
     onEnter,
+    onSplit,
+    cursorAt,
     onFocus,
     onBlur,
     onLayout,
@@ -114,7 +117,7 @@ export const RichInput = forwardRef(function RichInput(
   const sel = useRef({ start: 0, end: 0 });
   const drawn = useRef(null); // the link colour the div was drawn in
   const props = useRef({});
-  props.current = { onChangeText, onState, onEnter };
+  props.current = { onChangeText, onState, onEnter, onSplit };
 
   const selection = () => {
     const s = window.getSelection();
@@ -197,10 +200,14 @@ export const RichInput = forwardRef(function RichInput(
     };
     const paste = (e) => {
       e.preventDefault();
-      // on one line, its markdown bold and links shown as they'll look, the rest of its markdown taken out
+      // its markdown bold and links shown as they'll look, the rest of its markdown taken out
       const { start, end } = selection();
       const st = styleFor(runs.current, start, end, start === end ? document.queryCommandState("bold") : undefined);
-      const add = pastedRuns(e.clipboardData?.getData("text/plain"), st);
+      const text = e.clipboardData?.getData("text/plain");
+      // with line breaks, one block for each line (onSplit); the value that comes back draws the div again
+      const split = props.current.onSplit && splitPaste(runs.current, start, end, text, st);
+      if (split) return props.current.onSplit(split.blocks, split.cursor);
+      const add = pastedRuns(text, st);
       const at = start + plainOf(add).length;
       redraw(insertRuns(runs.current, start, end, add), { start: at, end: at });
     };
@@ -219,7 +226,8 @@ export const RichInput = forwardRef(function RichInput(
     size.observe(div);
     if (autoFocus) {
       div.focus();
-      place({ start: plainOf(runs.current).length, end: plainOf(runs.current).length });
+      const at = cursorAt ?? plainOf(runs.current).length; // at `cursorAt`, when given, instead of the end
+      place({ start: at, end: at });
     }
     return () => {
       div.removeEventListener("beforeinput", before);

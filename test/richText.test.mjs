@@ -13,6 +13,7 @@ import {
   plainOf,
   removeLink,
   setLink,
+  splitPaste,
   toMarkdown,
   toggleBold,
 } from "../src/lib/richText.js";
@@ -129,4 +130,14 @@ test("pasted markdown keeps its bold and links, and loses the rest", () => {
   assert.equal(md("plain", { bold: true }), "**plain**");
   assert.equal(toMarkdown(applyEdit(fromMarkdown("a b"), "a **x** b", { start: 2, end: 2 })), "a **x** b");
   assert.equal(plainOf(applyEdit(fromMarkdown("a"), "a>", { start: 1, end: 1 })), "a>");
+});
+
+test("a paste with line breaks splits into blocks", () => {
+  const r = fromMarkdown("start **end**");
+  assert.deepEqual(splitPaste(r, 6, 6, "one\n\n- **two**\nthree "), {
+    blocks: ["start one", "**two**", "three **end**"],
+    cursor: 6,
+  });
+  assert.equal(splitPaste(r, 6, 6, "one line"), null);
+  assert.equal(splitPaste(r, 6, 6, "one\n\n"), null);
 });

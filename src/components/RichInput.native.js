@@ -1,7 +1,7 @@
 // A rich text box on the phone: a TextInput showing its text as styled pieces (bold, links), so what's typed looks as it
 // will on the site. It hands up markdown (lib/richText.js); the toolbar works on it through the ref. RichInput.web.js is
 // the web's.
-import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Text, TextInput } from "react-native";
 import { useTw } from "../theme/tw.js";
 import {
@@ -13,11 +13,16 @@ import {
   plainOf,
   removeLink,
   setLink,
+  splitPaste,
+  styleFor,
   toMarkdown,
   toggleBold,
 } from "../lib/richText.js";
 
-export const RichInput = forwardRef(function RichInput({ value, onChangeText, onState, onEnter, ...props }, ref) {
+export const RichInput = forwardRef(function RichInput(
+  { value, onChangeText, onState, onEnter, onSplit, cursorAt, ...props },
+  ref,
+) {
   const { colors } = useTw();
   const input = useRef(null);
   const [state, setState] = useState(() => ({ runs: fromMarkdown(value), md: value }));
@@ -31,6 +36,8 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
   const pending = useRef(null); // { at, bold }: Bold pressed with nothing selected, for what's typed next at `at`
   const latest = useRef(runs);
   latest.current = runs;
+  // a paste split into blocks draws a new box: the phone's own text, with the line breaks in it, can't be kept
+  const [epoch, setEpoch] = useState(0);
 
   const report = (r = latest.current) => {
     const { start, end } = sel.current;
@@ -52,6 +59,11 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
     // after the pieces are drawn again
     setTimeout(() => input.current?.setSelection?.(start, end), 0);
   };
+
+  // a new box opened with the focus: the cursor at `cursorAt`, when given, instead of the end
+  useEffect(() => {
+    if (props.autoFocus && cursorAt != null) select(cursorAt);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     focus: () => input.current?.focus(),
@@ -89,6 +101,7 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
 
   return (
     <TextInput
+      key={epoch}
       ref={input}
       {...props}
       // the return key makes a new paragraph block (onEnter) instead of a new line
@@ -97,6 +110,16 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
         const p = pending.current;
         pending.current = null;
         const old = latest.current;
+        // a paste with line breaks: one block for each line (onSplit)
+        if (onSplit) {
+          const { from, to, text: added } = editRange(old, text, sel.current);
+          const st = styleFor(old, from, to, p && p.at === from ? p.bold : null);
+          const split = added.length > 1 && splitPaste(old, from, to, added, st);
+          if (split) {
+            setEpoch((e) => e + 1);
+            return onSplit(split.blocks, split.cursor);
+          }
+        }
         const next = applyEdit(old, text, sel.current, (at) => (p && p.at === at ? p.bold : null));
         commit(next);
         // what came in was changed (a pasted line break became a space, or markdown was read): the cursor goes after it,

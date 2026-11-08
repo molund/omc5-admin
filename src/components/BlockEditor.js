@@ -116,6 +116,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [fresh, setFresh] = useState(null); // the photo whose caption gets the focus, or the new paragraph's key
+  const [freshAt, setFreshAt] = useState(null); // where the cursor goes in that new paragraph; null for the end
   // the photos in main's copy: one that isn't came in with a change still waiting to push, so it isn't on the site
   const onMain = useMemo(() => filesIn(desk.base == null ? null : parseStatus(desk.base)), [desk.base]);
   // such a photo's picture, kept with its waiting change: { [file]: photoId }
@@ -138,6 +139,16 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
     const k = `t${Date.now().toString(36)}`;
     onChange([...blocks.slice(0, i + 1), { type: "text", text: "", k }, ...blocks.slice(i + 1)]);
     setFresh(k);
+    setFreshAt(null);
+  };
+  // a paste with line breaks in a box: its block's text (`key`) becomes the first of `texts`, and the rest new paragraphs
+  // after it, with the cursor in the last at `at`
+  const splitAt = (i, key, [first, ...rest], at) => {
+    const stamp = Date.now().toString(36);
+    const added = rest.map((text, j) => ({ type: "text", text, k: `t${stamp}-${j}` }));
+    onChange([...blocks.slice(0, i), { ...blocks[i], [key]: first }, ...added, ...blocks.slice(i + 1)]);
+    setFresh(added[added.length - 1].k);
+    setFreshAt(at);
   };
   const remove = (i) => {
     if (blocks[i].photoId) desk.dropPhotos([blocks[i].photoId]);
@@ -202,6 +213,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               placeholder="What happened?"
               rich
               onEnter={() => newAfter(i)}
+              onSplit={(texts, at) => splitAt(i, "text", texts, at)}
               label="Summary"
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
             />
@@ -218,7 +230,9 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               placeholder="More detail"
               rich
               onEnter={() => newAfter(i)}
+              onSplit={(texts, at) => splitAt(i, "text", texts, at)}
               autoFocus={fresh === b.k}
+              cursorAt={fresh === b.k ? freshAt : null}
               label={`Paragraph ${i}`}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
             />
@@ -276,6 +290,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               placeholder="What it shows"
               rich
               onEnter={() => newAfter(i)}
+              onSplit={(texts, at) => splitAt(i, "caption", texts, at)}
               label="Caption"
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}

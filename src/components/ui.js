@@ -210,7 +210,8 @@ export function ZoomScope({ children }) {
  * the icons, and the text goes under them.
  * A `rich` field shows its bold and links as they'll look, and edits the markdown behind them; its zoom and prompt buttons
  * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link. Its Enter key calls `onEnter`, when
- * given, instead of starting a new line.
+ * given, instead of starting a new line, and a paste with line breaks calls `onSplit(blocks, cursor)` (richText.js's
+ * splitPaste). `cursorAt` is where the cursor goes when it opens with the focus.
  */
 export function Field({
   value,
@@ -229,6 +230,8 @@ export function Field({
   right,
   rich,
   onEnter,
+  onSplit,
+  cursorAt,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -310,7 +313,7 @@ export function Field({
   const input = (
     <Input
       ref={inputRef}
-      {...(rich && { onState: setRichState, onEnter })}
+      {...(rich && { onState: setRichState, onEnter, onSplit, cursorAt })}
       onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}

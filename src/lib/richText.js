@@ -101,6 +101,26 @@ export function pastedRuns(text, st = {}) {
   );
 }
 
+/**
+ * A paste with line breaks, as blocks: [from, to) replaced by the pasted text, each line of it (pastedRuns) starting a new
+ * block, and blank lines skipped. The first block is the box's text up to the paste, the last ends with its text after it.
+ * Gives { blocks: markdown[], cursor: the offset in the last block after the paste }, or null when it's on one line.
+ */
+export function splitPaste(runs, from, to, text, st = {}) {
+  const raw = String(text ?? "").split(/\r\n?|\n/);
+  const lines = raw
+    .map((l, i) => pastedRuns(i === 0 ? l.trimEnd() : i === raw.length - 1 ? l.trimStart() : l.trim(), st))
+    .filter((r) => plainOf(r).trim());
+  if (lines.length < 2) return null;
+  const chars = explode(runs);
+  const first = tidy([...chars.slice(0, from), ...lines[0]]);
+  const last = tidy([...lines[lines.length - 1], ...chars.slice(to)]);
+  return {
+    blocks: [first, ...lines.slice(1, -1), last].map(toMarkdown),
+    cursor: plainOf(lines[lines.length - 1]).length,
+  };
+}
+
 /** [from, to) replaced by runs. */
 export function insertRuns(runs, from, to, add) {
   const chars = explode(runs);

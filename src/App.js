@@ -106,7 +106,7 @@ function Desk() {
       <View style={tw`flex-row items-end justify-between gap-2`}>
         <View style={tw`flex-1 gap-1`}>
           {home ? (
-            <Text style={tw`text-xs font-bold uppercase tracking-widest text-mute`}>Clayton Clipper · status.yaml</Text>
+            <Text style={tw`text-xs font-bold uppercase tracking-widest text-mute`}>Clayton Clipper</Text>
           ) : (
             <Button kind="link" small title="‹ Back" style={tw`self-start py-0`} onPress={back} />
           )}

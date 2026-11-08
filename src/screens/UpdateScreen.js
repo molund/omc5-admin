@@ -8,7 +8,7 @@ import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
 import { dateTitle } from "../lib/titles.js";
 import { dayOf, nowKey } from "../lib/time.js";
-import { GantryFold } from "../components/GantryControls.js";
+import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { TitleField, titleProblems } from "../components/TitleField.js";
 import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
@@ -90,7 +90,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
   };
   return (
     <View style={tw`gap-3`}>
-      <GantryFold
+      <GantryControls
         value={d}
         current={head}
         onChange={(g) => update({ ...g, gantrySet: g.span !== head.span || g.complete !== head.complete })}

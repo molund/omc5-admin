@@ -8,7 +8,7 @@ import { headerOf, newestFirst, followUpsNewestFirst } from "../lib/statusFile.j
 import { cardFor } from "../lib/card.js";
 import { clock, dayOf, nowKey, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
-import { GantryFold } from "../components/GantryControls.js";
+import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
@@ -211,7 +211,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           nameHint={d.blocks[0].text}
           followUp
         />
-        {!d.editing && <GantryFold value={d} current={head} onChange={(g) => update(g)} offLabel="Gantry unchanged" />}
+        {!d.editing && <GantryControls value={d} current={head} onChange={(g) => update(g)} />}
       </View>
 
       <StyleHints texts={blockTexts(d.blocks)} />

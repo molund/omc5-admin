@@ -1,6 +1,7 @@
 // The frame around the desk on the phone: scrolling, clear of the notch and home bar, and lifted above the keyboard, with
 // the slot for the rich text toolbar on top of the keyboard. A swipe from the left edge goes back a page (useBack in
 // components/backContext.js): the page follows the finger, and goes when it's let go a third of the way across, or flicked.
+// Each new page, or a step back, starts at the top.
 import { useMemo, useRef } from "react";
 import { Animated, PanResponder, ScrollView, useWindowDimensions } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -18,7 +19,18 @@ export function Frame({ children }) {
   const x = useRef(new Animated.Value(0)).current;
   const wide = useRef(width);
   wide.current = width;
-  const frame = useMemo(() => ({ set: (f) => (back.current = f) }), []);
+  const scroll = useRef(null);
+  const depth = useRef(0);
+  const frame = useMemo(
+    () => ({
+      set: (f, d) => {
+        back.current = f;
+        if (d !== depth.current) scroll.current?.scrollTo({ y: 0, animated: false });
+        depth.current = d;
+      },
+    }),
+    [],
+  );
   const swipe = useMemo(() => {
     const settle = () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start();
     return PanResponder.create({
@@ -45,6 +57,7 @@ export function Frame({ children }) {
           <BackContext.Provider value={frame}>
             <Animated.View style={[tw`flex-1`, { transform: [{ translateX: x }] }]} {...swipe.panHandlers}>
               <ScrollView
+                ref={scroll}
                 style={tw`flex-1`}
                 contentContainerStyle={tw`px-4 pb-10`}
                 keyboardShouldPersistTaps="handled"

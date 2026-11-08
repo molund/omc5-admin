@@ -4,7 +4,7 @@
 #   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:
 #     arrived at span, hanging started, hung, gluing started, glued,
 #     post-tensioning started, cables down, hangers down, supports started
-#   note-to-self: a memo, one line
+#   note: a memo, one line
 # Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
 # note or follow-up in status.yaml, or stand alone (a step seen with no post about it).
 entries:
@@ -17,7 +17,7 @@ entries:
   - 2026-11-04T12:30-07:00:
       span: 37
       stage: post-tensioning started
-      note-to-self: "Fully glued. Hangers and cables are still up. Post tensioning in progress."
+      note: "Fully glued. Hangers and cables are still up. Post tensioning in progress."
   - 2026-11-03T20:30-07:00:
       span: 37
       stage: hung

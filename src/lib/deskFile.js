@@ -16,7 +16,7 @@ const HEADER = `# The Status Desk's own records (molund/omc5-admin). The site re
 #   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:
 #     ${STAGES.slice(0, 5).join(", ")},
 #     ${STAGES.slice(5).join(", ")}
-#   note-to-self: a memo, one line
+#   note: a memo, one line
 # Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
 # note or follow-up in status.yaml, or stand alone (a step seen with no post about it).`;
 
@@ -63,7 +63,9 @@ export function parseDesk(text) {
             .split(",")
             .map((s) => currentName(s.trim())),
         ) ?? null;
-    else if (k === "note-to-self") cur.noteToSelf = unquote(v);
+    // `note-to-self` is what a note was called when it was in status.yaml, and desk.yaml before it was renamed: still read, so a
+    // copy of the file from before isn't read as having no notes (and written back without them)
+    else if (k === "note" || k === "note-to-self") cur.noteToSelf = unquote(v);
   }
   return sortEntries(entries);
 }
@@ -80,7 +82,7 @@ export function formatDesk(entries) {
     lines.push(`  - ${e.key}:`);
     if (e.span) lines.push(`      span: ${e.span}`);
     if (stage) lines.push(`      stage: ${stage}`);
-    if (memo) lines.push(`      note-to-self: ${q(memo)}`);
+    if (memo) lines.push(`      note: ${q(memo)}`);
   }
   return lines.join("\n") + "\n";
 }

@@ -670,7 +670,7 @@ test("invisible characters a phone slips in are left out of both files", async (
   const junk = "￼6/12 segments​ glued﻿";
   // desk.yaml: a note to self
   const desk = formatDesk([{ key: "2026-11-05T21:30-07:00", span: 38, stage: null, noteToSelf: junk }]);
-  assert.match(desk, /note-to-self: "6\/12 segments glued"\n/);
+  assert.match(desk, /\n {6}note: "6\/12 segments glued"\n/);
   // status.yaml: a summary, and a caption
   const T = "2026-11-06T09:00-07:00";
   const text = applyChange(STATUS, {
@@ -987,4 +987,13 @@ test("the velocity over a week: a steady pace comes back, the window moves with 
   // less than a week of steps: nothing to read the start off
   const short = entries.filter((e) => e.span >= 43);
   assert.equal(velocity(short).spansPerWeek, null);
+});
+
+test("desk.yaml's `note:` was `note-to-self:`: the old key is still read, and written back as `note:`", () => {
+  const old = `entries:\n  - 2026-11-05T21:30-07:00:\n      span: 38\n      note-to-self: "kept"\n`;
+  const [e] = parseDesk(old);
+  assert.equal(e.noteToSelf, "kept");
+  const written = formatDesk([e]);
+  assert.match(written, /\n {6}note: "kept"\n/);
+  assert.ok(!written.includes("note-to-self"));
 });

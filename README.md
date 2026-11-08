@@ -221,7 +221,7 @@ here. Look here before renaming anything, and add a row when a new difference ap
 | In the app        | In the code and the files                                                                                   | Why the difference                                                                                |
 | ----------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | **Addendum**      | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update |
-| **Working notes** | `NoteToSelf`, `noteToSelf`, the `note-to-self:` key in desk.yaml                                            | the field is open and flexible, and the key says so; the file's format stays                      |
+| **Working notes** | `NoteToSelf`, `noteToSelf`; desk.yaml's `note:` key (the old `note-to-self:` is still read)                 | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
 | **GitHub sync**   | `Outbox`, and "the desk's copy" in comments                                                                 | the panel is the desk's copy of main, its waiting changes and the push; the code's name is older  |
 
 The wording the desk writes for you follows the app: the suggested commit messages say "addendum", while the files they

@@ -69,9 +69,7 @@ export function VelocityPanel({ full, onOpen }) {
         right={
           !full &&
           onOpen &&
-          (v.window || v.current || recent.length > 0) && (
-            <Button kind="link" small title="Details ›" onPress={onOpen} />
-          )
+          (v.window || v.current || recent.length > 0) && <Button kind="link" small title="Debug ›" onPress={onOpen} />
         }
       >
         Velocity

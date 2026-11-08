@@ -254,6 +254,15 @@ export function BeforeChange({ id, children }) {
   return createElement(DeskContext.Provider, { value }, children);
 }
 
+/** A form's draft, read or written from outside it: one form turning into another carries its values over (Position and Update). */
+export const readDraft = (key, cleared) => {
+  const kept = load(`draft.${key}`, null);
+  return kept && kept.cleared === cleared ? kept.draft : null;
+};
+export const writeDraft = (key, cleared, draft) => save(`draft.${key}`, { cleared, draft });
+/** A form's draft thrown away from outside it. A form's own reset isn't kept when the form leaves the screen in the same breath. */
+export const dropDraft = (key) => save(`draft.${key}`, null);
+
 /**
  * A screen's draft, kept on this device until anything is saved as a change: every save clears every form. With a null key,
  * only while it's on screen.

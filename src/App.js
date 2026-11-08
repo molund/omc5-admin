@@ -56,6 +56,8 @@ function Desk() {
   const [stack, setStack] = useState([{ page: "home" }]);
   const top = stack[stack.length - 1];
   const go = (page, more) => setStack((s) => [...s, { page, ...more }]);
+  // one page turned into another (Position into Update and back), in the same place in the stack
+  const replace = (page) => setStack((s) => [...s.slice(0, -1), { page }]);
   const [review, setReview] = useState(null); // { change, after, cardLabel, warning }
   const reopened = top.page === "waiting" ? desk.changes.find((c) => c.id === top.id) : null;
   const startReview = (change, opts = {}) => setReview({ change, ...opts });
@@ -98,7 +100,7 @@ function Desk() {
   else if (top.page === "followup" && !canFollowUp) screen = <NoUpdateWarning />;
   else {
     const Screen = page.screen;
-    screen = <Screen key={top.page} onReview={startReview} />;
+    screen = <Screen key={top.page} onReview={startReview} onSwitch={replace} />;
   }
 
   return (

@@ -1,8 +1,9 @@
 // Update: a status update. The Move controls folded to one line, a title, the summary (which goes on the card), and
 // paragraph and photo blocks.
+import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { useDesk, useDraft } from "../state/desk.js";
+import { dropDraft, readDraft, useDesk, useDraft, writeDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
 import { dateTitle } from "../lib/titles.js";
@@ -16,9 +17,14 @@ import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
-import { Button, Notice } from "../components/ui.js";
+import { Button, Confirm, Link, Notice } from "../components/ui.js";
 
-export function UpdateScreen({ onReview, draftKey = "update", seed }) {
+/**
+ * @param {object} props
+ * @param {(change: object, opts: object) => void} props.onReview
+ * @param {(page: string) => void} [props.onSwitch] Turns this page into another one (Forget it: Position).
+ */
+export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const notes = desk.parsed.notes;
@@ -65,6 +71,23 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
     desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
     reset();
   };
+  // Forget it, just post the position: the same time stamp, gantry, step and notes as a position, and the text and photos
+  // thrown away. A position draft already started takes these values.
+  const [forgetting, setForgetting] = useState(false);
+  const forgetIt = () => {
+    writeDraft("move", desk.draftsCleared, {
+      ...readDraft("move", desk.draftsCleared),
+      time: d.time,
+      manualUntil: d.manualUntil,
+      span: d.span,
+      complete: d.complete,
+      stage: d.stage,
+      memo,
+    });
+    desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
+    dropDraft(draftKey);
+    onSwitch("move");
+  };
   return (
     <View style={tw`gap-3`}>
       <GantryFold
@@ -88,6 +111,17 @@ export function UpdateScreen({ onReview, draftKey = "update", seed }) {
         notes={memo}
         onNotes={(memo) => update({ memo })}
       />
+      {onSwitch && !seed && (
+        <View style={tw`gap-2`}>
+          <Link title="Forget it, just post the position" onPress={() => setForgetting(true)} />
+          {forgetting && (
+            <Confirm action="Forget it" onCancel={() => setForgetting(false)} onConfirm={forgetIt}>
+              Forget this update's title, summary, paragraphs and photos? The position keeps its time stamp, gantry,
+              step and notes.
+            </Confirm>
+          )}
+        </View>
+      )}
       <TitleField
         kind="update"
         stamp={d.time}

@@ -3,7 +3,7 @@
 // the velocity has them even when there's no update about them.
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { useDesk, useDraft } from "../state/desk.js";
+import { dropDraft, readDraft, useDesk, useDraft, writeDraft } from "../state/desk.js";
 import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
 import { stageFloor } from "../lib/stages.js";
@@ -13,9 +13,15 @@ import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, chosenStage } from "../components/StagePicker.js";
-import { Button, Notice } from "../components/ui.js";
+import { emptyBlocks } from "../components/BlockEditor.js";
+import { Button, Link, Notice } from "../components/ui.js";
 
-export function MoveScreen({ onReview, draftKey = "move", seed }) {
+/**
+ * @param {object} props
+ * @param {(change: object, opts: object) => void} props.onReview
+ * @param {(page: string) => void} [props.onSwitch] Turns this page into another one (Say something: Update).
+ */
+export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
@@ -34,6 +40,23 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
     stage: chosenStage(d.stage, floor),
   };
   const preview = desk.preview(change);
+  // Say something: the same time stamp, gantry, step and notes, as an update, with its text still to write. An update draft
+  // already started keeps its text, and takes these values.
+  const sayIt = () => {
+    const update = readDraft("update", desk.draftsCleared) ?? { title: "", titleSet: false, blocks: emptyBlocks() };
+    writeDraft("update", desk.draftsCleared, {
+      ...update,
+      time: d.time,
+      manualUntil: d.manualUntil,
+      span: d.span,
+      complete: d.complete,
+      gantrySet: d.span !== head.span || d.complete !== head.complete,
+      stage: d.stage,
+      memo: d.memo,
+    });
+    dropDraft(draftKey);
+    onSwitch("update");
+  };
   return (
     <View style={tw`gap-3`}>
       <GantryControls value={d} current={head} onChange={(g) => update(g)} />
@@ -56,6 +79,7 @@ export function MoveScreen({ onReview, draftKey = "move", seed }) {
         notes={memo}
         onNotes={(m) => update({ memo: m })}
       />
+      {onSwitch && !seed && <Link title="Say something" onPress={sayIt} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       <Button kind="green" title="Review the position" onPress={() => onReview(change, { after: reset })} />
     </View>

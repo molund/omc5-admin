@@ -8,6 +8,7 @@ import { useTw } from "../theme/tw.js";
 import {
   fromMarkdown,
   isBold,
+  oneLine,
   linkAt,
   plainOf,
   removeLink,
@@ -195,7 +196,8 @@ export const RichInput = forwardRef(function RichInput(
     };
     const paste = (e) => {
       e.preventDefault();
-      type((e.clipboardData?.getData("text/plain") ?? "").replace(/\r\n?/g, "\n"));
+      // kept to one line: the line breaks become spaces
+      type(oneLine(e.clipboardData?.getData("text/plain")));
     };
     const drop = (e) => e.preventDefault();
     const moved = () => {

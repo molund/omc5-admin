@@ -57,12 +57,18 @@ export function styleFor(runs, from, to, bold) {
   return style(st);
 }
 
+/** Pasted text on one line: each line break, with the spaces around it, becomes a space, and ones at the ends go. */
+export const oneLine = (text) =>
+  String(text ?? "")
+    .replace(/^\s*[\r\n]\s*|\s*[\r\n]\s*$/g, "")
+    .replace(/\s*[\r\n]\s*/g, " ");
+
 /**
- * The runs after the box's text changed to `next`. The change is taken to be at the selection it had (`sel`, { start, end })
- * when the text agrees with that, as it does for typing, pasting and corrections; otherwise at the one place they differ.
- * `bold` is passed to styleFor, or is a function giving it for where the change is.
+ * Where the box's text changed to `next`: [from, to) of the old text replaced by `text`. The change is taken to be at the
+ * selection it had (`sel`, { start, end }) when the text agrees with that, as it does for typing, pasting and corrections;
+ * otherwise at the one place they differ.
  */
-export function applyEdit(runs, next, sel, bold) {
+export function editRange(runs, next, sel) {
   const old = plainOf(runs);
   let from, to, text;
   if (sel) {
@@ -84,7 +90,22 @@ export function applyEdit(runs, next, sel, bold) {
     while (b < old.length - a && b < next.length - a && old[old.length - 1 - b] === next[next.length - 1 - b]) b++;
     [from, to, text] = [a, old.length - b, next.slice(a, next.length - b)];
   }
-  return replace(runs, from, to, text, styleFor(runs, from, to, typeof bold === "function" ? bold(from) : bold));
+  return { from, to, text };
+}
+
+/**
+ * The runs after the box's text changed to `next` (editRange), what came in kept to one line (oneLine). `bold` is passed to
+ * styleFor, or is a function giving it for where the change is.
+ */
+export function applyEdit(runs, next, sel, bold) {
+  const { from, to, text } = editRange(runs, next, sel);
+  return replace(
+    runs,
+    from,
+    to,
+    oneLine(text),
+    styleFor(runs, from, to, typeof bold === "function" ? bold(from) : bold),
+  );
 }
 
 /** The link around [start, end), or touching the cursor: { start, end, href, text }, or null. */

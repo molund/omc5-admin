@@ -8,6 +8,7 @@ import {
   fromMarkdown,
   isBold,
   linkAt,
+  oneLine,
   plainOf,
   removeLink,
   setLink,
@@ -104,4 +105,11 @@ test("typed addresses", () => {
   assert.equal(cleanHref("javascript:alert(1)"), null);
   assert.equal(cleanHref("two words"), null);
   assert.equal(cleanHref(""), null);
+});
+
+test("pasted line breaks become spaces", () => {
+  assert.equal(oneLine("one\ntwo\r\nthree"), "one two three");
+  assert.equal(oneLine("\n\none  \n\n  two\n"), "one two");
+  assert.equal(oneLine("word "), "word ");
+  assert.equal(plainOf(applyEdit(fromMarkdown("a b"), "a x\ny b", { start: 2, end: 2 })), "a x y b");
 });

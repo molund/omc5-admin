@@ -6,6 +6,7 @@ import { Text, TextInput } from "react-native";
 import { useTw } from "../theme/tw.js";
 import {
   applyEdit,
+  editRange,
   fromMarkdown,
   isBold,
   linkAt,
@@ -95,7 +96,12 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
       onChangeText={(text) => {
         const p = pending.current;
         pending.current = null;
-        commit(applyEdit(latest.current, text, sel.current, (at) => (p && p.at === at ? p.bold : null)));
+        const old = latest.current;
+        const next = applyEdit(old, text, sel.current, (at) => (p && p.at === at ? p.bold : null));
+        commit(next);
+        // what came in was changed (a pasted line break became a space): the cursor goes after it, not where the phone put it
+        if (plainOf(next) !== text)
+          select(plainOf(next).length - (plainOf(old).length - editRange(old, text, sel.current).to));
       }}
       onSelectionChange={(e) => {
         sel.current = e.nativeEvent.selection;

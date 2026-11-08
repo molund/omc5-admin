@@ -78,7 +78,7 @@ function EntryRow({ type, name, memo, when, waiting, nested, counts, onPress }) 
   );
 }
 
-export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
+export function EntriesScreen({ onReview, onEditWaiting }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [shown, setShown] = useState(PAGE);
@@ -105,7 +105,6 @@ export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
 
   const intro = (
     <View style={tw`gap-1`}>
-      <Link title="← Back to adding something new" onPress={onLeave} />
       <Body small mute>
         Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry step or note to
         self, or to delete it. Each change gets a review first, and nothing reaches the site until you push. Anything

@@ -24,7 +24,8 @@ await build({
   outfile: `${root}dist/app.js`,
   alias: { "react-native": "react-native-web" },
   resolveExtensions: [".web.js", ".js", ".jsx", ".json"],
-  loader: { ".js": "jsx" },
+  // the header's logo goes in the bundle as a data URL, which react-native-web's Image takes as its source
+  loader: { ".js": "jsx", ".png": "dataurl" },
   jsx: "automatic",
   define: { "process.env.NODE_ENV": '"production"', __DEV__: "false", global: "window" },
   legalComments: "none",

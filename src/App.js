@@ -1,7 +1,7 @@
 // Clipper Status Desk: a little CMS for the Clayton Clipper site's status.yaml. It opens on Home (screens/HomeScreen.js),
 // and every form opens as its own page over it, on a stack: Back, or a swipe from the left edge, goes back one.
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { ThemeContext, themes, useTw } from "./theme/tw.js";
 import { Frame } from "./platform/Frame";
 import { useScheme } from "./platform/scheme";
@@ -33,6 +33,10 @@ const PAGES = {
   waiting: { title: "Waiting change" },
   settings: { title: "Settings" },
 };
+
+// Piper on every page's header: a small copy of the app icon, round because its background is the light
+// theme's, so it reads as a badge in the dark one too
+const LOGO = require("../assets/logo.png");
 
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
 const InReview = ({ id, children }) => (id ? <BeforeChange id={id}>{children}</BeforeChange> : children);
@@ -88,9 +92,12 @@ function Desk() {
           ) : (
             <Button kind="link" small title="‹ Back" style={tw`self-start py-0`} onPress={back} />
           )}
-          <Text accessibilityRole="header" style={tw`text-2xl font-bold text-ink`}>
-            {review ? "Review" : home ? "Status desk" : page.title}
-          </Text>
+          <View style={tw`flex-row items-center gap-2.5`}>
+            <Image source={LOGO} style={tw`h-10 w-10 rounded-full`} />
+            <Text accessibilityRole="header" style={tw`flex-1 text-2xl font-bold text-ink`}>
+              {review ? "Review" : home ? "Status desk" : page.title}
+            </Text>
+          </View>
           {!review && page?.about && (
             <Body small mute>
               {page.about}

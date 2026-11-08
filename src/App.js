@@ -12,7 +12,7 @@ import { VelocityPanel } from "./components/VelocityPanel.js";
 import { HomeScreen } from "./screens/HomeScreen.js";
 import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
-import { FollowUpScreen } from "./screens/FollowUpScreen.js";
+import { FollowUpScreen, NoUpdateWarning } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
 import { EntriesScreen } from "./screens/EntriesScreen.js";
 import { EntryScreen } from "./screens/EntryScreen.js";
@@ -95,8 +95,7 @@ function Desk() {
     ) : (
       <Notice>That change isn't waiting any more.</Notice>
     );
-  else if (top.page === "followup" && !canFollowUp)
-    screen = <Notice>There's no update from today or yesterday to add to.</Notice>;
+  else if (top.page === "followup" && !canFollowUp) screen = <NoUpdateWarning />;
   else {
     const Screen = page.screen;
     screen = <Screen key={top.page} onReview={startReview} />;

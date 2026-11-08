@@ -1,7 +1,7 @@
 // Follow-up: pick today's or yesterday's update, then add a follow-up or edit one it has. A new follow-up becomes the card's newest
 // word; the Move controls are folded in, since follow-ups often report a move.
 import { useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf, newestFirst, followUpsNewestFirst } from "../lib/statusFile.js";
@@ -18,8 +18,7 @@ import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
-import { Body, Button, Label, Notice, Panel, Row, useTapAway } from "../components/ui.js";
-import { Icon } from "../components/Icon";
+import { Body, Button, Label, Notice, Panel, Row, useTapAway, Warning } from "../components/ui.js";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
 const noteName = (n) =>
@@ -29,8 +28,13 @@ const noteName = (n) =>
       ? `${n.fields.summary.slice(0, 88)}…`
       : n.fields.summary;
 
+const RULE = "An addendum can only go under an update from today or yesterday (BC time), and not under a blog post.";
+
+/** In place of the page when no update qualifies. */
+export const NoUpdateWarning = () => <Warning>{RULE} There isn't one right now, so there's nothing to add to.</Warning>;
+
 export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
-  const { tw, colors } = useTw();
+  const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
   // a new follow-up goes under today's or yesterday's update; a waiting one reopened keeps the update or blog post it's under
@@ -57,7 +61,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
     setWhy(false);
   });
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
-  if (!note) return <Notice>There's no update from today or yesterday to add an addendum to.</Notice>;
+  if (!note) return <NoUpdateWarning />;
 
   const fus = followUpsNewestFirst(note);
   const gantryChanged = d.span !== head.span || d.complete !== head.complete;
@@ -117,22 +121,10 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           {note.fields.post ? "Blog post" : "Follow-up which post?"}
         </Label>
         {notes.length <= 1 && why && (
-          // a warning, like the notes under a field; a tap or click anywhere closes it (useTapAway)
-          <View
-            accessibilityRole="alert"
-            style={[
-              tw`flex-row items-start gap-2 rounded-md border border-warn-ink bg-warn p-2.5`,
-              { position: "absolute", top: 44, right: 12, maxWidth: 300, zIndex: 10 },
-            ]}
-          >
-            <View style={tw`pt-0.5`}>
-              <Icon name="warning" size={16} color={colors["warn-ink"]} />
-            </View>
-            <Text style={tw`flex-1 text-xs leading-snug text-warn-ink`}>
-              An addendum can only go under an update from today or yesterday (BC time), and not under a blog post. This
-              is the only update that qualifies right now, so there's nothing else to choose.
-            </Text>
-          </View>
+          // a tap or click anywhere closes it (useTapAway)
+          <Warning style={{ position: "absolute", top: 44, right: 12, maxWidth: 300, zIndex: 10 }}>
+            {RULE} This is the only update that qualifies right now, so there's nothing else to choose.
+          </Warning>
         )}
         {!picking && (
           <Body>

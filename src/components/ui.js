@@ -432,6 +432,22 @@ export function Notice({ children, tone = "warn" }) {
   );
 }
 
+/** A warning that stands out more than a Notice: amber, with a warning icon. `style` can place it, as a popover. */
+export function Warning({ children, style }) {
+  const { tw, colors } = useTw();
+  return (
+    <View
+      accessibilityRole="alert"
+      style={[tw`flex-row items-start gap-2 rounded-md border border-warn-ink bg-warn p-2.5`, style]}
+    >
+      <View style={tw`pt-0.5`}>
+        <Icon name="warning" size={16} color={colors["warn-ink"]} />
+      </View>
+      <Text style={tw`flex-1 text-xs leading-snug text-warn-ink`}>{children}</Text>
+    </View>
+  );
+}
+
 export function Row({ children, style }) {
   const { tw } = useTw();
   return <View style={[tw`flex-row flex-wrap items-center justify-between gap-2`, style]}>{children}</View>;

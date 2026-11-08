@@ -14,6 +14,12 @@ export const ICONS = {
   ],
   // a blog post, in the list of entries: the same page without its lines, like Font Awesome's file
   file: [["path", { d: "M5.5 2.5h8.5l4.5 4.5v14.5h-13zM14 2.5V7h4.5", fill: "none" }]],
+  // an entry's paragraphs and photos, counted under it in the list of entries
+  paragraph: [["path", { d: "M4 6h16M4 10.5h16M4 15h16M4 19.5h10", fill: "none" }]],
+  photo: [
+    ["path", { d: "M3 5h18v14H3zM3 16.5l5-5 4.5 4.5 3-3L21 18", fill: "none" }],
+    ["circle", { cx: 15.5, cy: 9, r: 1.5, fill: "none" }],
+  ],
   messageArrowDown: [["path", { d: "M4 3.5h16.5v13h-9L5 21V3.5zM12.25 6.5v6.5M9.25 10l3 3 3-3", fill: "none" }]],
   // "copy a prompt for an AI"
   sparkle: [["path", { d: "M10 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4", fill: "none" }]],

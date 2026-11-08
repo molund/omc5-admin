@@ -20,7 +20,34 @@ const ICON = { update: "fileLines", blog: "file", position: "crosshair", followu
 /** A date title says no more than the time stamp beside it, so those show the start of their summary. */
 const noteName = (n) => shorten(n.title && !isDateTitle(n.title) ? n.title : n.fields.summary);
 
-function EntryRow({ type, name, when, waiting, nested, onPress }) {
+/** How many paragraphs and photos go with the summary: the note's photo and its blocks. */
+const countsOf = (fields) => ({
+  paragraphs: fields.block.filter((b) => !b.photo).length,
+  photos: (fields.photo?.file ? 1 : 0) + fields.block.filter((b) => b.photo).length,
+});
+
+/** The counts as icons with numbers, leaving out a zero; nothing at all when both are. */
+function Counts({ paragraphs = 0, photos = 0 }) {
+  const { tw, colors } = useTw();
+  const one = (icon, n, word) =>
+    n > 0 && (
+      <View key={icon} accessibilityLabel={`${n} ${word}${n === 1 ? "" : "s"}`} style={tw`flex-row items-center gap-1`}>
+        <Icon name={icon} size={14} color={colors.mute} />
+        <Body small mute>
+          {n}
+        </Body>
+      </View>
+    );
+  if (!paragraphs && !photos) return null;
+  return (
+    <View style={tw`flex-row items-center gap-3`}>
+      {one("paragraph", paragraphs, "paragraph")}
+      {one("photo", photos, "photo")}
+    </View>
+  );
+}
+
+function EntryRow({ type, name, when, waiting, nested, counts, onPress }) {
   const { tw, colors } = useTw();
   return (
     <Pressable
@@ -37,6 +64,7 @@ function EntryRow({ type, name, when, waiting, nested, onPress }) {
       </View>
       <View style={tw`flex-1 gap-0.5`}>
         <Body>{name}</Body>
+        {counts && <Counts {...counts} />}
         <Body small mute>
           {[TYPE[type], when, waiting ? "waiting to push" : ""].filter(Boolean).join(" · ")}
         </Body>
@@ -99,6 +127,7 @@ export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
               name={e.type === "position" ? positionName(e) : noteName(e.note)}
               when={stamp(e.key)}
               waiting={!!waitingAt(desk.changes, e.key)}
+              counts={e.type !== "position" && countsOf(e.note.fields)}
               onPress={() => open({ type: e.type, key: e.key })}
             />
             {(e.followUps ?? []).map((f) => (
@@ -109,6 +138,7 @@ export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
                 name={shorten(f.fields.summary)}
                 when={clock(f.key)}
                 waiting={!!waitingAt(desk.changes, f.key)}
+                counts={countsOf(f.fields)}
                 onPress={() => open({ type: "followup", key: f.key, noteKey: e.key })}
               />
             ))}

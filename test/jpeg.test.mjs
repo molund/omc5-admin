@@ -25,7 +25,7 @@ test("removes the metadata segments and keeps the rest, byte for byte", () => {
 
 test("what's left has no APP1–APP15 or comment segment, as the site's check requires", () => {
   const out = stripJpegMetadata(JPEG);
-  for (let i = 2; i + 4 <= out.length; ) {
+  for (let i = 2; i + 4 <= out.length;) {
     if (out[i] !== 0xff) break;
     const m = out[i + 1];
     if (m === 0xda) break;

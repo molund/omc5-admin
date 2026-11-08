@@ -57,6 +57,8 @@ export function DeskProvider({ children }) {
   const [copy, setCopy] = useState({ text: null, desk: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
+  // counts the saves: a form's draft from before the latest one is dropped, so saving anything clears every form
+  const [draftsCleared, setDraftsCleared] = usePersisted("drafts-cleared", 0);
   const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
   // on the phone, what the desk shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
   const [tokenInfo, setTokenInfo] = usePersisted("token", null);
@@ -157,6 +159,12 @@ export function DeskProvider({ children }) {
       });
   };
 
+  // saving anything clears every form: their drafts, and the photos only those drafts had
+  const clearDrafts = () => {
+    setDraftsCleared((n) => n + 1);
+    setPhotos((ps) => Object.fromEntries(Object.entries(ps).filter(([, p]) => !p.draft)));
+  };
+
   const value = useMemo(
     () => ({
       ready: copy.text != null,
@@ -182,6 +190,7 @@ export function DeskProvider({ children }) {
       /** Starts the session for the pending request again. */
       startAgain: () => pending && start(pending),
       kept: changesKept && photosKept,
+      draftsCleared,
       reload,
       /** The files as they were just before a waiting change, for changing that change. */
       before(id) {
@@ -194,12 +203,14 @@ export function DeskProvider({ children }) {
         const id = newId();
         setChanges((cs) => [...cs, { ...change, id, message, savedAt: new Date().toISOString() }]);
         keepPhotos(change);
+        clearDrafts();
         return id;
       },
       /** A waiting change, changed: it keeps its place in the list, so its commit keeps its place too. */
       replaceChange(id, change, message) {
         setChanges((cs) => replaceChangeIn(cs, id, change, message, new Date().toISOString()));
         keepPhotos(change);
+        clearDrafts();
       },
       removeChange: (id) => setChanges((cs) => cs.filter((c) => c.id !== id)),
       addPhoto(info) {
@@ -216,7 +227,22 @@ export function DeskProvider({ children }) {
       /** Drops changes that are on main now (pushed from the phone). */
       dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
-    [copy, working, view, changes, photos, push, pending, started, tokenInfo, changesKept, photosKept, reload, start],
+    [
+      copy,
+      working,
+      view,
+      changes,
+      photos,
+      push,
+      pending,
+      started,
+      tokenInfo,
+      changesKept,
+      photosKept,
+      draftsCleared,
+      reload,
+      start,
+    ],
   );
   return createElement(DeskContext.Provider, { value }, children);
 }
@@ -228,11 +254,20 @@ export function BeforeChange({ id, children }) {
   return createElement(DeskContext.Provider, { value }, children);
 }
 
-/** A screen's draft, kept on this device until it's saved as a change. With a null key, only while it's on screen. */
+/**
+ * A screen's draft, kept on this device until anything is saved as a change: every save clears every form. With a null key,
+ * only while it's on screen.
+ */
 export function useDraft(key, initial) {
-  const [draft, setDraft] = usePersisted(key ? `draft.${key}` : null, null);
+  const { draftsCleared } = useDesk();
+  const [kept, setKept] = usePersisted(key ? `draft.${key}` : null, null);
+  const current = (k) => (k && k.cleared === draftsCleared ? k.draft : null);
+  const draft = current(kept);
   const value = draft ?? (typeof initial === "function" ? initial() : initial);
-  const update = useCallback((patch) => setDraft((d) => ({ ...(d ?? value), ...patch })), [value]);
-  const reset = useCallback(() => setDraft(null), []);
+  const update = useCallback(
+    (patch) => setKept((k) => ({ cleared: draftsCleared, draft: { ...(current(k) ?? value), ...patch } })),
+    [value, draftsCleared],
+  );
+  const reset = useCallback(() => setKept(null), []);
   return [value, update, reset, draft != null];
 }

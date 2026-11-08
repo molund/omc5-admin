@@ -76,7 +76,7 @@ export function VelocityPanel({ full, onOpen }) {
           (v.window || v.current || recent.length > 0) && <Button kind="link" small title="Debug ›" onPress={onOpen} />
         }
       >
-        Velocity
+        {full ? "Data and inputs" : "Velocity"}
       </Label>
       {v.spansPerWeek != null ? (
         <View style={tw`gap-0.5`}>

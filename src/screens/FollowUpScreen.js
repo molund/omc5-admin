@@ -48,6 +48,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   });
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
+  const [why, setWhy] = useState(false); // the note on why Change is off, shown after it's pressed
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
   if (!note) return <Notice>There's no update from today or yesterday to add an addendum to.</Notice>;
 
@@ -87,17 +88,43 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
 
   return (
     <View style={tw`gap-3`}>
-      <Panel>
+      {/* over the panels below it, while its note on why Change is off is open */}
+      <Panel style={notes.length <= 1 && why && { zIndex: 10 }}>
         <Label
-          // with only one to choose from, there's nothing to change to
+          // with only one to choose from, there's nothing to change to: Change shows dimmed, and says why when it's pressed
           right={
-            notes.length > 1 && (
+            notes.length > 1 ? (
               <Button kind="link" small title={picking ? "Close" : "Change"} onPress={() => setPicking(!picking)} />
+            ) : (
+              <Button
+                kind="link"
+                small
+                title="Change"
+                label="Change, not available: press to see why"
+                style={tw`opacity-40`}
+                onPress={() => setWhy(!why)}
+              />
             )
           }
         >
-          {note.fields.post ? "Blog post" : "Update"}
+          {note.fields.post ? "Blog post" : "Follow-up which post?"}
         </Label>
+        {notes.length <= 1 && why && (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close"
+            onPress={() => setWhy(false)}
+            style={[
+              tw`rounded-md border border-accent bg-panel p-2.5`,
+              { position: "absolute", top: 44, right: 12, maxWidth: 280, zIndex: 10 },
+            ]}
+          >
+            <Body small>
+              An addendum can only go under an update from today or yesterday (BC time), and not under a blog post. This
+              is the only update that qualifies right now, so there's nothing else to choose.
+            </Body>
+          </Pressable>
+        )}
         {!picking && (
           <Body>
             {noteName(note)} <Body mute>· {stamp(note.key)}</Body>

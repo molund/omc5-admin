@@ -48,7 +48,10 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   });
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
-  const note = notes.find((n) => n.key === d.noteKey) ?? first;
+  // the newest update unless one was picked, is being edited or was reopened, so a draft left from an earlier update doesn't
+  // keep the default on it
+  const pinned = seed || d.picked || d.editing;
+  const note = (pinned && notes.find((n) => n.key === d.noteKey)) || first;
   if (!note) return <Notice>There's no update from today or yesterday to follow up.</Notice>;
 
   const fus = followUpsNewestFirst(note);
@@ -82,7 +85,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const drop = () => desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
   const start = (patch) => {
     drop();
-    update({ ...fresh(note.key), ...patch });
+    update({ ...fresh(note.key), picked: d.picked, ...patch });
   };
 
   return (
@@ -111,7 +114,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
               onPress={() => {
                 setPicking(false);
                 drop();
-                update(fresh(n.key));
+                update({ ...fresh(n.key), picked: true });
               }}
               style={({ hovered }) => [tw`rounded-md px-2 py-1.5`, (hovered || n.key === note.key) && tw`bg-bg`]}
             >
@@ -211,7 +214,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           title={d.editing ? "Review the edit" : "Review the follow-up"}
           disabled={problems.length > 0}
           style={tw`flex-1`}
-          onPress={() => onReview(change, { after: () => update(fresh(note.key)) })}
+          onPress={() => onReview(change, { after: () => update({ ...fresh(note.key), picked: d.picked }) })}
         />
       </View>
     </View>

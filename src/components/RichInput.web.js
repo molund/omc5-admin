@@ -90,7 +90,19 @@ function pointAt(root, at) {
 }
 
 export const RichInput = forwardRef(function RichInput(
-  { value, onChangeText, onState, onFocus, onBlur, onLayout, autoFocus, placeholder, accessibilityLabel, style },
+  {
+    value,
+    onChangeText,
+    onState,
+    onEnter,
+    onFocus,
+    onBlur,
+    onLayout,
+    autoFocus,
+    placeholder,
+    accessibilityLabel,
+    style,
+  },
   ref,
 ) {
   const { colors } = useTw();
@@ -100,7 +112,7 @@ export const RichInput = forwardRef(function RichInput(
   const sel = useRef({ start: 0, end: 0 });
   const drawn = useRef(null); // the link colour the div was drawn in
   const props = useRef({});
-  props.current = { onChangeText, onState };
+  props.current = { onChangeText, onState, onEnter };
 
   const selection = () => {
     const s = window.getSelection();
@@ -168,7 +180,9 @@ export const RichInput = forwardRef(function RichInput(
     const before = (e) => {
       if (e.inputType === "insertParagraph" || e.inputType === "insertLineBreak") {
         e.preventDefault();
-        type("\n");
+        // Enter makes a new paragraph block (onEnter) instead of a new line
+        if (props.current.onEnter) props.current.onEnter();
+        else type("\n");
       } else if (e.inputType === "formatBold") {
         e.preventDefault();
         api.current.toggleBold();

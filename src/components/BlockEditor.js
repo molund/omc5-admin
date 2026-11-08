@@ -115,7 +115,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [fresh, setFresh] = useState(null); // the photo whose caption gets the focus
+  const [fresh, setFresh] = useState(null); // the photo whose caption gets the focus, or the new paragraph's key
   // the photos in main's copy: one that isn't came in with a change still waiting to push, so it isn't on the site
   const onMain = useMemo(() => filesIn(desk.base == null ? null : parseStatus(desk.base)), [desk.base]);
   // such a photo's picture, kept with its waiting change: { [file]: photoId }
@@ -132,6 +132,12 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
     const out = [...blocks];
     [out[i], out[j]] = [out[j], out[i]];
     onChange(out);
+  };
+  // Enter in a box: a new, empty paragraph right after its block, with the cursor in it
+  const newAfter = (i) => {
+    const k = `t${Date.now().toString(36)}`;
+    onChange([...blocks.slice(0, i + 1), { type: "text", text: "", k }, ...blocks.slice(i + 1)]);
+    setFresh(k);
   };
   const remove = (i) => {
     if (blocks[i].photoId) desk.dropPhotos([blocks[i].photoId]);
@@ -195,6 +201,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               onChangeText={(text) => set(i, { text })}
               placeholder="What happened?"
               rich
+              onEnter={() => newAfter(i)}
               label="Summary"
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
             />
@@ -210,6 +217,8 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               onChangeText={(text) => set(i, { text })}
               placeholder="More detail"
               rich
+              onEnter={() => newAfter(i)}
+              autoFocus={fresh === b.k}
               label={`Paragraph ${i}`}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
             />
@@ -266,6 +275,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               onChangeText={(caption) => set(i, { caption })}
               placeholder="What it shows"
               rich
+              onEnter={() => newAfter(i)}
               label="Caption"
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}

@@ -209,7 +209,8 @@ export function ZoomScope({ children }) {
  * With a `heading`, the field is one box: the title (tap it to type) and the icons share its top line, `right` going before
  * the icons, and the text goes under them.
  * A `rich` field shows its bold and links as they'll look, and edits the markdown behind them; its zoom and prompt buttons
- * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link.
+ * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link. Its Enter key calls `onEnter`, when
+ * given, instead of starting a new line.
  */
 export function Field({
   value,
@@ -227,6 +228,7 @@ export function Field({
   heading,
   right,
   rich,
+  onEnter,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -308,7 +310,7 @@ export function Field({
   const input = (
     <Input
       ref={inputRef}
-      {...(rich && { onState: setRichState })}
+      {...(rich && { onState: setRichState, onEnter })}
       onLayout={(e) => !zoomed && setRestHeight(e.nativeEvent.layout.height)}
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}

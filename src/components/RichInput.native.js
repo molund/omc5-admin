@@ -16,7 +16,7 @@ import {
   toggleBold,
 } from "../lib/richText.js";
 
-export const RichInput = forwardRef(function RichInput({ value, onChangeText, onState, ...props }, ref) {
+export const RichInput = forwardRef(function RichInput({ value, onChangeText, onState, onEnter, ...props }, ref) {
   const { colors } = useTw();
   const input = useRef(null);
   const [state, setState] = useState(() => ({ runs: fromMarkdown(value), md: value }));
@@ -90,6 +90,8 @@ export const RichInput = forwardRef(function RichInput({ value, onChangeText, on
     <TextInput
       ref={input}
       {...props}
+      // the return key makes a new paragraph block (onEnter) instead of a new line
+      {...(onEnter && { submitBehavior: "submit", onSubmitEditing: () => onEnter() })}
       onChangeText={(text) => {
         const p = pending.current;
         pending.current = null;

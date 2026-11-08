@@ -98,6 +98,27 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
 
   return (
     <View style={tw`gap-3`}>
+      {/* the same order as Position and Update: the gantry, the time stamp and the step, then what the addendum says */}
+      {!d.editing && <GantryControls value={d} current={head} onChange={(g) => update(g)} />}
+      <TimeStampField
+        value={d.time}
+        onChange={(time) => update({ time })}
+        auto={!seed && !d.editing}
+        manualUntil={d.manualUntil}
+        onManual={(manualUntil) => update({ manualUntil })}
+        note={d.editing ? "Moving it changes only its own time stamp." : undefined}
+      />
+      <StagePicker
+        text={text}
+        value={d.stage}
+        onChange={(stage) => update({ stage })}
+        floor={floor}
+        span={d.editing ? null : d.span}
+        notes={memo}
+        onNotes={(m) => update({ memo: m })}
+        notesWhere={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
+      />
+
       {/* over the panels below it, while its note on why Change is off is open */}
       <Panel style={notes.length <= 1 && why && { zIndex: 10 }}>
         <Label
@@ -186,24 +207,6 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           <Label>{d.editing ? `Editing the ${clock(d.editing)} addendum` : "New addendum"}</Label>
           {d.editing && <Button kind="link" small title="Cancel edit" onPress={() => start({})} />}
         </Row>
-        <TimeStampField
-          value={d.time}
-          onChange={(time) => update({ time })}
-          auto={!seed && !d.editing}
-          manualUntil={d.manualUntil}
-          onManual={(manualUntil) => update({ manualUntil })}
-          note={d.editing ? "Moving it changes only its own time stamp." : undefined}
-        />
-        <StagePicker
-          text={text}
-          value={d.stage}
-          onChange={(stage) => update({ stage })}
-          floor={floor}
-          span={d.editing ? null : d.span}
-          notes={memo}
-          onNotes={(m) => update({ memo: m })}
-          notesWhere={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}
-        />
         <BlockEditor
           blocks={d.blocks}
           onChange={(blocks) => update({ blocks })}
@@ -211,7 +214,6 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           nameHint={d.blocks[0].text}
           followUp
         />
-        {!d.editing && <GantryControls value={d} current={head} onChange={(g) => update(g)} />}
       </View>
 
       <StyleHints texts={blockTexts(d.blocks)} />

@@ -23,14 +23,15 @@ export const ICONS = {
   messageArrowDown: [["path", { d: "M4 3.5h16.5v13h-9L5 21V3.5zM12.25 6.5v6.5M9.25 10l3 3 3-3", fill: "none" }]],
   // "copy a prompt for an AI"
   sparkle: [["path", { d: "M10 4l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4", fill: "none" }]],
-  // make a text box bigger, and back
-  zoomIn: [
-    ["circle", { cx: 10.5, cy: 10.5, r: 7, fill: "none" }],
-    ["path", { d: "M21 21l-5.5-5.5M10.5 7.5v6M7.5 10.5h6", fill: "none" }],
-  ],
-  zoomOut: [
-    ["circle", { cx: 10.5, cy: 10.5, r: 7, fill: "none" }],
-    ["path", { d: "M21 21l-5.5-5.5M7.5 10.5h6", fill: "none" }],
+  // reading glasses: make a text box bigger, and back (the button shows it's on by its colour)
+  glasses: [
+    [
+      "path",
+      {
+        d: "M2.3 13.5a4.2 4.2 0 1 0 8.4 0a4.2 4.2 0 1 0 -8.4 0M13.3 13.5a4.2 4.2 0 1 0 8.4 0a4.2 4.2 0 1 0 -8.4 0M10.7 13c.8-.8 1.8-.8 2.6 0M2.5 12L3.6 5.5M21.5 12L20.4 5.5",
+        fill: "none",
+      },
+    ],
   ],
   // the progress card's, drawn as on the site (src/Icon.svelte in molund/omc5)
   close: [["path", { d: "M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7", fill: "none" }]],

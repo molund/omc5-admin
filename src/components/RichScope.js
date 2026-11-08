@@ -67,7 +67,7 @@ function Toolbar({ box, onLink }) {
         <Icon name="link" size={22} color={c} />
       ))}
       {key(`Zoom ${box.name}`, box.zoomed, box.toggleZoom, (c) => (
-        <Icon name={box.zoomed ? "zoomOut" : "zoomIn"} size={22} color={c} />
+        <Icon name="glasses" size={22} color={c} />
       ))}
       {!box.noPrompt &&
         key(`Copy an AI prompt for ${box.name}`, false, box.copyPrompt, (c) => (

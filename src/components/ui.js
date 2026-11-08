@@ -318,7 +318,7 @@ export function Field({
           hovered && tw`opacity-80`,
         ]}
       >
-        <Icon name={zoomed ? "zoomOut" : "zoomIn"} size={20} color={zoomed ? colors["accent-ink"] : colors.mute} />
+        <Icon name="glasses" size={20} color={zoomed ? colors["accent-ink"] : colors.mute} />
       </Pressable>
       {!noAi && (
         <Pressable

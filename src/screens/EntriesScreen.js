@@ -64,7 +64,11 @@ function EntryRow({ type, name, memo, when, waiting, nested, counts, onPress }) 
       </View>
       <View style={tw`flex-1 gap-0.5`}>
         {!!name && <Body>{name}</Body>}
-        {!!memo && <Body mute>{memo}</Body>}
+        {!!memo && (
+          <Body mute style={tw`italic`}>
+            {memo}
+          </Body>
+        )}
         {counts && <Counts {...counts} />}
         <Body small mute>
           {[TYPE[type], when, waiting ? "waiting to push" : ""].filter(Boolean).join(" · ")}

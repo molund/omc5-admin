@@ -3,8 +3,8 @@
 // with its time (BC) and the working time from it to the next step: the ones logged, and the ones that
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
 // steps added up.
-// Only the velocity itself shows until it's opened.
-import { Fragment, useState } from "react";
+// Home shows only the velocity itself, with a way to the Velocity page, which shows it all (`full`).
+import { Fragment } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -33,10 +33,15 @@ const hours = (h) => `${h.toFixed(2)}h`;
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 
-export function VelocityPanel() {
+/**
+ * @param {object} props
+ * @param {boolean} [props.full] Everything, on the Velocity page; otherwise only the velocity, for Home.
+ * @param {() => void} [props.onOpen] Opens the Velocity page.
+ */
+export function VelocityPanel({ full, onOpen }) {
   const { tw } = useTw();
   const desk = useDesk();
-  const [open, setOpen] = useState(false);
+  const open = !!full;
   const v = desk.velocity;
   if (!v) return null;
   const recent = v.current
@@ -62,8 +67,10 @@ export function VelocityPanel() {
     <Panel>
       <Label
         right={
+          !full &&
+          onOpen &&
           (v.window || v.current || recent.length > 0) && (
-            <Button kind="link" small title={open ? "Hide details" : "Show details"} onPress={() => setOpen(!open)} />
+            <Button kind="link" small title="Details ›" onPress={onOpen} />
           )
         }
       >

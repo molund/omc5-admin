@@ -8,6 +8,7 @@ import { useScheme } from "./platform/scheme";
 import { BeforeChange, DeskProvider, useDesk } from "./state/desk.js";
 import { Body, Notice, Button, ZoomScope } from "./components/ui.js";
 import { ReviewSheet } from "./components/ReviewSheet.js";
+import { VelocityPanel } from "./components/VelocityPanel.js";
 import { HomeScreen } from "./screens/HomeScreen.js";
 import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
@@ -31,6 +32,7 @@ const PAGES = {
     about: "Add to today's or yesterday's update, or edit a follow-up.",
   },
   blog: { title: "Blog post", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
+  velocity: { title: "Velocity" },
   entries: { title: "Entries" },
   entry: { title: "Edit" },
   waiting: { title: "Waiting change" },
@@ -81,6 +83,7 @@ function Desk() {
   let screen = null;
   if (top.page === "home") screen = <HomeScreen go={go} onEdit={reopen} onOpen={openEntry} />;
   else if (top.page === "settings") screen = <SettingsScreen />;
+  else if (top.page === "velocity") screen = <VelocityPanel full />;
   else if (top.page === "entries") screen = <EntriesScreen onOpen={openEntry} />;
   else if (top.page === "entry")
     screen = <EntryScreen key={top.target.key} target={top.target} onReview={startReview} />;

@@ -13,7 +13,8 @@ const RECENT = 3; // the entries shown, newest first
 
 /**
  * @param {object} props
- * @param {(page: string) => void} props.go Opens a page: "move", "update", "followup", "blog", "entries" or "settings".
+ * @param {(page: string) => void} props.go Opens a page: "move", "update", "followup", "blog", "velocity", "entries" or
+ *   "settings".
  * @param {(change: object) => void} props.onEdit Reopens a waiting change.
  * @param {(target: object) => void} props.onOpen Opens a saved entry.
  */
@@ -28,7 +29,7 @@ export function HomeScreen({ go, onEdit, onOpen }) {
   );
   return (
     <View style={tw`gap-3.5`}>
-      <VelocityPanel />
+      <VelocityPanel onOpen={() => go("velocity")} />
       <View style={tw`gap-2`}>
         <Label>Add</Label>
         <View style={tw`flex-row gap-2`}>

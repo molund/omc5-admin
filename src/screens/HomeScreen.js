@@ -25,8 +25,8 @@ export function HomeScreen({ go, onEdit, onOpen }) {
   // a follow-up adds to an update from today or yesterday (blog posts don't count)
   const canFollowUp = recentUpdates(desk.parsed).length > 0;
   const recent = listEntries(desk.parsed, desk.deskEntries).slice(0, RECENT);
-  const add = (title, page, disabled) => (
-    <Button title={title} disabled={disabled} style={tw`flex-1`} onPress={() => go(page)} />
+  const add = (title, page, icon, disabled) => (
+    <Button title={title} icon={icon} disabled={disabled} style={tw`flex-1`} onPress={() => go(page)} />
   );
   return (
     <View style={tw`gap-3.5`}>
@@ -35,12 +35,12 @@ export function HomeScreen({ go, onEdit, onOpen }) {
       <View style={tw`gap-2`}>
         <Label>Add</Label>
         <View style={tw`flex-row gap-2`}>
-          {add("Position", "move")}
-          {add("Update", "update")}
+          {add("Position", "move", "crosshair")}
+          {add("Update", "update", "fileLines")}
         </View>
         <View style={tw`flex-row gap-2`}>
-          {add("Addendum", "followup", !canFollowUp)}
-          {add("Blog post", "blog")}
+          {add("Addendum", "followup", "messageArrowDown", !canFollowUp)}
+          {add("Blog post", "blog", "file")}
         </View>
         {!canFollowUp && (
           <Body small mute>

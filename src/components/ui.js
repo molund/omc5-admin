@@ -50,8 +50,8 @@ export function Body({ children, style, mute, small, numberOfLines }) {
 /**
  * A button: "green" for the main action, "grey" for the rest, "link" for a word in a row, "danger" for removing.
  */
-export function Button({ title, onPress, kind = "grey", disabled, small, style, label }) {
-  const { tw } = useTw();
+export function Button({ title, onPress, kind = "grey", disabled, small, style, label, icon }) {
+  const { tw, colors } = useTw();
   const look = {
     green: tw`border-green bg-green`,
     grey: tw`border-button-line bg-button-bg`,
@@ -74,6 +74,7 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
       onPress={onPress}
       style={({ pressed, hovered, focused }) => [
         tw`items-center justify-center rounded-md border ${small ? "px-2 py-1" : "px-3 py-2"}`,
+        icon && tw`flex-row gap-1.5`,
         look,
         (pressed || hovered) && !disabled && kind !== "link" && tw`opacity-80`,
         focused && tw`border-accent`,
@@ -81,6 +82,13 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
         style,
       ]}
     >
+      {icon && (
+        <Icon
+          name={icon}
+          size={small ? 14 : 16}
+          color={{ green: "#ffffff", link: colors.accent, danger: colors["del-ink"] }[kind] ?? colors["button-ink"]}
+        />
+      )}
       <Text style={[tw`${small ? "text-xs" : "text-sm"} font-semibold`, ink]}>{title}</Text>
     </Pressable>
   );

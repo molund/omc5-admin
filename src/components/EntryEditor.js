@@ -39,17 +39,21 @@ export function seedFor(desk, target) {
   return { ...steps, title: note.title, blocks: blocksOf(note.fields), memo: memoAt(desk.deskEntries, note.key) };
 }
 
-/** What deleting does, for the review. */
-function deleteWarning(target, note, address) {
+/** Whether a note's or addendum's fields have a photo: its own, or in a block. */
+const hasPhoto = (fields) => !!fields.photo?.file || fields.block.some((b) => b.photo);
+
+/** What deleting does, for the review. Photos are only mentioned when the entry has some. */
+function deleteWarning(target, note, address, fu) {
   if (target.type === "followup")
-    return "This addendum comes off the site when you push. Its photo files stay in the repo.";
+    return `This addendum comes off the site when you push.${hasPhoto(fu.fields) ? " Its photo files stay in the repo." : ""}`;
   if (!note?.fields.summary)
     return "This record comes out of desk.yaml when you push, and any steps in it leave the velocity. The gantry's span and Hung stay as they are.";
   const count = note.followUps.length;
+  const photos = hasPhoto(note.fields) || note.followUps.some((f) => hasPhoto(f.fields));
   return [
     `This comes off the site when you push, and ?post=${address} stops working.`,
     count ? `${count === 1 ? "Its addendum goes" : `Its ${count} addendums go`} with it.` : "",
-    "Its comment thread stays on GitHub with nothing linking to it, and its photo files stay in the repo.",
+    `Its comment thread stays on GitHub with nothing linking to it${photos ? ", and its photo files stay in the repo" : ""}.`,
     "Any steps logged with it leave the velocity.",
   ]
     .filter(Boolean)
@@ -130,7 +134,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   const preview = desk.preview(change);
   const unchanged = !preview.error && !preview.hunks.length && !preview.deskHunks.length;
   const steps = <StagePicker text={text} value={d.stage} onChange={(s) => update({ stage: s })} span={record?.span} />;
-  const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key));
+  const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key), fu);
   const deleteChange =
     target.type === "followup"
       ? { kind: "followup-delete", noteKey: note.key, fuKey: target.key }

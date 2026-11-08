@@ -128,7 +128,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
       </Panel>
 
       <Panel>
-        <Label>{fus.length ? `Addenda (${fus.length})` : "No addenda yet"}</Label>
+        <Label>{fus.length ? `Addendums (${fus.length})` : "No addendums yet"}</Label>
         {fus.map((f) => (
           <Row key={f.key} style={tw`flex-nowrap items-start border-t border-line pt-2`}>
             <Body small mute style={{ width: 64 }}>

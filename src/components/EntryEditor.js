@@ -47,7 +47,7 @@ function deleteWarning(target, note, address) {
   const count = note.followUps.length;
   return [
     `This comes off the site when you push, and ?post=${address} stops working.`,
-    count ? `${count === 1 ? "Its addendum goes" : `Its ${count} addenda go`} with it.` : "",
+    count ? `${count === 1 ? "Its addendum goes" : `Its ${count} addendums go`} with it.` : "",
     "Its comment thread stays on GitHub with nothing linking to it, and its photo files stay in the repo.",
     "Any steps logged with it leave the velocity.",
   ]

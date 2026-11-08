@@ -10,29 +10,37 @@ import { clock, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
 import { EntryEditor, seedFor } from "../components/EntryEditor.js";
 import { Body, Button, Label, Link, Notice, Panel } from "../components/ui.js";
+import { Icon } from "../components/Icon";
 
 const PAGE = 20;
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Follow-up" };
+// the tabs' icons, and a page without lines for a blog post
+const ICON = { update: "fileLines", blog: "file", position: "crosshair", followup: "messageArrowDown" };
 
 /** A date title says no more than the time stamp beside it, so those show the start of their summary. */
 const noteName = (n) => shorten(n.title && !isDateTitle(n.title) ? n.title : n.fields.summary);
 
 function EntryRow({ type, name, when, waiting, nested, onPress }) {
-  const { tw } = useTw();
+  const { tw, colors } = useTw();
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
       style={({ pressed, hovered }) => [
-        tw`gap-0.5 rounded-md px-2 py-1.5`,
+        tw`flex-row items-start gap-2 rounded-md px-2 py-1.5`,
         nested && tw`ml-4 border-l border-line`,
         (pressed || hovered) && tw`bg-bg`,
       ]}
     >
-      <Body>{name}</Body>
-      <Body small mute>
-        {[TYPE[type], when, waiting ? "waiting to push" : ""].filter(Boolean).join(" · ")}
-      </Body>
+      <View style={tw`pt-0.5`}>
+        <Icon name={ICON[type]} size={18} color={colors.mute} />
+      </View>
+      <View style={tw`flex-1 gap-0.5`}>
+        <Body>{name}</Body>
+        <Body small mute>
+          {[TYPE[type], when, waiting ? "waiting to push" : ""].filter(Boolean).join(" · ")}
+        </Body>
+      </View>
     </Pressable>
   );
 }

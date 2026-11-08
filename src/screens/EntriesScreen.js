@@ -1,15 +1,14 @@
-// Entries: everything already saved, newest first. Tap one to change or delete it. Either way it's an ordinary change, so
-// nothing leaves the site until it's pushed, and it can be discarded until then. What's being edited is its own draft, so
-// opening an entry never touches a half-written new post on a tab.
+// Entries: everything already saved, newest first. Tap one to change or delete it, on its own page (EntryScreen.js). Either
+// way it's an ordinary change, so nothing leaves the site until it's pushed, and it can be discarded until then. Home shows
+// the newest few with EntryRows.
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { useDesk, useDraft } from "../state/desk.js";
+import { useDesk } from "../state/desk.js";
 import { listEntries, positionMemo, positionName, shorten, waitingAt } from "../lib/entries.js";
 import { clock, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
-import { EntryEditor, seedFor } from "../components/EntryEditor.js";
-import { Body, Button, Label, Link, Notice, Panel } from "../components/ui.js";
+import { Body, Button, Label, Notice, Panel } from "../components/ui.js";
 import { Icon } from "../components/Icon";
 
 const PAGE = 20;
@@ -78,39 +77,58 @@ function EntryRow({ type, name, memo, when, waiting, nested, counts, onPress }) 
   );
 }
 
-export function EntriesScreen({ onReview, onEditWaiting }) {
+/**
+ * Entries as rows, each with its follow-ups under it.
+ * @param {object} props
+ * @param {object[]} props.entries From listEntries.
+ * @param {(target: object) => void} props.onOpen
+ */
+export function EntryRows({ entries, onOpen }) {
+  const { tw } = useTw();
+  const desk = useDesk();
+  return entries.map((e) => (
+    <View key={e.key} style={tw`border-t border-line pt-1`}>
+      <EntryRow
+        type={e.type}
+        name={e.type === "position" ? positionName(e) : noteName(e.note)}
+        memo={e.type === "position" ? positionMemo(e) : ""}
+        when={stamp(e.key)}
+        waiting={!!waitingAt(desk.changes, e.key)}
+        counts={e.type !== "position" && countsOf(e.note.fields)}
+        onPress={() => onOpen({ type: e.type, key: e.key })}
+      />
+      {(e.followUps ?? []).map((f) => (
+        <EntryRow
+          key={f.key}
+          nested
+          type="followup"
+          name={shorten(f.fields.summary)}
+          when={clock(f.key)}
+          waiting={!!waitingAt(desk.changes, f.key)}
+          counts={countsOf(f.fields)}
+          onPress={() => onOpen({ type: "followup", key: f.key, noteKey: e.key })}
+        />
+      ))}
+    </View>
+  ));
+}
+
+/**
+ * @param {object} props
+ * @param {(target: object) => void} props.onOpen Opens an entry: { type, key, noteKey? }.
+ */
+export function EntriesScreen({ onOpen }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [shown, setShown] = useState(PAGE);
-  const [d, update, reset] = useDraft("edit", () => ({ target: null }));
   const entries = listEntries(desk.parsed, desk.deskEntries);
 
-  const open = (target) => {
-    const waiting = waitingAt(desk.changes, target.key);
-    if (waiting) onEditWaiting(waiting);
-    else update({ target, ...seedFor(desk, target) });
-  };
-  const close = () => {
-    desk.dropPhotos((d.blocks ?? []).map((b) => b.photoId).filter(Boolean));
-    reset();
-  };
-
-  if (d.target)
-    return (
-      <View style={tw`gap-3`}>
-        <Link title="← Back to the list of entries" onPress={close} />
-        <EntryEditor target={d.target} draft={d} update={update} onClose={close} onReview={onReview} noBack />
-      </View>
-    );
-
   const intro = (
-    <View style={tw`gap-1`}>
-      <Body small mute>
-        Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry step or note to
-        self, or to delete it. Each change gets a review first, and nothing reaches the site until you push. Anything
-        still waiting to push can be changed here too.
-      </Body>
-    </View>
+    <Body small mute>
+      Open any update, blog post, follow-up or position record to fix its title, text, photos, gantry step or note to
+      self, or to delete it. Each change gets a review first, and nothing reaches the site until you push. Anything
+      still waiting to push can be changed here too.
+    </Body>
   );
   if (!entries.length)
     return (
@@ -124,31 +142,7 @@ export function EntriesScreen({ onReview, onEditWaiting }) {
       {intro}
       <Panel>
         <Label>{`Entries (${entries.length})`}</Label>
-        {entries.slice(0, shown).map((e) => (
-          <View key={e.key} style={tw`border-t border-line pt-1`}>
-            <EntryRow
-              type={e.type}
-              name={e.type === "position" ? positionName(e) : noteName(e.note)}
-              memo={e.type === "position" ? positionMemo(e) : ""}
-              when={stamp(e.key)}
-              waiting={!!waitingAt(desk.changes, e.key)}
-              counts={e.type !== "position" && countsOf(e.note.fields)}
-              onPress={() => open({ type: e.type, key: e.key })}
-            />
-            {(e.followUps ?? []).map((f) => (
-              <EntryRow
-                key={f.key}
-                nested
-                type="followup"
-                name={shorten(f.fields.summary)}
-                when={clock(f.key)}
-                waiting={!!waitingAt(desk.changes, f.key)}
-                counts={countsOf(f.fields)}
-                onPress={() => open({ type: "followup", key: f.key, noteKey: e.key })}
-              />
-            ))}
-          </View>
-        ))}
+        <EntryRows entries={entries.slice(0, shown)} onOpen={onOpen} />
         {shown < entries.length && <Button title="Show more" onPress={() => setShown(shown + PAGE)} />}
       </Panel>
     </View>

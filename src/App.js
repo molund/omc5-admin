@@ -14,7 +14,8 @@ import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
 import { EntriesScreen } from "./screens/EntriesScreen.js";
-import { recentUpdates } from "./lib/entries.js";
+import { EntryScreen } from "./screens/EntryScreen.js";
+import { recentUpdates, waitingAt } from "./lib/entries.js";
 import { WaitingEditor } from "./components/WaitingEditor.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
 import { Icon } from "./components/Icon";
@@ -30,6 +31,7 @@ const PAGES = {
   },
   blog: { title: "Blog post", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
   entries: { title: "Entries" },
+  entry: { title: "Edit" },
   waiting: { title: "Waiting change" },
   settings: { title: "Settings" },
 };
@@ -37,13 +39,17 @@ const PAGES = {
 // Piper on every page's header: the site's favicon (public/favicon.ico in molund/omc5), transparent
 const LOGO = require("../assets/logo.png");
 
+// what an entry is, in its page's title
+const EDITS = { update: "update", blog: "blog post", position: "position", followup: "follow-up" };
+
 /** The review of a reopened waiting change sees the files as they were before it, as its editor does. */
 const InReview = ({ id, children }) => (id ? <BeforeChange id={id}>{children}</BeforeChange> : children);
 
 function Desk() {
   const { tw, colors } = useTw();
   const desk = useDesk();
-  // the pages open, Home first: { page }, or { page: "waiting", id } for a waiting change reopened
+  // the pages open, Home first: { page }, { page: "entry", target } for a saved entry, or { page: "waiting", id } for a
+  // waiting change reopened
   const [stack, setStack] = useState([{ page: "home" }]);
   const top = stack[stack.length - 1];
   const go = (page, more) => setStack((s) => [...s, { page, ...more }]);
@@ -53,6 +59,12 @@ function Desk() {
   const reopen = (change) => {
     setReview(null);
     go("waiting", { id: change.id });
+  };
+  // a saved entry opens on its own page; one with a change still waiting opens that change instead
+  const openEntry = (target) => {
+    const waiting = waitingAt(desk.changes, target.key);
+    if (waiting) reopen(waiting);
+    else go("entry", { target });
   };
   // Back closes a review first, then the page
   const back = () => {
@@ -64,9 +76,11 @@ function Desk() {
   const canFollowUp = recentUpdates(desk.parsed).length > 0;
 
   let screen = null;
-  if (top.page === "home") screen = <HomeScreen go={go} onEdit={reopen} />;
+  if (top.page === "home") screen = <HomeScreen go={go} onEdit={reopen} onOpen={openEntry} />;
   else if (top.page === "settings") screen = <SettingsScreen />;
-  else if (top.page === "entries") screen = <EntriesScreen onReview={startReview} onEditWaiting={reopen} />;
+  else if (top.page === "entries") screen = <EntriesScreen onOpen={openEntry} />;
+  else if (top.page === "entry")
+    screen = <EntryScreen key={top.target.key} target={top.target} onReview={startReview} />;
   else if (top.page === "waiting")
     screen = reopened ? (
       <BeforeChange id={reopened.id}>
@@ -94,7 +108,13 @@ function Desk() {
           <View style={tw`flex-row items-center gap-2.5`}>
             <Image source={LOGO} style={tw`h-10 w-10`} />
             <Text accessibilityRole="header" style={tw`flex-1 text-2xl font-bold text-ink`}>
-              {review ? "Review" : home ? "Status desk" : page.title}
+              {review
+                ? "Review"
+                : home
+                  ? "Status desk"
+                  : top.page === "entry"
+                    ? `Edit ${EDITS[top.target.type]}`
+                    : page.title}
             </Text>
           </View>
           {!review && page?.about && (

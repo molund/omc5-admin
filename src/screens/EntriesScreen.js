@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
-import { listEntries, positionName, shorten, waitingAt } from "../lib/entries.js";
+import { listEntries, positionMemo, positionName, shorten, waitingAt } from "../lib/entries.js";
 import { clock, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
 import { EntryEditor, seedFor } from "../components/EntryEditor.js";
@@ -47,7 +47,7 @@ function Counts({ paragraphs = 0, photos = 0 }) {
   );
 }
 
-function EntryRow({ type, name, when, waiting, nested, counts, onPress }) {
+function EntryRow({ type, name, memo, when, waiting, nested, counts, onPress }) {
   const { tw, colors } = useTw();
   return (
     <Pressable
@@ -63,7 +63,8 @@ function EntryRow({ type, name, when, waiting, nested, counts, onPress }) {
         <Icon name={ICON[type]} size={18} color={colors.mute} />
       </View>
       <View style={tw`flex-1 gap-0.5`}>
-        <Body>{name}</Body>
+        {!!name && <Body>{name}</Body>}
+        {!!memo && <Body mute>{memo}</Body>}
         {counts && <Counts {...counts} />}
         <Body small mute>
           {[TYPE[type], when, waiting ? "waiting to push" : ""].filter(Boolean).join(" · ")}
@@ -125,6 +126,7 @@ export function EntriesScreen({ onReview, onEditWaiting, onLeave }) {
             <EntryRow
               type={e.type}
               name={e.type === "position" ? positionName(e) : noteName(e.note)}
+              memo={e.type === "position" ? positionMemo(e) : ""}
               when={stamp(e.key)}
               waiting={!!waitingAt(desk.changes, e.key)}
               counts={e.type !== "position" && countsOf(e.note.fields)}

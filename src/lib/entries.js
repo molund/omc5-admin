@@ -36,12 +36,15 @@ export const waitingAt = (changes, key) => changes.find((c) => createdAt(c) === 
 /** Text cut to a length, for a list. */
 export const shorten = (s, n = 90) => (s.length > n ? `${s.slice(0, n - 2)}…` : s);
 
-/** How a position record reads: its span, its step and its note to self. */
+/** How a position record reads: its span and its step. Its note to self goes on a line of its own (positionMemo). */
 export function positionName({ note, record }) {
   const steps = record?.stage ? STAGE_LABELS[record.stage] : "";
-  const memo = record?.noteToSelf || note?.fields.memo || "";
-  return [record?.span ? `Span ${record.span}` : "", steps, shorten(memo)].filter(Boolean).join(" · ") || "No details";
+  const name = [record?.span ? `Span ${record.span}` : "", steps].filter(Boolean).join(" · ");
+  return name || (positionMemo({ note, record }) ? "" : "No details");
 }
+
+/** A position record's note to self, shortened for the list, or "". */
+export const positionMemo = ({ note, record }) => shorten(record?.noteToSelf || note?.fields.memo || "");
 
 /** The list with one change swapped for its new version, in the same place, under the same id. */
 export const replaceChangeIn = (changes, id, change, message, savedAt) =>

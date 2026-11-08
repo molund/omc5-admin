@@ -19,6 +19,7 @@ import { recentUpdates, waitingAt } from "./lib/entries.js";
 import { WaitingEditor } from "./components/WaitingEditor.js";
 import { SettingsScreen } from "./screens/SettingsScreen.js";
 import { Icon } from "./components/Icon";
+import { useBack } from "./components/backContext.js";
 
 // the pages over Home: their titles, and for the ways to add something, what each one is
 const PAGES = {
@@ -71,6 +72,8 @@ function Desk() {
     if (review) return setReview(null);
     setStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
   };
+  // the frame's swipe from the left edge does the same, while there's somewhere to go back to
+  useBack(review || stack.length > 1 ? back : null);
   const home = top.page === "home";
   const page = PAGES[top.page];
   const canFollowUp = recentUpdates(desk.parsed).length > 0;

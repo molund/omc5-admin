@@ -55,6 +55,8 @@ export const ICONS = {
     ],
   ],
   check: [["path", { d: "M5 12.5l4.5 4.5L19 7.5", fill: "none" }]],
+  // a warning: a triangle with an exclamation mark
+  warning: [["path", { d: "M12 3.5L21.5 20h-19zM12 10v4.5M12 17.4v.1", fill: "none" }]],
   // a link, for the rich text boxes' toolbar
   link: [
     [

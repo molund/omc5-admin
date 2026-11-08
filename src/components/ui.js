@@ -168,15 +168,39 @@ export function Toggle({ value, onChange, label }) {
 
 // Which box is zoomed: one at most. A tap anywhere outside it turns it off, but a swipe doesn't, because a box that changes
 // size stops the page mid-scroll.
-const ZoomContext = createContext({ active: null, setActive: () => {}, inside: { current: null } });
+const ZoomContext = createContext({
+  active: null,
+  setActive: () => {},
+  inside: { current: null },
+  taps: { current: new Set() },
+});
 const SWIPE = 10;
+
+/** While `open`, calls `close` on a tap or click anywhere, the one that opened it not counting. */
+export function useTapAway(open, close) {
+  const zoom = useContext(ZoomContext);
+  const latest = useRef(close);
+  latest.current = close;
+  useEffect(() => {
+    if (!open) return undefined;
+    const run = () => latest.current();
+    if (Platform.OS === "web") {
+      // in the capture phase, which the opening click has already passed
+      document.addEventListener("click", run, true);
+      return () => document.removeEventListener("click", run, true);
+    }
+    zoom.taps.current.add(run);
+    return () => zoom.taps.current.delete(run);
+  }, [open]);
+}
 
 /** Around the whole desk. On the phone it sees every tap; on the web, the zoomed box listens to the document itself. */
 export function ZoomScope({ children }) {
   const [active, setActive] = useState(null);
   const inside = useRef(null); // the box this touch is on, set by the box as the touch passes through it
   const start = useRef(null);
-  const value = useMemo(() => ({ active, setActive, inside }), [active]);
+  const taps = useRef(new Set()); // what to call on a tap anywhere (useTapAway)
+  const value = useMemo(() => ({ active, setActive, inside, taps }), [active]);
   const touches =
     Platform.OS === "web"
       ? {}
@@ -190,7 +214,10 @@ export function ZoomScope({ children }) {
             const moved =
               !start.current ||
               Math.hypot(e.nativeEvent.pageX - start.current.x, e.nativeEvent.pageY - start.current.y) > SWIPE;
-            if (!moved) setActive((a) => (a === on ? a : null));
+            if (!moved) {
+              setActive((a) => (a === on ? a : null));
+              taps.current.forEach((f) => f());
+            }
           },
           onTouchCancel: () => {
             inside.current = null;

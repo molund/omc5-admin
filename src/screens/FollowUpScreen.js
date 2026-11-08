@@ -1,7 +1,7 @@
 // Follow-up: pick today's or yesterday's update, then add a follow-up or edit one it has. A new follow-up becomes the card's newest
 // word; the Move controls are folded in, since follow-ups often report a move.
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { useRef, useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { headerOf, newestFirst, followUpsNewestFirst } from "../lib/statusFile.js";
@@ -18,7 +18,8 @@ import { StagePicker, chosenStage } from "../components/StagePicker.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
-import { Body, Button, Label, Notice, Panel, Row } from "../components/ui.js";
+import { Body, Button, Label, Notice, Panel, Row, useTapAway } from "../components/ui.js";
+import { Icon } from "../components/Icon";
 
 // a date title says no more than the time stamp beside it, so those show the start of their summary
 const noteName = (n) =>
@@ -29,7 +30,7 @@ const noteName = (n) =>
       : n.fields.summary;
 
 export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
-  const { tw } = useTw();
+  const { tw, colors } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
   // a new follow-up goes under today's or yesterday's update; a waiting one reopened keeps the update or blog post it's under
@@ -49,6 +50,12 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
   const [d, update, reset] = useDraft(draftKey, () => seed ?? fresh(first?.key));
   const [picking, setPicking] = useState(false);
   const [why, setWhy] = useState(false); // the note on why Change is off, shown after it's pressed
+  // pressing Change while the note is open is a tap anywhere too, so it closes it, and Change mustn't open it again
+  const closedAt = useRef(0);
+  useTapAway(why, () => {
+    closedAt.current = Date.now();
+    setWhy(false);
+  });
   const note = notes.find((n) => n.key === d.noteKey) ?? first;
   if (!note) return <Notice>There's no update from today or yesterday to add an addendum to.</Notice>;
 
@@ -102,7 +109,7 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
                 title="Change"
                 label="Change, not available: press to see why"
                 style={tw`opacity-40`}
-                onPress={() => setWhy(!why)}
+                onPress={() => Date.now() - closedAt.current > 100 && setWhy(true)}
               />
             )
           }
@@ -110,20 +117,22 @@ export function FollowUpScreen({ onReview, draftKey = "followup", seed }) {
           {note.fields.post ? "Blog post" : "Follow-up which post?"}
         </Label>
         {notes.length <= 1 && why && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Close"
-            onPress={() => setWhy(false)}
+          // a warning, like the notes under a field; a tap or click anywhere closes it (useTapAway)
+          <View
+            accessibilityRole="alert"
             style={[
-              tw`rounded-md border border-accent bg-panel p-2.5`,
-              { position: "absolute", top: 44, right: 12, maxWidth: 280, zIndex: 10 },
+              tw`flex-row items-start gap-2 rounded-md border border-warn-ink bg-warn p-2.5`,
+              { position: "absolute", top: 44, right: 12, maxWidth: 300, zIndex: 10 },
             ]}
           >
-            <Body small>
+            <View style={tw`pt-0.5`}>
+              <Icon name="warning" size={16} color={colors["warn-ink"]} />
+            </View>
+            <Text style={tw`flex-1 text-xs leading-snug text-warn-ink`}>
               An addendum can only go under an update from today or yesterday (BC time), and not under a blog post. This
               is the only update that qualifies right now, so there's nothing else to choose.
-            </Body>
-          </Pressable>
+            </Text>
+          </View>
         )}
         {!picking && (
           <Body>

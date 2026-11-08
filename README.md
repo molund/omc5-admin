@@ -215,59 +215,21 @@ files of a pair have the same shape.
 
 ## Code layout
 
-The top level:
+Each file starts with a comment saying what it's for.
 
-| Path                        | What it is                                                                      |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `index.js`, `index.web.js`  | the entries: Expo's on iOS, react-native-web's in the Claude app                |
-| `app.json`                  | the Expo app config                                                             |
-| `assets/icon.png`           | the app icon: the site's favicon on its background colour                       |
-| `desk.config.json`          | the artifact's URL, the repo and the push session's scheduled task              |
-| `src/`                      | the app (below)                                                                 |
-| `tools/apply-changes.mjs`   | the push session's CLI around `src/lib/changes.js` and `src/lib/deskChanges.js` |
-| `scripts/build.mjs`, `web/` | the artifact's build (esbuild) and its page                                     |
-| `test/`                     | `node --test` suites; `fixtures/` holds verbatim copies from molund/omc5        |
-| `docs/push-session.md`      | what the Claude Code push session does with a request                           |
-
-Inside `src/`, `lib/` is plain JavaScript with no React, shared by the app, both kinds of push and the tests.
-
-| Folder        | What's in it                                                                                     |
-| ------------- | ------------------------------------------------------------------------------------------------ |
-| `App.js`      | the tabs, the link to Entries, the gear, the review and the outbox                               |
-| `screens/`    | one per tab and page: Move (Position), Update, Blog, FollowUp, Entries, Settings                 |
-| `components/` | the pieces the screens share (below)                                                             |
-| `lib/`        | the files, the changes and the rules, with no React (below)                                      |
-| `state/`      | `desk.js`: the copy, the waiting changes, drafts and photos                                      |
-| `services/`   | the phone's push (`github.js`, `phonePush.js`), the Claude app's push (`outbox.js`), Ask Claude  |
-| `platform/`   | storage, photos, clipboard, theme, secrets, the frame and the desk's copy, one file per platform |
-| `theme/`      | `tw.js`: twrnc with the site's colours, light and dark under the same names                      |
-
-`src/components/`:
-
-| Component                             | What it draws                                                                |
-| ------------------------------------- | ---------------------------------------------------------------------------- |
-| `ui.js`                               | the building blocks: panels, buttons, the segmented control, fields, toggles |
-| `GantryControls.js`, `StagePicker.js` | the span and Hung; the gantry step                                           |
-| `TimeStampField.js`, `TitleField.js`  | the time stamp (automatic or set manually); the title                        |
-| `BlockEditor.js`, `NoteToSelf.js`     | the summary, paragraphs and photos; the note to self                         |
-| `StyleHints.js`                       | the writing-style checks under the editor                                    |
-| `ReviewSheet.js`, `CardPreview.js`    | the review before a save; the progress card a change leaves                  |
-| `Outbox.js`                           | the copy, the waiting changes, Push and Refresh                              |
-| `EntryEditor.js`, `WaitingEditor.js`  | a saved entry, and a waiting change, reopened                                |
-| `VelocityPanel.js`, `Sparkline.*`     | the velocity panel; the velocity chart                                       |
-| `Icon.*`, `iconShapes.js`             | the icons and their shapes                                                   |
-
-`src/lib/`:
-
-| Module                              | What it does                                                          |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `statusFile.js`                     | reads `status.yaml` as the site does, keeping every note's line range |
-| `changes.js`                        | splices a change into `status.yaml`, and writes the velocity          |
-| `deskFile.js`, `deskChanges.js`     | reads and writes `desk.yaml`; a change's half of it                   |
-| `entries.js`                        | what Entries lists, and reopening a waiting change                    |
-| `stages.js`, `velocity.js`          | the cycle's steps and the rules that find them; the velocity          |
-| `card.js`                           | the progress card's rule, and the velocity chart's points             |
-| `titles.js`, `time.js`              | date titles and `?post=` slugs; BC time stamps                        |
-| `cleanText.js`, `inline.js`         | drops invisible characters from text; the site's links and bold       |
-| `jpeg.js`                           | strips a JPEG's metadata without re-encoding it                       |
-| `styleHints.js`, `writingPrompt.js` | the style checks; the AI prompt a field's icon copies                 |
+| Path                       | What it is                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `index.js`, `index.web.js` | the entries: Expo's on iOS, react-native-web's in the Claude app                                                      |
+| `desk.config.json`         | the artifact's URL, the repo and the push session's scheduled task                                                    |
+| `src/App.js`               | the tabs, the review and the outbox                                                                                   |
+| `src/screens/`             | one per tab and page                                                                                                  |
+| `src/components/`          | the pieces the screens share                                                                                          |
+| `src/lib/`                 | the files, the changes and the rules: plain JavaScript, no React, shared by the app, both kinds of push and the tests |
+| `src/state/desk.js`        | the desk's copy, the waiting changes, drafts and photos                                                               |
+| `src/services/`            | pushing (from the phone and from the Claude app) and Ask Claude                                                       |
+| `src/platform/`            | one file per platform (see Platform files above)                                                                      |
+| `src/theme/`               | the site's colours for twrnc                                                                                          |
+| `tools/apply-changes.mjs`  | the push session's CLI                                                                                                |
+| `scripts/`, `web/`         | the artifact's build and its page                                                                                     |
+| `test/`                    | `node --test` suites; `fixtures/` holds verbatim copies from molund/omc5                                              |
+| `docs/push-session.md`     | what the push session does with a request                                                                             |

@@ -28,10 +28,17 @@ const MODES = [
     screen: MoveScreen,
     about: "Position only: the span and Hung, with a time stamp.",
   },
-  { value: "update", label: "Update", screen: UpdateScreen, about: "A status update. Its summary goes on the card." },
+  {
+    value: "update",
+    label: "Update",
+    icon: "fileLines",
+    screen: UpdateScreen,
+    about: "A status update. Its summary goes on the card.",
+  },
   {
     value: "followup",
     label: "Follow-up",
+    icon: "messageArrowDown",
     screen: FollowUpScreen,
     about: "Add to today's or yesterday's update, or edit a follow-up.",
   },

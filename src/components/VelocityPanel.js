@@ -33,8 +33,8 @@ const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
 const STAT_LABEL = { fontSize: 15.4 };
 
-// a logged step further than this from when it was expected (working hours) shows in bold: red when it came later than
-// expected, blue when it came earlier
+// a logged stage that ran this much longer than expected (working hours) shows in bold red, this much shorter in bold blue;
+// expected is its share of a cycle's working time at the velocity, as in the stages chart
 const OFF_HOURS = 2;
 
 const days = (n) => `${n.toFixed(2)} days`;
@@ -84,8 +84,13 @@ export function VelocityPanel({ full, onOpen }) {
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
-  const offStyle = (t) =>
-    t.offHours > OFF_HOURS ? tw`font-bold text-del-ink` : t.offHours < -OFF_HOURS ? tw`font-bold text-accent` : null;
+  const cycleHours = v.spansPerWeek ? (WORKING_DAYS_PER_WEEK * 24) / v.spansPerWeek : null;
+  const expected = Object.fromEntries(v.shares.map((s) => [s.stage, cycleHours && s.share * cycleHours]));
+  const offStyle = (t) => {
+    if (t.estimated || t.stepHours == null || !expected[t.stage]) return null;
+    const over = t.stepHours - expected[t.stage];
+    return over > OFF_HOURS ? tw`font-bold text-del-ink` : over < -OFF_HOURS ? tw`font-bold text-accent` : null;
+  };
   // above the span's heading when its first step starts the day, so the day always comes before the span, with the
   // shutdown hours left out since the step before, when there are any, in a box of their own above it: dashed, as time
   // that isn't counted, and free to wrap onto a second line

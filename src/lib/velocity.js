@@ -25,7 +25,7 @@ const SHUTDOWNS = [
   [5 * 24 + 18, 13], // Friday 18:00
   [6 * 24 + 16, 28], // Saturday 16:00
 ];
-const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
+export const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
 // BC time is UTC−7 all year in status.yaml's time stamps
 const bc = (d) => new Date(d.getTime() - 7 * HOUR);
 // the shifts, in hours from a BC midnight: Friday's and Saturday's night shifts and Sunday's day shift are the shutdown,

@@ -8,7 +8,7 @@ import { Fragment } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { stepsWithEstimates, trendOf, WINDOW, workingHours } from "../lib/velocity.js";
+import { stepsWithEstimates, trendOf, WINDOW, WORKING_DAYS_PER_WEEK, workingHours } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, parseKey, stamp, weekdayShort } from "../lib/time.js";
@@ -164,7 +164,7 @@ export function VelocityPanel({ full, onOpen }) {
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
           <Body small mute>
-            Share of the cycle, from each step to the next
+            Share of the cycle, from each step to the next, and that share of a cycle's working time at the velocity
           </Body>
           {v.shares.map((s) => (
             <View key={s.stage} style={tw`flex-row items-baseline gap-2`}>
@@ -173,6 +173,10 @@ export function VelocityPanel({ full, onOpen }) {
               </Body>
               <Body small mute style={num}>
                 {`${Math.round(s.share * 100)}%`}
+              </Body>
+              {/* last, as in the steps below: the working time a cycle takes (a week's over the spans per week) */}
+              <Body small style={[tw`w-16 text-right`, num]}>
+                {v.spansPerWeek ? hours((s.share * WORKING_DAYS_PER_WEEK * 24) / v.spansPerWeek) : "–"}
               </Body>
             </View>
           ))}

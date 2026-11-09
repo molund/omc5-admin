@@ -160,7 +160,6 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
         position={index}
         count={STAGES.length}
         min={min}
-        disabled={!on}
         onChange={(p) => onChange(STAGES[p])}
       />
       {problem && (

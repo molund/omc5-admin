@@ -6,7 +6,8 @@
 // passes in a shift break or the shutdown), and that places every step along the gantry's progress, in spans: the place a
 // week before the last step is read off between the steps either side of it, and so is a stage or arrival that wasn't
 // logged. Working time leaves out only the weekly shutdown: Friday night, 6 p.m. Friday to 7 a.m. Saturday, and Saturday
-// night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time.
+// night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time. A step logged in the evening at the start of
+// either is overtime: that part of the shutdown starts at the step instead.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
 
@@ -25,6 +26,8 @@ const SHUTDOWNS = [
   [6 * 24 + 18, 24], // Saturday 18:00
 ];
 const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
+// how long into a shutdown a logged step still counts as the day shift's overtime: the evening, up to midnight
+const OVERTIME_HOURS = 6;
 // BC time is UTC−7 all year in status.yaml's time stamps
 const bc = (d) => new Date(d.getTime() - 7 * HOUR);
 // the shifts, in hours from a BC midnight: Friday's and Saturday's night shifts and Sunday's day shift are the shutdown
@@ -39,8 +42,11 @@ const FIRM = 10;
 const LIGHT = 0.05;
 const QUARTER = HOUR / 4;
 
-/** Hours between two Dates that aren't in a shutdown. */
-export function workingHours(from, to) {
+/**
+ * Hours between two Dates that aren't in a shutdown. `logged`, the times of the steps logged (ms): one in a shutdown's
+ * evening is overtime, so that shutdown starts at the latest of them instead.
+ */
+export function workingHours(from, to, logged = []) {
   if (to <= from) return 0;
   let total = (to - from) / HOUR;
   // the Sunday 00:00 (BC) on or before `from`, a week back to catch a shutdown already under way
@@ -48,8 +54,10 @@ export function workingHours(from, to) {
   let weekStart = Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) - f.getUTCDay() * DAY - 7 * DAY;
   for (; weekStart + 7 * HOUR < to.getTime() + 7 * DAY; weekStart += 7 * DAY) {
     for (const [start, hours] of SHUTDOWNS) {
-      const s = weekStart + 7 * HOUR + start * HOUR; // back to real time
+      let s = weekStart + 7 * HOUR + start * HOUR; // back to real time
       const e = s + hours * HOUR;
+      const evening = s + OVERTIME_HOURS * HOUR;
+      for (const t of logged) if (t > s && t < evening) s = t;
       const overlap = Math.min(e, to.getTime()) - Math.max(s, from.getTime());
       if (overlap > 0) total -= overlap / HOUR;
     }
@@ -108,13 +116,14 @@ export function stepsBySpan(entries) {
  */
 export function spanDays(entries) {
   const by = stepsBySpan(entries);
+  const logged = loggedTimes(allSteps(entries));
   const out = {};
   for (const [span, steps] of Object.entries(by)) {
     const start = steps[STAGES[0]];
     if (!start) continue;
     const end = by[Number(span) + 1]?.[STAGES[0]] ?? null;
     const [a, b] = [parseKey(start), end && parseKey(end)];
-    out[span] = { start, end, shutdown: !!end && workingHours(a, b) < (b - a) / HOUR };
+    out[span] = { start, end, shutdown: !!end && workingHours(a, b, logged) < (b - a) / HOUR };
   }
   return out;
 }
@@ -129,6 +138,9 @@ function allSteps(entries) {
     }
   return out.sort((a, b) => a.at - b.at || a.span - b.span || a.index - b.index);
 }
+
+// the times of the steps logged (ms), for workingHours' overtime
+const loggedTimes = (steps) => steps.map((t) => t.at.getTime());
 
 /**
  * How the cycle divides up: [{ stage, position, share }] in cycle order, `position` how far through the cycle the stage
@@ -244,13 +256,14 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
   const by = stepsBySpan(entries);
   const at = estimator(steps, shares);
   const arrived = arrivals(entries, shares);
+  const logged = loggedTimes(steps);
   const out = [];
   for (const [span, arrival] of Object.entries(arrived)) {
     for (const [index, stage] of STAGES.entries()) {
       const logged = by[span]?.[stage];
       const key = index === 0 ? arrival.key : (logged ?? at(Number(span) + shares[index].position));
       if (!key) continue;
-      const hours = workingHours(parseKey(arrival.key), parseKey(key));
+      const hours = workingHours(parseKey(arrival.key), parseKey(key), logged);
       if (hours > 0 || index === 0)
         out.push({ span: Number(span), stage, key, hours, estimated: index === 0 ? arrival.estimated : !logged });
     }
@@ -258,7 +271,8 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
   out.sort((a, b) => a.span - b.span || a.hours - b.hours);
   return out.map((t, i) => {
     const next = out[i + 1];
-    const stepHours = next && next.span <= t.span + 1 ? workingHours(parseKey(t.key), parseKey(next.key)) : null;
+    const stepHours =
+      next && next.span <= t.span + 1 ? workingHours(parseKey(t.key), parseKey(next.key), logged) : null;
     return { ...t, stepHours, offHours: t.estimated ? null : offHours(steps, shares, t) };
   });
 }
@@ -271,7 +285,8 @@ function offHours(steps, shares, t) {
   const expected = estimator(others, shares)(t.span + shares[index].position);
   if (!expected) return null;
   const [a, b] = [parseKey(t.key), parseKey(expected)];
-  return a < b ? workingHours(a, b) : workingHours(b, a);
+  const logged = loggedTimes(steps);
+  return a < b ? workingHours(a, b, logged) : workingHours(b, a, logged);
 }
 
 /**
@@ -303,6 +318,7 @@ function stageTimes(entries, shares, stage) {
  */
 export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]) {
   const times = stageTimes(entries, shares, stage);
+  const logged = loggedTimes(allSteps(entries));
   const out = [];
   for (const n of Object.keys(times)
     .map(Number)
@@ -317,7 +333,7 @@ export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]
       end: b.key,
       startEstimated: a.estimated,
       endEstimated: b.estimated,
-      hours: workingHours(parseKey(a.key), parseKey(b.key)),
+      hours: workingHours(parseKey(a.key), parseKey(b.key), logged),
     });
   }
   return out;
@@ -329,12 +345,13 @@ export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]
  * has none.
  */
 export function sinceArrival(entries) {
+  const logged = loggedTimes(allSteps(entries));
   const out = [];
   for (const [span, steps] of Object.entries(stepsBySpan(entries))) {
     const arrival = steps[STAGES[0]];
     if (!arrival) continue;
     for (const [stage, key] of Object.entries(steps)) {
-      const hours = workingHours(parseKey(arrival), parseKey(key));
+      const hours = workingHours(parseKey(arrival), parseKey(key), logged);
       if (hours > 0 || stage === STAGES[0]) out.push({ span: Number(span), stage, key, hours });
     }
   }
@@ -427,12 +444,15 @@ export function velocity(entries, now = new Date()) {
   const by = stepsBySpan(entries);
   const top = Math.max(0, ...Object.keys(by).map(Number));
   const since = top ? by[top]["arrived at span"] : null;
-  const current = since ? { span: top, since, days: workingHours(parseKey(since), now) / 24 } : null;
+  const current = since
+    ? { span: top, since, days: workingHours(parseKey(since), now, loggedTimes(steps)) / 24 }
+    : null;
   const start = last && new Date(last.at.getTime() - WEEK_HOURS * HOUR);
   const from = last && progressAt(steps, shares, start);
   const to = last && last.span + shares[last.index].position;
   if (from == null || !(to > from))
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
+  // without overtime: a week's working time is the same every week, so this is the distance covered in it
   const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
   const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span };
   return { spansPerWeek, stage, window, shares, current };

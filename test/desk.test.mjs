@@ -238,6 +238,22 @@ test("working time leaves out Friday 6 p.m. to Saturday 7 a.m., and Saturday 6 p
   assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 74);
 });
 
+test("a step logged in a shutdown's evening is overtime, and the shutdown starts there instead", () => {
+  const friday = (time) => at(`2026-10-30T${time}-07:00`).getTime();
+  // Friday noon to Saturday 8 a.m.: six hours to 6 p.m., then one on Saturday
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-10-31T08:00-07:00")), 7);
+  // with a step logged at 8:45 p.m.: the 2.75 hours of overtime count too
+  assert.equal(
+    workingHours(at("2026-10-30T12:00-07:00"), at("2026-10-31T08:00-07:00"), [friday("16:00"), friday("20:45")]),
+    9.75,
+  );
+  // after midnight it's not overtime
+  assert.equal(
+    workingHours(at("2026-10-30T12:00-07:00"), at("2026-10-31T08:00-07:00"), [at("2026-10-31T01:00-07:00").getTime()]),
+    7,
+  );
+});
+
 test("shift hours count only the day and night shifts, and not the shutdown", () => {
   const monday = (time) => at(`2026-11-09T${time}-07:00`);
   // a whole day shift

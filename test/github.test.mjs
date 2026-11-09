@@ -1,5 +1,5 @@
 // The phone's push (src/services/github.js), against a fake GitHub that keeps blobs, trees, commits and refs: one commit
-// per change on top of main, by the Status Desk, with its photos, then the desk branch pointed at the last one.
+// per change on top of main, by the Leash Log, with its photos, then the desk branch pointed at the last one.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdirSync } from "node:fs";
@@ -104,7 +104,7 @@ const update = {
 };
 const photos = { p1: { dataUrl: `data:image/jpeg;base64,${PIXEL}` } };
 
-test("each change is its own commit on top of main, by the Status Desk, and desk points at the last", async () => {
+test("each change is its own commit on top of main, by the Leash Log, and desk points at the last", async () => {
   const gh = fakeGitHub();
   const r = await pushChanges({ token: "github_pat_x", changes: [move, update], photos });
   assert.deepEqual(r.pushed, ["c1", "c2"]);

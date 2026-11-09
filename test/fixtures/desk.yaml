@@ -1,4 +1,4 @@
-# The Status Desk's own records (molund/omc5-admin). The site doesn't read this file. Entries are keyed by
+# The Leash Log's own records (molund/omc5-admin). The site doesn't read this file. Entries are keyed by
 # BC time stamps, like status.yaml's notes, newest first. An entry can have:
 #   span: the Clayton Clipper span it's about
 #   stage: the step of the gantry's cycle it had reached by then (see docs/gantry-cycle.md), one of:

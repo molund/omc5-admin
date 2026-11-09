@@ -1,6 +1,6 @@
 // Sending the desk's waiting changes to Claude. The desk can't reach GitHub itself, but it can save files into its own
 // artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/. The desk then starts the
-// "Answer the Status Desk" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector, which
+// "Answer the Leash Log" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector, which
 // wakes the Claude Code session it's bound to; that session follows docs/push-session.md. It syncs with main, applies each change with
 // tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the desk with copy.json and
 // pushed.json, and clears the outbox.
@@ -42,7 +42,7 @@ function request(kind, changes = [], photos = []) {
 
 /** The request as text to paste into the session, when the desk can't save it. */
 function manual(req, hasPhotos) {
-  return `Clipper Status Desk ${req.request} request${
+  return `Clipper Leash Log ${req.request} request${
     hasPhotos ? " (its photos couldn't be saved: attach them to this message, named as listed)" : ""
   }:\n\n${JSON.stringify(req, null, 1)}\n`;
 }
@@ -137,7 +137,7 @@ const CONNECTOR = "Claude Code Remote";
 
 /** What to paste into a new Claude Code chat when the desk can't start one itself. */
 export const byHand = (req) =>
-  `Answer the Clipper Status Desk's ${req.request} request ${req.id} in ${config().artifactUrl}, following docs/push-session.md in molund/omc5-admin.`;
+  `Answer the Clipper Leash Log's ${req.request} request ${req.id} in ${config().artifactUrl}, following docs/push-session.md in molund/omc5-admin.`;
 
 function explainStart(e, req) {
   const detail = [e?.code, e?.message].filter(Boolean).join(" · ");

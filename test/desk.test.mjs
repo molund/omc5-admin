@@ -785,14 +785,14 @@ test("a change keeps desk.yaml's velocity, worked out again, and status.yaml's c
 test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just the copy on the next push", () => {
   const after = (block) => STATUS.replace(/^((?:hung|complete): .*)$/m, ["$1", ...block].join("\n"));
   const comment = (last) => [
-    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span and",
     "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
     last,
   ];
   const olds = [
     // over the last three spans, underscores, no earlier value
     [
-      "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
+      "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span over the",
       "# last three spans, and spans per week once the weekly shutdown is allowed for",
       "days_per_span: 2.15",
       "spans_per_week: 2.79",
@@ -832,7 +832,7 @@ test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just t
     ],
     // spans per week alone, its list for the current span and the one before it
     [
-      "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+      "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
       "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
       "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
       "# step each was timed by",

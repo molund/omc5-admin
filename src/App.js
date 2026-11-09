@@ -1,4 +1,4 @@
-// Clipper Status Desk: a little CMS for the Clayton Clipper site's status.yaml. It opens on Home (screens/HomeScreen.js),
+// Clipper Leash Log: a little CMS for the Clayton Clipper site's status.yaml. It opens on Home (screens/HomeScreen.js),
 // and every form opens as its own page over it, on a stack: Back, or a swipe from the left edge, goes back one.
 import { useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
@@ -118,7 +118,7 @@ function Desk() {
               {review
                 ? "Review"
                 : home
-                  ? "Status desk"
+                  ? "Leash Log"
                   : top.page === "entry"
                     ? `Edit ${EDITS[top.target.type]}`
                     : page.title}

@@ -1,6 +1,6 @@
 # Velocity
 
-How the Status Desk works out the Clayton Clipper's velocity (`velocity.js`), and every assumption it makes. Most of these
+How the Leash Log works out the Clayton Clipper's velocity (`velocity.js`), and every assumption it makes. Most of these
 are constants at the top of `velocity.js`; if the job changes, that's where to change them.
 
 ## What it calculates

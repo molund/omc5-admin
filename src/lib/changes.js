@@ -118,7 +118,7 @@ function setHeader(doc, values) {
 
 // desk.yaml's velocity block: spans per week and its earlier values (a copy of the figure goes into status.yaml)
 const VELOCITY_COMMENT = [
-  "# the Clayton Clipper's velocity, written by the Status Desk on every push: spans per week, from how far the gantry got in",
+  "# the Clayton Clipper's velocity, written by the Leash Log on every push: spans per week, from how far the gantry got in",
   "# the week up to the latest step reported (the weekly shutdown allowed for), with its values at the earlier steps of the",
   "# past 96 hours (-previous), newest first, with the span and stage of the step each was timed by. status.yaml has a",
   "# copy of spans-per-week; the site's build draws the rest as the progress card's chart",
@@ -126,16 +126,16 @@ const VELOCITY_COMMENT = [
 // status.yaml's copy
 const COPY_COMMENT = [
   "# the Clayton Clipper's velocity in spans per week, a copy of desk.yaml's (where its earlier values are), written by the",
-  "# Status Desk on every push",
+  "# Leash Log on every push",
 ];
 // the first two lines the comment had while it also gave days per span
 const OLD_VELOCITY_START = [
-  "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span and",
+  "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
 ];
 const OLD_VELOCITY_COMMENTS = [
   [
-    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: working days per span over the",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span over the",
     "# last three spans, and spans per week once the weekly shutdown is allowed for",
   ],
   [...OLD_VELOCITY_START, "# for), each with its value before it last changed (_previous)"],
@@ -150,13 +150,13 @@ const OLD_VELOCITY_COMMENTS = [
     "# stage of the step each was timed by",
   ],
   [
-    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
     "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
   ],
   // while the earlier values were in status.yaml, for the current span and the one before it
   [
-    "# the Clayton Clipper's velocity, written by the Status Desk on every push from desk.yaml: spans per week, from how far",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
     "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
     "# step each was timed by",

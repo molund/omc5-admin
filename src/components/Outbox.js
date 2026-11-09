@@ -133,7 +133,7 @@ function Starting() {
   );
 }
 
-/** On the phone, after a push: follows the site's "Land Status Desk changes" run until main has the changes. */
+/** On the phone, after a push: follows the site's "Land Leash Log changes" run until main has the changes. */
 function Landing({ p }) {
   const { tw } = useTw();
   const desk = useDesk();

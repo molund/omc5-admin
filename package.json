@@ -2,7 +2,7 @@
   "name": "status-desk",
   "private": true,
   "version": "0.1.0",
-  "description": "Clipper Status Desk: a React Native editor for the Clayton Clipper site's status.yaml, run in the Claude app through react-native-web.",
+  "description": "Clayton Clipper Leash Log: a React Native editor for the Clayton Clipper site's status.yaml, run in the Claude app through react-native-web.",
   "type": "module",
   "scripts": {
     "start": "expo start",

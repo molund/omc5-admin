@@ -1,4 +1,4 @@
-# Clipper Status Desk (omc5-admin)
+# Clayton Clipper Leash Log (omc5-admin)
 
 The admin app for the Clayton Clipper site (molund/omc5): a React Native editor for its `status.yaml`. See `README.md`.
 

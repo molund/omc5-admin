@@ -1,4 +1,4 @@
-# Clipper Status Desk (omc5-admin)
+# Clayton Clipper Leash Log (omc5-admin)
 
 An iPhone app for posting Clayton Clipper updates from the construction site. On walks with Piper, Mike records where
 the gantry is, how far the span has got, notes and photos, and pushes them straight to the site's `status.yaml` from the
@@ -113,10 +113,10 @@ Push asks for Face ID, then, through GitHub's API:
 
 1. reads main's `status.yaml` and `desk.yaml` at main's latest commit;
 2. applies each waiting change to them, in order, and makes each its own commit with its photos and `desk.yaml`, by
-   "Mike Olund (Status Desk)";
+   "Mike Olund (iOS App)";
 3. points the `desk` branch at the last commit.
 
-The site's "Land Status Desk changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the
+The site's "Land Leash Log changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the
 commits only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and
 builds the site, moves main up to them, and starts the deploy with a `desk-pushed` event. The desk follows both runs:
 "Landing on main", then "deploying" and "Live on the site". When the landing succeeds it drops the changes and reads
@@ -141,7 +141,7 @@ and write** and **Actions: read-only**, nothing else (not Workflows), with an ex
 ### Pushing from the Claude app
 
 The desk can't reach GitHub from the Claude app. So Push saves `outbox.json` (the changes, in order) and the new photos
-under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer the Status Desk" scheduled task
+under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer the Leash Log" scheduled task
 (`pushTrigger` in `desk.config.json`) through the Claude Code Remote connector (the artifact's `mcp` capability,
 `fire_trigger` only; the Claude app asks the first time). That wakes the Claude Code session the task is bound to (the
 "Admin tool push state" chat, which has both repositories), and the session follows

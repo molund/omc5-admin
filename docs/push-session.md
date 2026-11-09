@@ -1,7 +1,7 @@
 # The push session
 
-How a Claude Code session answers a request the Status Desk saved into its artifact in the Claude app (a **Push** of its
-waiting changes, or a **Refresh from main**). Each time it saves a request, the desk starts the "Answer the Status Desk"
+How a Claude Code session answers a request the Leash Log saved into its artifact in the Claude app (a **Push** of its
+waiting changes, or a **Refresh from main**). Each time it saves a request, the desk starts the "Answer the Leash Log"
 scheduled task (`pushTrigger` in `desk.config.json`), whose prompt points here. The task wakes one Claude Code session
 that already has both repositories cloned (the "Admin tool push state" chat): a session the task started afresh would
 have neither the repositories nor the tools to attach them. A session someone starts by hand

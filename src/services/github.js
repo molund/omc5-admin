@@ -1,7 +1,7 @@
 // Pushing from the phone, straight to GitHub with Mike's fine-grained token (Contents: read and write on molund/omc5 only).
 // Each waiting change is applied, in order, to status.yaml as it is on main now (the same code as the desk:
-// lib/changes.js), and made into its own commit with its photos, by "Mike Olund (Status Desk)". The desk branch is then
-// pointed at the last one. The site's "Land Status Desk changes" workflow (.github/workflows/desk.yml in molund/omc5)
+// lib/changes.js), and made into its own commit with its photos, by "Mike Olund (Leash Log)". The desk branch is then
+// pointed at the last one. The site's "Land Leash Log changes" workflow (.github/workflows/desk.yml in molund/omc5)
 // checks the commits only change status.yaml and add photos, builds the site, moves main up to them and starts the deploy.
 // Plain JS: the token is passed in (platform/secrets reads it, after Face ID), and only ever sent to api.github.com.
 import deskConfig from "../../desk.config.json";
@@ -13,7 +13,7 @@ const [, OWNER, REPO] = deskConfig.repoUrl.match(/github\.com\/([^/]+)\/([^/]+?)
 export const REPO_NAME = `${OWNER}/${REPO}`;
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 export const BRANCH = "desk";
-export const AUTHOR = { name: "Mike Olund (Status Desk)", email: "mike@oxd.com" };
+export const AUTHOR = { name: "Mike Olund (Leash Log)", email: "mike@oxd.com" };
 const PHOTOS = "public/images/sorry-im-a-shitty-photographer";
 const WORKFLOW = ".github/workflows/desk.yml";
 const DEPLOY = ".github/workflows/deploy.yml";

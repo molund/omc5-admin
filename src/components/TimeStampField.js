@@ -1,12 +1,12 @@
 // A time stamp in BC time, moved a day or a quarter hour at a time, with Now. A date-only stamp (a blog post) moves by days.
 // With `auto` (a new entry) it follows the clock, to the quarter hour, and the fields stay hidden until "Set manually" is
-// switched on; that lasts an hour (`manualUntil`, kept by the caller in its draft), or until the screen is left or the entry
+// ticked; that lasts an hour (`manualUntil`, kept by the caller in its draft), or until the screen is left or the entry
 // is posted, then it's automatic again.
 import { useEffect } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { isDateOnly, longDate, clock, nowKey, shiftKey, todayKey } from "../lib/time.js";
-import { Body, Button, Label, Panel, Row, Stepper, Toggle } from "./ui.js";
+import { Body, Button, Checkbox, Label, Panel, Row, Stepper } from "./ui.js";
 
 const MANUAL_MS = 60 * 60 * 1000;
 const CHECK_MS = 10 * 1000;
@@ -36,7 +36,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
     return (
       <Panel>
         <Label>{label}</Label>
-        <Toggle label="Set manually" value={false} onChange={() => onManual?.(Date.now() + MANUAL_MS)} />
+        <Checkbox label="Set manually" value={false} onChange={() => onManual?.(Date.now() + MANUAL_MS)} />
         <Row>
           <Body style={tw`font-semibold`}>{longDate(value)}</Body>
           <Body style={tw`font-semibold`}>{clock(value)}</Body>
@@ -56,7 +56,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
         {label}
       </Label>
       {manual && (
-        <Toggle
+        <Checkbox
           label="Set manually"
           value
           onChange={() => {

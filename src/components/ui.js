@@ -174,6 +174,30 @@ export function Toggle({ value, onChange, label }) {
   );
 }
 
+/** A box you tick, with its label beside it: only the box and the label take the press, not the whole row. */
+export function Checkbox({ value, onChange, label }) {
+  const { tw, colors } = useTw();
+  return (
+    <Pressable
+      accessibilityRole="checkbox"
+      accessibilityLabel={label}
+      accessibilityState={{ checked: !!value }}
+      onPress={() => onChange(!value)}
+      style={({ pressed }) => [tw`flex-row items-center gap-2 self-start py-1`, pressed && tw`opacity-60`]}
+    >
+      <View
+        style={[
+          tw`h-6 w-6 items-center justify-center rounded-md border-2`,
+          value ? tw`border-accent bg-accent` : tw`border-mute bg-panel`,
+        ]}
+      >
+        {value && <Icon name="check" size={16} color={colors["accent-ink"]} />}
+      </View>
+      <Body>{label}</Body>
+    </Pressable>
+  );
+}
+
 // Which box is zoomed: one at most. A tap anywhere outside it turns it off, but a swipe doesn't, because a box that changes
 // size stops the page mid-scroll.
 const ZoomContext = createContext({

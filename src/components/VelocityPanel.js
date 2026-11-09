@@ -54,18 +54,27 @@ export function VelocityPanel({ full, onOpen }) {
   // the steps under their span, in the same order, each marked if it's the first on its calendar day, with the shutdown
   // hours left out between it and the step before it (the clock time less the working time), for its day bar
   const bySpan = [];
+  // each step's shutdown hours and overtime, over all the steps: overtime is a step logged in a shutdown's evening, so it's
+  // in the gap before that step, while the rest of the shutdown is in the gap after it; it's carried to the next gap with a
+  // shutdown in it
+  const gaps = new Map();
+  let carried = 0;
+  all.forEach((t, i) => {
+    const prev = all[i - 1];
+    if (prev?.stepHours == null) return;
+    const [a, b] = [parseKey(prev.key), parseKey(t.key)];
+    const shutdown = (b - a) / 3600000 - prev.stepHours;
+    // the scheduled shutdown in the gap, before a step logged in its evening cut it short
+    carried += (b - a) / 3600000 - workingHours(a, b) - shutdown;
+    gaps.set(t, { shutdown, overtime: shutdown > 0.01 ? carried : 0 });
+    if (shutdown > 0.01) carried = 0;
+  });
   let lastDay = null;
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
     const day = dayOf(t.key);
-    const prev = all[all.indexOf(t) - 1];
-    const shutdown = prev?.stepHours != null ? (parseKey(t.key) - parseKey(prev.key)) / 3600000 - prev.stepHours : 0;
-    // the scheduled shutdown in the gap, before a step logged in its evening (overtime) cut it short
-    const scheduled =
-      prev?.stepHours != null
-        ? (parseKey(t.key) - parseKey(prev.key)) / 3600000 - workingHours(parseKey(prev.key), parseKey(t.key))
-        : 0;
-    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime: scheduled - shutdown });
+    const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
+    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime });
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };

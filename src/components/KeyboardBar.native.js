@@ -2,7 +2,7 @@
 // page's scrolling view, so the bar is handed up to a slot the Frame keeps outside it (KeyboardBarHost). KeyboardBar.web.js
 // is the web's.
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { Keyboard, LayoutAnimation, View } from "react-native";
+import { Keyboard, View } from "react-native";
 
 const Slot = createContext(null);
 
@@ -12,7 +12,7 @@ export function KeyboardBarHost({ children }) {
   const [keyboard, setKeyboard] = useState(0);
   useEffect(() => {
     const move = (e) => {
-      LayoutAnimation.configureNext(LayoutAnimation.create(e?.duration || 250, "keyboard", "opacity"));
+      // no LayoutAnimation here: when the Add Link sheet closes, React's own code for it throws and the app closes
       setKeyboard(e?.endCoordinates?.height ?? 0);
     };
     const subs = [

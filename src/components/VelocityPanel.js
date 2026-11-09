@@ -93,7 +93,7 @@ export function VelocityPanel({ full, onOpen }) {
       )}
       <View style={tw`my-0.5 flex-row items-baseline gap-2 rounded-sm bg-line px-2`}>
         <Body small style={tw`flex-1`}>
-          {weekdayShort(t.key)}
+          {`${weekdayShort(t.key)} ${Number(dayOf(t.key).slice(8))}`}
         </Body>
       </View>
     </>

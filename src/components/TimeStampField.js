@@ -1,4 +1,4 @@
-// A time stamp in BC time, moved a day or a quarter hour at a time, with Now. A date-only stamp (a blog post) moves by days.
+// A time stamp, moved a day or a quarter hour at a time, with Now. A date-only stamp (a blog post) moves by days.
 // With `auto` (a new entry) it follows the clock, to the quarter hour, and the fields stay hidden until "Set manually" is
 // ticked; that lasts an hour (`manualUntil`, kept by the caller in its draft), or until the screen is left or the entry
 // is posted, then it's automatic again.
@@ -41,7 +41,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
           <Body style={tw`font-semibold`}>{clock(value)}</Body>
         </Row>
         <Body small mute>
-          Follows your clock, to the quarter hour. BC time.
+          Follows your clock, to the quarter hour.
         </Body>
         <Checkbox label="Set manually" value={false} onChange={() => onManual?.(Date.now() + MANUAL_MS)} />
       </Panel>
@@ -84,7 +84,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
         </Row>
       )}
       <Body small mute>
-        {note ?? (dateOnly ? "Trackside shows a blog post's date only." : "BC time, to the quarter hour.")}
+        {note ?? (dateOnly ? "Trackside shows a blog post's date only." : "To the quarter hour.")}
       </Body>
       {manual && (
         <Checkbox

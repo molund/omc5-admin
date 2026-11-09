@@ -27,8 +27,7 @@ const noteName = (n) =>
       ? `${n.fields.summary.slice(0, 88)}…`
       : n.fields.summary;
 
-export const RULE =
-  "An addendum can only go under an update from today or yesterday (BC time), and not under a blog post.";
+export const RULE = "An addendum can only go under an update from today or yesterday, and not under a blog post.";
 
 /** In place of the page when no update qualifies. */
 export const NoUpdateWarning = () => <Warning>{RULE} There isn't one right now, so there's nothing to add to.</Warning>;

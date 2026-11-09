@@ -24,7 +24,7 @@ const SHORT_LABELS = {
   "post-tensioning started": "Post-tensioning",
   "cables down": "Hanger removal",
   "hangers down": "Pause before movement",
-  "supports started": "Support movement",
+  "supports started": "Gantry movement",
 };
 // the stage a cycle is timed by, in full ("Hanging started to hanging started")
 const stageName = (stage) => STAGE_LABELS[stage] ?? stage;

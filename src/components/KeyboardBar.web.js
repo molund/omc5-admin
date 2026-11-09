@@ -1,5 +1,5 @@
 // The rich text toolbar's place on the web: fixed to the bottom of what can be seen, so on a phone it sits on the
-// keyboard. Inside a frame, as the desk is in the Claude app, the page can't see the keyboard, and a bar at the bottom
+// keyboard. Inside a frame, as the Leash Log is in the Claude app, the page can't see the keyboard, and a bar at the bottom
 // ends up behind it, so there it floats just above the box being typed in. Pressing it doesn't take the focus from the
 // box. KeyboardBar.native.js is the phone's.
 import { useEffect, useLayoutEffect, useRef, useState } from "react";

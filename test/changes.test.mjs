@@ -1,5 +1,5 @@
 // Applies each kind of change to a copy of the real status.yaml and reads the result back with the site's own reader
-// (src/lib/status.js, copied into fixtures/), so a change the desk writes is one the site understands.
+// (src/lib/status.js, copied into fixtures/), so a change the Leash Log writes is one the site understands.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
@@ -41,7 +41,7 @@ async function site(text) {
   return (await import(`./.out/site-status.mjs?${n++}`)).status;
 }
 
-/** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
+/** A note's or follow-up's fields as the Leash Log's blocks, as the editors load them. */
 function blocksOf(fields) {
   const out = [{ type: "summary", text: fields.summary }];
   if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
@@ -61,7 +61,7 @@ const blocks = [
   { type: "photo", file: "2026-11-04-span-38-close.jpg", caption: 'A "close" look' },
 ];
 
-test("the desk reads every note the site does", async () => {
+test("the Leash Log reads every note the site does", async () => {
   const s = await site(BASE);
   const p = parseStatus(BASE);
   assert.equal(p.notes.length, s.history.length);

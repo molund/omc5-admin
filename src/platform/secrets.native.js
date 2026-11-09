@@ -1,6 +1,6 @@
 // The GitHub token on the phone: in the iPhone's Keychain (expo-secure-store), on this device only (not in iCloud Keychain
 // or backups, and not readable while the phone is locked). It's saved so that reading it needs Face ID, so every push asks.
-// The token never goes anywhere else: not in the desk's storage, the code or an error message. What the desk shows about it
+// The token never goes anywhere else: not in the Leash Log's storage, the code or an error message. What the Leash Log shows about it
 // (its last four characters and when it expires) is kept apart, in storage.native.js, and needs no Face ID.
 import * as SecureStore from "expo-secure-store";
 

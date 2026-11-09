@@ -1,8 +1,8 @@
-// Sending the desk's waiting changes to Claude. The desk can't reach GitHub itself, but it can save files into its own
-// artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/. The desk then starts the
+// Sending the Leash Log's waiting changes to Claude. The Leash Log can't reach GitHub itself, but it can save files into its own
+// artifact: Push saves outbox.json (the changes, in order) and the new photos under outbox/. The Leash Log then starts the
 // "Answer the Leash Log" scheduled task (pushTrigger in desk.config.json) through the Claude Code Remote connector, which
 // wakes the Claude Code session it's bound to; that session follows docs/push-session.md. It syncs with main, applies each change with
-// tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the desk with copy.json and
+// tools/apply-changes.mjs, commits and pushes, then publishes main's status.yaml back into the Leash Log with copy.json and
 // pushed.json, and clears the outbox.
 import { Platform } from "react-native";
 import { capability, config } from "../platform/claude";
@@ -40,7 +40,7 @@ function request(kind, changes = [], photos = []) {
   };
 }
 
-/** The request as text to paste into the session, when the desk can't save it. */
+/** The request as text to paste into the session, when the Leash Log can't save it. */
 function manual(req, hasPhotos) {
   return `Clipper Leash Log ${req.request} request${
     hasPhotos ? " (its photos couldn't be saved: attach them to this message, named as listed)" : ""
@@ -135,7 +135,7 @@ export const requestRefresh = () => send(request("refresh"), {}, false);
 
 const CONNECTOR = "Claude Code Remote";
 
-/** What to paste into a new Claude Code chat when the desk can't start one itself. */
+/** What to paste into a new Claude Code chat when the Leash Log can't start one itself. */
 export const byHand = (req) =>
   `Answer the Clipper Leash Log's ${req.request} request ${req.id} in ${config().artifactUrl}, following docs/push-session.md in molund/omc5-admin.`;
 
@@ -177,7 +177,7 @@ function explainStart(e, req) {
   }
 }
 
-/** Starts the Claude Code session that answers a saved request: the desk's scheduled task. */
+/** Starts the Claude Code session that answers a saved request: the Leash Log's scheduled task. */
 export async function startSession(req) {
   const trigger = config().pushTrigger;
   const mcp = trigger ? await capability("mcp") : null;

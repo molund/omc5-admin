@@ -122,7 +122,7 @@ test("each change is its own commit on top of main, by the Leash Log, and desk p
     assert.equal(c.author.name, AUTHOR.name);
     assert.equal(c.author.email, AUTHOR.email);
   }
-  // the files are the desk's own result, change by change
+  // the files are the Leash Log's own result, change by change
   const once = applyChange(BASE, move).text;
   assert.equal(gh.files.get(first.tree)["status.yaml"], once);
   assert.equal(gh.files.get(last.tree)["status.yaml"], applyChange(once, update).text);
@@ -224,7 +224,7 @@ test("a push is followed through the landing run, then the deploy it starts, in 
   assert.equal((await pushStatus("abc")).stage, "landing");
   fakeGitHub({ runs: [land("completed", "failure")] });
   assert.deepEqual(await pushStatus("abc"), { stage: "failed", url: "https://github.com/molund/omc5/actions/runs/1" });
-  // landed: on main, the deploy not started yet (a deploy for a push to main isn't the desk's)
+  // landed: on main, the deploy not started yet (a deploy for a push to main isn't the Leash Log's)
   fakeGitHub({ runs: [deploy("completed", "success", "push"), land("completed", "success")] });
   assert.deepEqual(await pushStatus("abc"), {
     stage: "deploying",

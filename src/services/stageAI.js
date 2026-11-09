@@ -1,6 +1,6 @@
 // Asking Claude which steps of the gantry's cycle a piece of text reports, for wording lib/stages.js's rules don't know.
 // Only in the Claude app (its `sample` capability, on Mike's own Claude account, asked on a button press); elsewhere it's
-// null and the desk offers the rules and the picker alone.
+// null and the Leash Log offers the rules and the picker alone.
 import { capability } from "../platform/claude";
 import { STAGES, STAGE_LABELS } from "../lib/stages.js";
 

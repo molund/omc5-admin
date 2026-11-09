@@ -1,5 +1,5 @@
-// The desk's waiting changes, drafts and photos, kept in this browser until they're pushed. Storage can be missing or full
-// (a private window, cleared site data), so every read and write is guarded and the desk works without it.
+// The Leash Log's waiting changes, drafts and photos, kept in this browser until they're pushed. Storage can be missing or full
+// (a private window, cleared site data), so every read and write is guarded and the Leash Log works without it.
 const PREFIX = "status-desk.";
 
 export function load(key, fallback) {

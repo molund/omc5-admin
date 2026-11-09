@@ -1,8 +1,8 @@
-// The desk's state. Its database is its own copy of status.yaml (published with the artifact as status.yaml) plus the list of
+// The Leash Log's state. Its database is its own copy of status.yaml (published with the artifact as status.yaml) plus the list of
 // waiting changes on top of it, kept on this device. What every screen shows is that copy with the changes applied.
 // Pushing hands the list to a Claude Code session, which syncs with main first, then commits each change and refreshes the
-// copy, listing what it committed in pushed.json; the desk then drops those from its list. A request saved in the outbox and
-// not yet handled is `pending`; the desk starts the session for it once (`started`, services/outbox.js).
+// copy, listing what it committed in pushed.json; the Leash Log then drops those from its list. A request saved in the outbox and
+// not yet handled is `pending`; the Leash Log starts the session for it once (`started`, services/outbox.js).
 import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AppState } from "react-native";
 import { commitMessage, photosOf } from "../lib/changes.js";
@@ -53,16 +53,16 @@ function viewOf(files) {
 }
 
 export function DeskProvider({ children }) {
-  // status.yaml's text, gantry-cycles.yaml's (the desk's own records: notes to self and the gantry's steps), and where they came from
+  // status.yaml's text, gantry-cycles.yaml's (the Leash Log's own records: notes to self and the gantry's steps), and where they came from
   const [copy, setCopy] = useState({ text: null, desk: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
   // counts the saves: a form's draft from before the latest one is dropped, so saving anything clears every form
   const [draftsCleared, setDraftsCleared] = usePersisted("drafts-cleared", 0);
   const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
-  // on the phone, what the desk shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
+  // on the phone, what the Leash Log shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
   const [tokenInfo, setTokenInfo] = usePersisted("token", null);
-  // the request in the desk's outbox that no session has answered yet, and the session started for it:
+  // the request in the Leash Log's outbox that no session has answered yet, and the session started for it:
   // { id, state: "starting"|"started"|"failed"|"unsure", at?, error? }
   const [pending, setPending] = useState(null);
   const [started, setStarted] = usePersisted("started", null);
@@ -98,7 +98,7 @@ export function DeskProvider({ children }) {
   useEffect(() => {
     reload();
   }, [reload]);
-  // and every minute after, while the desk is on screen, and as soon as it's back on screen (on the phone, a look at main
+  // and every minute after, while the Leash Log is on screen, and as soon as it's back on screen (on the phone, a look at main
   // that finds it unchanged costs nothing against GitHub's limit: platform/claude.native.js)
   useEffect(() => {
     const timer = setInterval(() => AppState.currentState === "active" && reload(), 60 * 1000);

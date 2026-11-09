@@ -86,7 +86,7 @@ export async function preparePhoto(file) {
   }
 }
 
-/** A data: URL as a Blob, for uploading. Decoded here, not fetched: the Claude app doesn't let the desk fetch a data: URL. */
+/** A data: URL as a Blob, for uploading. Decoded here, not fetched: the Claude app doesn't let the Leash Log fetch a data: URL. */
 export async function toBlob(dataUrl) {
   const [head, data] = dataUrl.split(",");
   const bytes = Uint8Array.from(atob(data), (c) => c.charCodeAt(0));

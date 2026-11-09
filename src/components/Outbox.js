@@ -1,7 +1,7 @@
-// The desk's copy and its waiting changes: where the copy came from, what's waiting to go to main, and the push.
-// Push and Refresh save a request into the desk's outbox, and the desk starts a Claude Code session to answer it
-// (see services/outbox.js). The desk reloads when that session publishes the new copy. On the phone, Push asks for Face ID
-// and goes straight to GitHub (services/phonePush.js); the desk then follows the site's check until main has the changes.
+// The Leash Log's copy and its waiting changes: where the copy came from, what's waiting to go to main, and the push.
+// Push and Refresh save a request into the Leash Log's outbox, and the Leash Log starts a Claude Code session to answer it
+// (see services/outbox.js). The Leash Log reloads when that session publishes the new copy. On the phone, Push asks for Face ID
+// and goes straight to GitHub (services/phonePush.js); the Leash Log then follows the site's check until main has the changes.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, AppState, Platform, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -79,7 +79,7 @@ function Failure({ error, onCopied, onSettings }) {
   );
 }
 
-/** In the Claude app, after a request is saved: the Claude Code session the desk starts to answer it. */
+/** In the Claude app, after a request is saved: the Claude Code session the Leash Log starts to answer it. */
 function Starting() {
   const { tw } = useTw();
   const desk = useDesk();
@@ -167,7 +167,7 @@ function Landing({ p }) {
     },
     [p.head, p.landed],
   );
-  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one); none while the desk is
+  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one); none while the Leash Log is
   // in the background, and one as soon as it's back, however long it was away
   useEffect(() => {
     let on = true,
@@ -290,7 +290,7 @@ export function Outbox({ onSettings, onEdit }) {
               kind="link"
               small
               title="Refresh from main"
-              // on the phone the desk reads main itself; in the Claude app it asks Claude Code to
+              // on the phone the Leash Log reads main itself; in the Claude app it asks Claude Code to
               onPress={() => (Platform.OS === "web" ? setConfirm(confirm === "refresh" ? null : "refresh") : refresh())}
             />
           ))

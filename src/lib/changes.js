@@ -1,10 +1,10 @@
-// A change is one edit to status.yaml (and gantry-cycles.yaml, through lib/deskChanges.js), and one commit. The desk keeps a list of
+// A change is one edit to status.yaml (and gantry-cycles.yaml, through lib/deskChanges.js), and one commit. The Leash Log keeps a list of
 // them on top of its copy of the files, and the push applies the same list, with this same code (tools/apply-changes.mjs
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
 //   { id, kind: "move",          time, span, complete, noteToSelf?, stage }
 //   { id, kind: "update",        time, span, complete, title, blocks, retitle? }
-//       retitle: [{ key, title, slug }] is only on older waiting changes: the desk no longer asks to retitle another update
+//       retitle: [{ key, title, slug }] is only on older waiting changes: the Leash Log no longer asks to retitle another update
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
 //   { id, kind: "followup-edit", noteKey, fuKey, time, blocks }
 //   { id, kind: "blog",          date, title, blocks }
@@ -180,7 +180,7 @@ function writeVelocity(text, block, place) {
   const { header } = doc.parsed;
   const found = VELOCITY_NAMES.map((n) => header[n]).filter(Boolean);
   if (found.length) {
-    // the lines it has now, its comment just above them, written as one piece (as the desk writes it)
+    // the lines it has now, its comment just above them, written as one piece (as the Leash Log writes it)
     let from = Math.min(...found.map((h) => h.line));
     const to = Math.max(...found.map((h) => h.end));
     const comment = [VELOCITY_COMMENT, COPY_COMMENT, ...OLD_VELOCITY_COMMENTS].find((c) =>

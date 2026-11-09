@@ -1,4 +1,4 @@
-// The phone's version of the desk's files (src/platform/claude.native.js): status.yaml read from main on GitHub at the
+// The phone's version of the Leash Log's files (src/platform/claude.native.js): status.yaml read from main on GitHub at the
 // commit main is on, kept for when the phone is offline. Bundled for Node with the phone's platform files and a stand-in
 // for its storage, and run against a fake GitHub.
 import { test } from "node:test";
@@ -52,7 +52,7 @@ function fakeGitHub({ sha = "a".repeat(40), text = "span: 37\n", down = false, n
   return calls;
 }
 
-test("the phone has no Claude capabilities, and the desk's own config", async () => {
+test("the phone has no Claude capabilities, and the Leash Log's own config", async () => {
   assert.equal(await capability("artifact"), null);
   assert.match(config().repoUrl, /github\.com\/molund\/omc5$/);
 });

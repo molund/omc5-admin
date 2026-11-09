@@ -1,5 +1,5 @@
-// The push session's half of the desk: applies the desk's changes to status.yaml and gantry-cycles.yaml as they are on main, with
-// the same code the desk uses (src/lib/changes.js and src/lib/deskChanges.js), so the result is what the desk showed, on
+// The push session's half of the Leash Log: applies the Leash Log's changes to status.yaml and gantry-cycles.yaml as they are on main, with
+// the same code the Leash Log uses (src/lib/changes.js and src/lib/deskChanges.js), so the result is what the Leash Log showed, on
 // top of anything committed since.
 //
 //   node apply-changes.mjs changes.json status.yaml [gantry-cycles.yaml] [--only <id>]

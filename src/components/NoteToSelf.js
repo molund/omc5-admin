@@ -1,4 +1,4 @@
-// Notes, once the note to self: one line of text per entry, kept in gantry-cycles.yaml (the desk's own file), which the site never reads.
+// Notes, once the note to self: one line of text per entry, kept in gantry-cycles.yaml (the Leash Log's own file), which the site never reads.
 // Addendums and blocks don't have one: an addendum edits its parent's. It sits inside the Gantry step box (StagePicker.js)
 // wherever there is one; a blog post has no step, so its notes are a box of their own. It has the zoom, but no AI prompt.
 import { Text, View } from "react-native";

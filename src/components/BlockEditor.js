@@ -213,7 +213,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
     });
 
   // a new picture in the same place, with the same caption. One not pushed yet keeps its name; one already on the site gets a
-  // new one, because the desk can't change a file that's already there (the old file stays in the repo, as a removed one does)
+  // new one, because the Leash Log can't change a file that's already there (the old file stays in the repo, as a removed one does)
   const replacePhoto = (i) =>
     withNewPhoto((photoId) => {
       const old = blocks[i];

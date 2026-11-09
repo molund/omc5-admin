@@ -1,4 +1,4 @@
-// The review before a change is saved to the desk: the exact lines it adds or changes, the card it leaves, and its commit
+// The review before a change is queued for push: the exact lines it adds or changes, the card it leaves, and its commit
 // message.
 import { useState } from "react";
 import { ScrollView, Text, View } from "react-native";

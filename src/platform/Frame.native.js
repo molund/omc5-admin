@@ -1,4 +1,4 @@
-// The frame around the desk on the phone: scrolling, clear of the notch and home bar, and lifted above the keyboard, with
+// The frame around the Leash Log on the phone: scrolling, clear of the notch and home bar, and lifted above the keyboard, with
 // the slot for the rich text toolbar on top of the keyboard. A swipe from the left edge goes back a page (useBack in
 // components/backContext.js): the page follows the finger, and goes when it's let go a third of the way across, or flicked.
 // Each new page, or a step back, starts at the top.

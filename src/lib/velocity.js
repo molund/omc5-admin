@@ -27,7 +27,7 @@ const bc = (d) => new Date(d.getTime() - 7 * HOUR);
 // the shifts, in hours from a BC midnight: Saturday's night shift and Sunday's day shift are the shutdown
 const DAY_SHIFT = [7, 17];
 const NIGHT_SHIFT = [20, 30];
-// the stages' shares come from the steps since here: the ones before it were filled in from old posts, before the desk tagged steps
+// the stages' shares come from the steps since here: the ones before it were filled in from old posts, before the Leash Log tagged steps
 export const SHARES_SINCE = "2026-11-03";
 // the shift hours from a stage to the next, where the job says how long it should be: most of these are nearly one moment
 const KNOWN_HOURS = { "arrived at span": 0.5, hung: 1, glued: 1, "cables down": 2.5, "hangers down": 1 };

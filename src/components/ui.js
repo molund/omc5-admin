@@ -1,4 +1,4 @@
-// The desk's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
+// The Leash Log's building blocks, in the site's look: panels, the grey and green buttons, the segmented control, fields.
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -486,7 +486,7 @@ export function Row({ children, style }) {
   return <View style={[tw`flex-row flex-wrap items-center justify-between gap-2`, style]}>{children}</View>;
 }
 
-/** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser), or with `onPress`, a link within the desk. */
+/** A real link (an <a> on the web, which opens in a new tab; on the phone, it opens in the browser), or with `onPress`, a link within the Leash Log. */
 export function Link({ href, title, onPress, label }) {
   const { tw } = useTw();
   return (

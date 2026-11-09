@@ -1,7 +1,7 @@
-// What claude.web.js gives the desk in the Claude app, for the phone. There's no Claude app around the desk here: no
-// capabilities (so no saving into an outbox), and the desk's copy of status.yaml is read straight from main on GitHub, and
+// What claude.web.js gives the Leash Log in the Claude app, for the phone. There's no Claude app around the Leash Log here: no
+// capabilities (so no saving into an outbox), and the Leash Log's copy of status.yaml is read straight from main on GitHub, and
 // looked at again every minute (state/desk.js). The repo is public, so no token is needed. The last copy read is kept, so
-// the desk still opens when the phone is offline.
+// the Leash Log still opens when the phone is offline.
 import deskConfig from "../../desk.config.json";
 import { load, save } from "./storage";
 
@@ -22,7 +22,7 @@ async function get(url, accept) {
 // the copy last read, so status.yaml and copy.json (read one after the other) describe the same commit
 let latest = null;
 
-// The desk looks at main every minute, so the look avoids GitHub's API, which allows only 60 requests an hour without a
+// The Leash Log looks at main every minute, so the look avoids GitHub's API, which allows only 60 requests an hour without a
 // token (counting even an "unchanged" answer): main's commit comes from git's own list of the repo's branches (a few
 // hundred bytes), and a file at a commit from raw.githubusercontent.com. Either falls back to the API if it fails.
 
@@ -76,7 +76,7 @@ async function readMain() {
   }
 }
 
-/** The desk's files: status.yaml, gantry-cycles.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
+/** The Leash Log's files: status.yaml, gantry-cycles.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
 export async function ownFile(path) {
   if (path === "status.yaml") {
     latest = await readMain();

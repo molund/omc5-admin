@@ -1,6 +1,6 @@
-// The desk's waiting changes, drafts and photos, kept on the phone (a SQLite key-value store) until they're pushed. Its
+// The Leash Log's waiting changes, drafts and photos, kept on the phone (a SQLite key-value store) until they're pushed. Its
 // calls are synchronous, like localStorage's, so this has the same shape as storage.web.js. Reads and writes are guarded:
-// a full or unavailable store shouldn't stop the desk working.
+// a full or unavailable store shouldn't stop the Leash Log working.
 import Storage from "expo-sqlite/kv-store";
 
 const PREFIX = "status-desk.";

@@ -1,4 +1,4 @@
-// The desk's icons: thin-line drawings on a 24-unit grid, as lists of ["circle" or "path", its attributes]. Add one by
+// The Leash Log's icons: thin-line drawings on a 24-unit grid, as lists of ["circle" or "path", its attributes]. Add one by
 // giving its shapes a name here. Icon.web.js draws them as an <svg> and Icon.native.js with react-native-svg.
 export const ICONS = {
   // "where it is now", as on Google Maps' my-location button

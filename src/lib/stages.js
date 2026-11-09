@@ -1,6 +1,6 @@
 // The steps of the Clayton Clipper's cycle, as gantry-cycles.yaml tags them (see docs/gantry-cycle.md in molund/omc5), and the
 // rules that find them in what Mike writes. A tag means "this had happened by this time stamp": the earliest time stamp with
-// a tag is the best time the desk has for that step.
+// a tag is the best time the Leash Log has for that step.
 
 /** In cycle order. Each stage of the cycle has a start and an end; arrival starts the cycle. */
 export const STAGES = [
@@ -15,7 +15,7 @@ export const STAGES = [
   "supports started",
 ];
 
-/** How each tag reads in the desk. */
+/** How each tag reads in the Leash Log. */
 export const STAGE_LABELS = {
   "arrived at span": "Arrived at span",
   "hanging started": "Hanging started",
@@ -75,7 +75,7 @@ const NOT = /\b(not|isn't|aren't|hasn't|haven't|still (?:up|on|in))\b/;
 /**
  * The stages a piece of text reports, by rule. Plain words, in the ways Mike writes them ("moved to span 37", "all the
  * segments are hung", "fully glued", "post-tensioning is done", "the cables are down", "started moving its supports").
- * Wording the rules don't know returns nothing: the desk then asks Claude, where it can, or leaves the stages to be picked.
+ * Wording the rules don't know returns nothing: the Leash Log then asks Claude, where it can, or leaves the stages to be picked.
  * @returns {string[]} In cycle order.
  */
 export function stagesIn(text) {

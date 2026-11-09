@@ -32,7 +32,7 @@ const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
 const DESK = readFileSync(here("./fixtures/gantry-cycles.yaml"), "utf8");
 const at = (s) => new Date(s);
-/** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
+/** A note's or follow-up's fields as the Leash Log's blocks, as the editors load them. */
 function blocksOf(fields) {
   const out = [{ type: "summary", text: fields.summary }];
   if (fields.photo?.file) out.push({ type: "photo", file: fields.photo.file, caption: fields.photo.caption });
@@ -75,7 +75,7 @@ test("gantry-cycles.yaml reads back as written, newest first, in one shape", () 
   const entries = parseDesk(DESK);
   // the entries as the omc5 copy has them (its comment at the top is from before Nov. 8, 2026, when the velocity moved in)
   const fromEntries = (t) => t.slice(t.indexOf("\nentries:"));
-  assert.equal(fromEntries(formatDesk(entries)), fromEntries(DESK), "the omc5 copy is in the desk's own shape");
+  assert.equal(fromEntries(formatDesk(entries)), fromEntries(DESK), "the omc5 copy is in the Leash Log's own shape");
   assert.match(formatDesk(entries), /The site reads only the velocity below/);
   assert.equal(entries[0].key, "2026-11-05T17:15-07:00");
   assert.equal(

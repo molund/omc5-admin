@@ -1,4 +1,4 @@
-// Builds the desk for the Claude app: dist/index.html (the artifact's page), dist/app.js (the React Native app, through
+// Builds the Leash Log for the Claude app: dist/index.html (the artifact's page), dist/app.js (the React Native app, through
 // react-native-web), dist/tools/apply-changes.mjs (for the push session), and the first copy of status.yaml.
 //
 //   node scripts/build.mjs [--status path/to/status.yaml] [--commit sha]

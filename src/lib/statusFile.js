@@ -188,7 +188,7 @@ export const newestFirst = (notes) => [...notes].sort((a, b) => compareKeys(b.ke
 /** A note's follow-ups, newest first. */
 export const followUpsNewestFirst = (note) => [...note.followUps].sort((a, b) => compareKeys(b.key, a.key));
 
-/** The header values the desk edits. */
+/** The header values the Leash Log edits. */
 export function headerOf(parsed) {
   const h = parsed.header;
   return {

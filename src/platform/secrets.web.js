@@ -1,4 +1,4 @@
-// No GitHub token in the Claude app: the desk there pushes through Claude Code (services/outbox.js), and an artifact's
+// No GitHub token in the Claude app: the Leash Log there pushes through Claude Code (services/outbox.js), and an artifact's
 // browser storage is no place for one. secrets.native.js keeps it in the iPhone's Keychain.
 
 export const canKeepToken = false;

@@ -1,5 +1,5 @@
 // Pushing from the phone, straight to GitHub with Mike's fine-grained token (Contents: read and write on molund/omc5 only).
-// Each waiting change is applied, in order, to status.yaml as it is on main now (the same code as the desk:
+// Each waiting change is applied, in order, to status.yaml as it is on main now (the same code as the Leash Log:
 // lib/changes.js), and made into its own commit with its photos, by "Mike Olund (Leash Log)". The desk branch is then
 // pointed at the last one. The site's "Land Leash Log changes" workflow (.github/workflows/desk.yml in molund/omc5)
 // checks the commits only change status.yaml and add photos, builds the site, moves main up to them and starts the deploy.
@@ -118,7 +118,7 @@ export async function checkToken(raw) {
 
 /**
  * Commits the changes on top of main and points the desk branch at the last commit.
- * @param {{ token: string, changes: object[], photos: object }} args The waiting changes, in order, and the desk's photos.
+ * @param {{ token: string, changes: object[], photos: object }} args The waiting changes, in order, and the Leash Log's photos.
  * @returns {Promise<{ head: string, base: string, pushed: string[], skipped: { id: string, why: string }[], expiresAt: string|null }>}
  */
 export async function pushChanges({ token, changes, photos }) {
@@ -129,7 +129,7 @@ export async function pushChanges({ token, changes, photos }) {
   let parent = base;
   let tree = (await api("GET", `/git/commits/${base}`)).tree.sha;
   let text = await api("GET", `/contents/status.yaml?ref=${base}`, undefined, true);
-  // the desk's own records; a main without the file yet starts an empty one
+  // the Leash Log's own records; a main without the file yet starts an empty one
   let desk = await api("GET", `/contents/gantry-cycles.yaml?ref=${base}`, undefined, true).catch((e) => {
     if (e.status === 404) return EMPTY_DESK;
     throw e;

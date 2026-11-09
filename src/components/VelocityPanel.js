@@ -8,7 +8,7 @@ import { Fragment } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { stepsWithEstimates, trendOf, WINDOW } from "../lib/velocity.js";
+import { stepsWithEstimates, trendOf, WINDOW, workingHours } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, parseKey, stamp, weekdayShort } from "../lib/time.js";
@@ -33,6 +33,8 @@ const OFF_HOURS = 2;
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;
+// shutdown hours: whole ones without the decimals
+const gapHours = (h) => (Math.abs(h - Math.round(h)) < 0.01 ? `${Math.round(h)}h` : hours(h));
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 
@@ -58,7 +60,12 @@ export function VelocityPanel({ full, onOpen }) {
     const day = dayOf(t.key);
     const prev = all[all.indexOf(t) - 1];
     const shutdown = prev?.stepHours != null ? (parseKey(t.key) - parseKey(prev.key)) / 3600000 - prev.stepHours : 0;
-    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown });
+    // the scheduled shutdown in the gap, before a step logged in its evening (overtime) cut it short
+    const scheduled =
+      prev?.stepHours != null
+        ? (parseKey(t.key) - parseKey(prev.key)) / 3600000 - workingHours(parseKey(prev.key), parseKey(t.key))
+        : 0;
+    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime: scheduled - shutdown });
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
@@ -72,7 +79,7 @@ export function VelocityPanel({ full, onOpen }) {
       </Body>
       {t.shutdown > 0.01 && (
         <Body small mute numberOfLines={1} style={[tw`text-right`, num]}>
-          {`${Math.abs(t.shutdown - Math.round(t.shutdown)) < 0.01 ? `${Math.round(t.shutdown)}h` : hours(t.shutdown)} gap ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
+          {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
         </Body>
       )}
     </View>

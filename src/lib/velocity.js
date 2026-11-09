@@ -5,7 +5,7 @@
 // every step logged. The recent gaps between steps give each stage's share of a span's cycle, in shift hours (no time
 // passes in a shift break or the shutdown), and that places every step along the gantry's progress, in spans: the place a
 // week before the last step is read off between the steps either side of it, and so is a stage or arrival that wasn't
-// logged. Working time leaves out only the weekly shutdown: Friday night, 6 p.m. Friday to 6 a.m. Saturday, and Saturday
+// logged. Working time leaves out only the weekly shutdown: Friday night, 6 p.m. Friday to 7 a.m. Saturday, and Saturday
 // night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
@@ -19,9 +19,9 @@ export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, as [start, hours], the start in hours from the start of a BC week (Sunday 00:00): Friday 18:00 to
-// Saturday 06:00, and Saturday 18:00 to Sunday 18:00
+// Saturday 07:00, and Saturday 18:00 to Sunday 18:00
 const SHUTDOWNS = [
-  [5 * 24 + 18, 12], // Friday 18:00
+  [5 * 24 + 18, 13], // Friday 18:00
   [6 * 24 + 18, 24], // Saturday 18:00
 ];
 const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
@@ -412,7 +412,7 @@ function progressAt(steps, shares, when) {
 /**
  * The velocity now: how far the gantry got in the 168 hours (a week) up to the step reported most recently, so it moves
  * with every step logged. That step's own place is logged; the place a week before it is read off between the steps
- * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so 5.5
+ * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so about 5.46
  * working days).
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
  *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}

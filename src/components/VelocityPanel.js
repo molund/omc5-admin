@@ -11,7 +11,7 @@ import { useDesk } from "../state/desk.js";
 import { stepsWithEstimates, trendOf, WINDOW } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { clock, dayOf, stamp, weekdayShort } from "../lib/time.js";
+import { clock, dayOf, parseKey, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 // the long step names, shorter for this panel's rows
@@ -47,24 +47,34 @@ export function VelocityPanel({ full, onOpen }) {
   const open = !!full;
   const v = desk.velocity;
   if (!v) return null;
-  const recent = v.current
-    ? stepsWithEstimates(desk.deskEntries, v.shares).filter((t) => t.span >= v.current.span - WINDOW)
-    : [];
-  // the steps under their span, in the same order, each marked if it's the first on its calendar day
+  const all = v.current ? stepsWithEstimates(desk.deskEntries, v.shares) : [];
+  const recent = all.filter((t) => t.span >= v.current.span - WINDOW);
+  // the steps under their span, in the same order, each marked if it's the first on its calendar day, with the shutdown
+  // hours left out between it and the step before it (the clock time less the working time), for its day bar
   const bySpan = [];
   let lastDay = null;
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
     const day = dayOf(t.key);
-    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay });
+    const prev = all[all.indexOf(t) - 1];
+    const shutdown = prev?.stepHours != null ? (parseKey(t.key) - parseKey(prev.key)) / 3600000 - prev.stepHours : 0;
+    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown });
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
   const off = tw`font-bold text-del-ink`;
   // above the span's heading when its first step starts the day, so the day always comes before the span
-  const dayBar = (key) => (
-    <View style={tw`my-0.5 rounded-sm bg-line px-2`}>
-      <Body small>{weekdayShort(key)}</Body>
+  // and, right-aligned, the shutdown hours left out since the step before, when there are any
+  const dayBar = (t) => (
+    <View style={tw`my-0.5 flex-row items-baseline gap-2 rounded-sm bg-line px-2`}>
+      <Body small style={tw`flex-1`}>
+        {weekdayShort(t.key)}
+      </Body>
+      {t.shutdown > 0.01 && (
+        <Body small mute numberOfLines={1} style={[tw`text-right`, num]}>
+          {`${Math.abs(t.shutdown - 24) < 0.01 ? "24h" : hours(t.shutdown)} shutdown not counted`}
+        </Body>
+      )}
     </View>
   );
   return (
@@ -163,11 +173,11 @@ export function VelocityPanel({ full, onOpen }) {
           </View>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
-              {g.steps[0].newDay && dayBar(g.steps[0].key)}
+              {g.steps[0].newDay && dayBar(g.steps[0])}
               <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
               {g.steps.map((t, i) => (
                 <Fragment key={t.stage}>
-                  {t.newDay && i > 0 && dayBar(t.key)}
+                  {t.newDay && i > 0 && dayBar(t)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <Body small mute={t.estimated} style={[tw`flex-1`, t.offHours > OFF_HOURS && off]}>
                       {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}

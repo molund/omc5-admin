@@ -151,7 +151,7 @@ function Desk() {
           <Button title="Try again" onPress={desk.reload} />
         </View>
       )}
-      {!desk.ready && !desk.error && <Body mute>Reading the desk's copy of status.yaml…</Body>}
+      {!desk.ready && !desk.error && <Body mute>Reading the Leash Log's copy of status.yaml…</Body>}
 
       {(desk.ready || top.page === "settings") && (
         <>

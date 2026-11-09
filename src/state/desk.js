@@ -92,7 +92,7 @@ export function DeskProvider({ children }) {
       // the request the copy says it handled is done
       setPush((p) => (p && meta?.handled && meta.handled === p.requestId ? null : p));
     } catch (e) {
-      setCopy((c) => ({ ...c, error: `The desk's copy of status.yaml didn't load (${e.message}).` }));
+      setCopy((c) => ({ ...c, error: `The Leash Log's copy of status.yaml didn't load (${e.message}).` }));
     }
   }, []);
   useEffect(() => {

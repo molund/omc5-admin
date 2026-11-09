@@ -3,7 +3,7 @@
 
 export const canKeepToken = false;
 
-const none = () => Promise.reject(new Error("The Claude app version of the desk doesn't keep a GitHub token."));
+const none = () => Promise.reject(new Error("The Claude app version of the Leash Log doesn't keep a GitHub token."));
 export const saveToken = none;
 export const readToken = none;
 export const removeToken = none;

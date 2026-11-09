@@ -101,7 +101,7 @@ function Starting() {
       ) : (
         <Notice tone={s.state === "failed" ? "problem" : "warn"}>
           {s.error?.message ??
-            "The desk may have started Claude Code before it reloaded. If nothing happens, start it again."}
+            "The Leash Log may have started Claude Code before it reloaded. If nothing happens, start it again."}
         </Notice>
       )}
       {s?.error?.detail ? (
@@ -275,7 +275,7 @@ export function Outbox({ onSettings, onEdit }) {
 
   const copyLine = desk.meta?.syncedAt
     ? `Copy of main from ${asOf(toKey(new Date(desk.meta.syncedAt)))}${desk.meta.commit ? ` (${desk.meta.commit.slice(0, 7)})` : ""}.`
-    : "Copy of main from when the desk was published.";
+    : "Copy of main from when the Leash Log was published.";
 
   return (
     <Panel>
@@ -303,7 +303,7 @@ export function Outbox({ onSettings, onEdit }) {
       </Body>
       {!desk.kept && (
         <Notice tone="problem">
-          This device isn't keeping the desk's changes (storage is off or full). Push before closing.
+          This device isn't keeping the Leash Log's changes (storage is off or full). Push before closing.
         </Notice>
       )}
 
@@ -389,8 +389,8 @@ export function Outbox({ onSettings, onEdit }) {
         <View style={tw`gap-1.5 rounded-md bg-bg p-2.5`}>
           <Body small>
             {p.kind === "push"
-              ? `Sent ${asOf(toKey(new Date(p.requestedAt)))}. Claude Code syncs with main, commits and pushes. The desk reloads with the new copy when it's done.`
-              : `Asked ${asOf(toKey(new Date(p.requestedAt)))}. The desk reloads with main's copy when Claude Code has published it.`}
+              ? `Sent ${asOf(toKey(new Date(p.requestedAt)))}. Claude Code syncs with main, commits and pushes. The Leash Log reloads with the new copy when it's done.`
+              : `Asked ${asOf(toKey(new Date(p.requestedAt)))}. The Leash Log reloads with main's copy when Claude Code has published it.`}
           </Body>
           <Starting />
           <Row style={tw`justify-end`}>

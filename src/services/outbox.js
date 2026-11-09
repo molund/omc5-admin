@@ -54,7 +54,7 @@ function explain(e, req, hasPhotos) {
     case "conflict":
       return new DeskError(
         e.code,
-        "The desk was updated while you worked, and it's reloading. Push again once it has.",
+        "The Leash Log was updated while you worked, and it's reloading. Push again once it has.",
         detail,
       );
     case "too_large":
@@ -65,7 +65,7 @@ function explain(e, req, hasPhotos) {
         text,
       );
     case "rate_limited":
-      return new DeskError(e.code, "The desk saved too often just now. Wait a minute, then push again.", detail);
+      return new DeskError(e.code, "The Leash Log saved too often just now. Wait a minute, then push again.", detail);
     case "not_writer":
     case "not_granted":
     case "not_declared":
@@ -74,7 +74,7 @@ function explain(e, req, hasPhotos) {
     case "consent_required":
       return new DeskError(
         e.code,
-        "This view of the desk can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand.",
+        "This view of the Leash Log can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand.",
         detail,
         text,
       );
@@ -94,7 +94,7 @@ async function send(req, files, hasPhotos) {
     throw new DeskError(
       "no_artifact",
       Platform.OS === "web"
-        ? "This view of the desk can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand."
+        ? "This view of the Leash Log can't save to it. Open it in the Claude app, signed in as its owner, or send the request by hand."
         : "The phone can't push to main yet. Copy the request and send it to Claude Code by hand.",
       'claude.use("artifact") resolved null',
       manual(req, hasPhotos),
@@ -148,7 +148,7 @@ function explainStart(e, req) {
     case "not_in_manifest":
     case "consent_required":
       return fail(
-        "Claude Code wasn't allowed to start from the desk. Allow Claude Code Remote when the desk asks (or in its Permissions menu), then start it again.",
+        "Claude Code wasn't allowed to start from the Leash Log. Allow Claude Code Remote when the Leash Log asks (or in its Permissions menu), then start it again.",
       );
     case "server_not_connected":
     case "server_not_found":
@@ -160,18 +160,18 @@ function explainStart(e, req) {
       return fail("Claude Code Remote needs reconnecting in claude.ai Settings → Connectors. Then start it again.");
     case "blocked_by_policy":
       return fail(
-        "Starting Claude Code from the desk isn't allowed for this account. Copy the request into a new chat.",
+        "Starting Claude Code from the Leash Log isn't allowed for this account. Copy the request into a new chat.",
       );
     case "tool_error":
       return fail("The scheduled task didn't start. Start it again, or copy the request into a new chat.");
     case "not_granted":
     case "capability_disabled":
     case "capability_removed":
-      return fail("This view of the desk can't start Claude Code. Copy the request into a new Claude Code chat.");
+      return fail("This view of the Leash Log can't start Claude Code. Copy the request into a new Claude Code chat.");
     default:
       // the call may have reached Claude Code: don't start another unasked
       return fail(
-        "The desk couldn't tell whether Claude Code started. Give it a few minutes; if nothing happens, start it again.",
+        "The Leash Log couldn't tell whether Claude Code started. Give it a few minutes; if nothing happens, start it again.",
         true,
       );
   }
@@ -184,7 +184,7 @@ export async function startSession(req) {
   if (!mcp)
     throw new DeskError(
       "no_mcp",
-      "This view of the desk can't start Claude Code. Copy the request into a new Claude Code chat.",
+      "This view of the Leash Log can't start Claude Code. Copy the request into a new Claude Code chat.",
       trigger ? 'claude.use("mcp") resolved null' : "no pushTrigger in desk.config.json",
       byHand(req),
     );
@@ -193,7 +193,7 @@ export async function startSession(req) {
     result = await mcp.callTool(
       CONNECTOR,
       "fire_trigger",
-      { trigger_id: trigger, text: `The desk's ${req.request} request ${req.id}, saved ${req.requestedAt}.` },
+      { trigger_id: trigger, text: `The Leash Log's ${req.request} request ${req.id}, saved ${req.requestedAt}.` },
       { cache: false },
     );
   } catch (e) {

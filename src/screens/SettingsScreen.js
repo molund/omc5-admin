@@ -36,7 +36,7 @@ function TokenForm({ onSaved, onCancel }) {
   return (
     <>
       <Body small mute>
-        {`Push needs a fine-grained token: repository ${REPO_NAME} only, Contents: read and write, and Actions: read-only (so the desk can follow a push more closely), nothing else, with an expiry date. Paste it once; it's kept in this iPhone's Keychain and never shown again.`}
+        {`Push needs a fine-grained token: repository ${REPO_NAME} only, Contents: read and write, and Actions: read-only (so the Leash Log can follow a push more closely), nothing else, with an expiry date. Paste it once; it's kept in this iPhone's Keychain and never shown again.`}
       </Body>
       <Field
         value={value}
@@ -125,8 +125,8 @@ export function SettingsScreen() {
         <Label>GitHub token</Label>
         {!canKeepToken ? (
           <Body small mute>
-            The Claude app version of the desk has no token: Push hands the changes to Claude Code, which commits them.
-            The token is only for the iPhone app.
+            The Claude app version of the Leash Log has no token: Push hands the changes to Claude Code, which commits
+            them. The token is only for the iPhone app.
           </Body>
         ) : desk.tokenInfo ? (
           <SavedToken info={desk.tokenInfo} />

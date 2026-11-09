@@ -85,7 +85,7 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel, warning }) {
         <Button title="Back" onPress={onBack} style={tw`flex-1`} />
         <Button
           kind="green"
-          title="Save to the desk"
+          title="Queue for push"
           disabled={!!preview.error || nothing || !message.trim()}
           onPress={() => onSave(message.trim())}
           style={tw`flex-1`}

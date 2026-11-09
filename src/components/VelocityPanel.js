@@ -35,7 +35,7 @@ const STAT_LABEL = { fontSize: 15.4 };
 
 // a logged stage that ran more than this share longer than expected shows in bold red, more than this share shorter in bold
 // blue; expected is its share of a cycle's working time at the velocity, as in the stages chart
-const OFF_SHARE = 0.25;
+const OFF_SHARE = 0.2;
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;

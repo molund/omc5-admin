@@ -33,9 +33,9 @@ const stageName = (stage) => STAGE_LABELS[stage] ?? stage;
 const STAT_NUMBER = { fontSize: 19.8, lineHeight: 26 };
 const STAT_LABEL = { fontSize: 15.4 };
 
-// a logged stage that ran this much longer than expected (working hours) shows in bold red, this much shorter in bold blue;
-// expected is its share of a cycle's working time at the velocity, as in the stages chart
-const OFF_HOURS = 2;
+// a logged stage that ran more than this share longer than expected shows in bold red, more than this share shorter in bold
+// blue; expected is its share of a cycle's working time at the velocity, as in the stages chart
+const OFF_SHARE = 0.25;
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;
@@ -88,8 +88,8 @@ export function VelocityPanel({ full, onOpen }) {
   const expected = Object.fromEntries(v.shares.map((s) => [s.stage, cycleHours && s.share * cycleHours]));
   const offStyle = (t) => {
     if (t.estimated || t.stepHours == null || !expected[t.stage]) return null;
-    const over = t.stepHours - expected[t.stage];
-    return over > OFF_HOURS ? tw`font-bold text-del-ink` : over < -OFF_HOURS ? tw`font-bold text-accent` : null;
+    const over = t.stepHours / expected[t.stage] - 1;
+    return over > OFF_SHARE ? tw`font-bold text-del-ink` : over < -OFF_SHARE ? tw`font-bold text-accent` : null;
   };
   // above the span's heading when its first step starts the day, so the day always comes before the span, with the
   // shutdown hours left out since the step before, when there are any, in a box of their own above it: dashed, as time

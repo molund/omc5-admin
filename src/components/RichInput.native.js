@@ -54,28 +54,16 @@ export const RichInput = forwardRef(function RichInput(
     if (md !== value) onChangeText?.(md);
     report(next);
   };
-  // the selection to give the phone's text box, once the pieces are drawn again: a selection past the end of the text it still
-  // has (a link longer than what it replaced) is an error in the phone's own code, which closes the app
-  const wanted = useRef(null);
   const select = (start, end = start) => {
     sel.current = { start, end };
-    wanted.current = { start, end };
+    // after the pieces are drawn again
+    setTimeout(() => input.current?.setSelection?.(start, end), 0);
   };
 
   // a new box opened with the focus: the cursor at `cursorAt`, when given, instead of the end
   useEffect(() => {
     if (props.autoFocus && cursorAt != null) select(cursorAt);
   }, []);
-
-  useEffect(() => {
-    const w = wanted.current;
-    if (!w) return;
-    wanted.current = null;
-    setTimeout(() => {
-      const max = plainOf(latest.current).length;
-      input.current?.setSelection?.(Math.min(w.start, max), Math.min(w.end, max));
-    }, 0);
-  });
 
   useImperativeHandle(ref, () => ({
     focus: () => input.current?.focus(),

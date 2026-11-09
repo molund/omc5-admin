@@ -70,19 +70,24 @@ export function VelocityPanel({ full, onOpen }) {
   }
   const num = { fontVariant: ["tabular-nums"] };
   const off = tw`font-bold text-del-ink`;
-  // above the span's heading when its first step starts the day, so the day always comes before the span
-  // and, right-aligned, the shutdown hours left out since the step before, when there are any
+  // above the span's heading when its first step starts the day, so the day always comes before the span, with the
+  // shutdown hours left out since the step before, when there are any, in a box of their own above it: dashed, as time
+  // that isn't counted, and free to wrap onto a second line
   const dayBar = (t) => (
-    <View style={tw`my-0.5 flex-row items-baseline gap-2 rounded-sm bg-line px-2`}>
-      <Body small style={tw`flex-1`}>
-        {weekdayShort(t.key)}
-      </Body>
+    <>
       {t.shutdown > 0.01 && (
-        <Body small mute numberOfLines={1} style={[tw`text-right`, num]}>
-          {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
-        </Body>
+        <View style={tw`mt-1 rounded-sm border border-dashed border-mute px-2 py-0.5`}>
+          <Body small mute style={num}>
+            {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} · ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
+          </Body>
+        </View>
       )}
-    </View>
+      <View style={tw`my-0.5 flex-row items-baseline gap-2 rounded-sm bg-line px-2`}>
+        <Body small style={tw`flex-1`}>
+          {weekdayShort(t.key)}
+        </Body>
+      </View>
+    </>
   );
   return (
     <Panel>

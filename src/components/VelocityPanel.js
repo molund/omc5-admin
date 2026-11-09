@@ -176,7 +176,7 @@ export function VelocityPanel({ full, onOpen }) {
                       small
                       mute={t.estimated}
                       numberOfLines={1}
-                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num, t.offHours > OFF_HOURS && off]}
+                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}
                     >
                       {clock(t.key)}
                     </Body>

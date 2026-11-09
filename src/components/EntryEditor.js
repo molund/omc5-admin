@@ -8,7 +8,7 @@ import { useDesk } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
 import { memoAt, stageBefore } from "../lib/deskFile.js";
 import { STAGES } from "../lib/stages.js";
-import { positionName } from "../lib/entries.js";
+import { addendumProblems, positionName } from "../lib/entries.js";
 import { dayOf, stamp } from "../lib/time.js";
 import { slugsOf } from "../lib/titles.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf } from "./BlockEditor.js";
@@ -114,7 +114,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       memo: { noteKey: note.key, text: memo },
       stage,
     };
-    problems = blockProblems(d.blocks);
+    problems = [...addendumProblems(note, d.time, target.key), ...blockProblems(d.blocks)];
   } else if (target.type === "position") {
     change = { kind: "desk-edit", key: target.key, stage, noteToSelf: memo };
     problems = [];

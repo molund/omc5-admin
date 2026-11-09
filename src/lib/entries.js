@@ -1,7 +1,7 @@
 // What the Entries tab lists: every update and blog post in status.yaml, each with its follow-ups, and the position records:
 // a gantry-cycles.yaml record with no post at its time stamp, or a note with no summary (an older position's note to self, which the
 // site doesn't show). Plain JS, no React.
-import { compareKeys, dayOf } from "./time.js";
+import { clock, compareKeys, dayOf, parseKey, toKey } from "./time.js";
 import { followUpsNewestFirst, newestFirst } from "./statusFile.js";
 import { STAGE_LABELS, stageOf } from "./stages.js";
 
@@ -62,6 +62,34 @@ export function recentUpdates(parsed, now = new Date()) {
   return newestFirst(parsed?.notes ?? []).filter(
     (n) => n.fields.summary && !n.fields.post && days.includes(dayOf(n.key)),
   );
+}
+
+/** How soon after its update or blog post an addendum can be, in minutes. */
+export const ADDENDUM_AFTER_MINUTES = 15;
+
+/**
+ * What's wrong with an addendum's time stamp, as problems to show (none: it can be saved). It has to be on the same BC day as
+ * the update or blog post it's under, at least ADDENDUM_AFTER_MINUTES after it, and not at the same time as another of its
+ * addendums. `editing`, the time stamp of the addendum being edited, which doesn't count as another.
+ * @returns {string[]}
+ */
+export function addendumProblems(note, time, editing = null) {
+  const what = note.fields.post ? "blog post" : "update";
+  const problems = [];
+  if (dayOf(time) !== dayOf(note.key)) problems.push(`An addendum has to be on the same day as its ${what}.`);
+  else {
+    // a date-only blog post starts at midnight
+    const earliest = new Date(parseKey(note.key).getTime() + ADDENDUM_AFTER_MINUTES * 60 * 1000);
+    if (parseKey(time) < earliest)
+      problems.push(
+        `An addendum has to be at least ${ADDENDUM_AFTER_MINUTES} minutes after its ${what}: ${clock(toKey(earliest))} or later.`,
+      );
+  }
+  const taken = note.followUps.some(
+    (f) => (editing == null || compareKeys(f.key, editing) !== 0) && compareKeys(f.key, time) === 0,
+  );
+  if (taken) problems.push(`There's already an addendum at ${clock(time)}.`);
+  return problems;
 }
 
 /**

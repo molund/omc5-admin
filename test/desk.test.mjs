@@ -25,7 +25,15 @@ import {
 } from "../src/lib/velocity.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 import { dateTitle } from "../src/lib/titles.js";
-import { canReopen, listEntries, recentUpdates, reopenAs, replaceChangeIn, waitingAt } from "../src/lib/entries.js";
+import {
+  addendumProblems,
+  canReopen,
+  listEntries,
+  recentUpdates,
+  reopenAs,
+  replaceChangeIn,
+  waitingAt,
+} from "../src/lib/entries.js";
 import { parseKey, toKey, weekdayShort } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -1007,4 +1015,32 @@ test("the velocity over a week: a steady pace comes back, the window moves with 
   // less than a week of steps: nothing to read the start off
   const short = entries.filter((e) => e.span >= 43);
   assert.equal(velocity(short).spansPerWeek, null);
+});
+
+test("an addendum's time stamp: the same day as its update, 15 minutes after it or later, and not another addendum's", () => {
+  const note = {
+    key: "2026-11-08T10:00-07:00",
+    fields: { summary: "An update" },
+    followUps: [{ key: "2026-11-08T12:00-07:00" }],
+  };
+  assert.deepEqual(addendumProblems(note, "2026-11-08T10:15-07:00"), []);
+  assert.deepEqual(addendumProblems(note, "2026-11-08T23:45-07:00"), []);
+  assert.deepEqual(addendumProblems(note, "2026-11-08T10:00-07:00"), [
+    "An addendum has to be at least 15 minutes after its update: 10:15am or later.",
+  ]);
+  assert.deepEqual(addendumProblems(note, "2026-11-08T09:00-07:00"), [
+    "An addendum has to be at least 15 minutes after its update: 10:15am or later.",
+  ]);
+  assert.deepEqual(addendumProblems(note, "2026-11-09T00:15-07:00"), [
+    "An addendum has to be on the same day as its update.",
+  ]);
+  assert.deepEqual(addendumProblems(note, "2026-11-08T12:00-07:00"), ["There's already an addendum at 12:00pm."]);
+  // the one being edited isn't another one
+  assert.deepEqual(addendumProblems(note, "2026-11-08T12:00-07:00", "2026-11-08T12:00-07:00"), []);
+  // a date-only blog post starts at midnight
+  const post = { key: "2026-11-08", fields: { summary: "A post", post: true }, followUps: [] };
+  assert.deepEqual(addendumProblems(post, "2026-11-08T00:00-07:00"), [
+    "An addendum has to be at least 15 minutes after its blog post: 12:15am or later.",
+  ]);
+  assert.deepEqual(addendumProblems(post, "2026-11-08T09:00-07:00"), []);
 });

@@ -15,7 +15,7 @@ import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, stageToPost } from "../components/StagePicker.js";
 import { memoAt, postedStage, stageBefore } from "../lib/deskFile.js";
-import { recentUpdates } from "../lib/entries.js";
+import { addendumProblems, recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
 import { Body, Button, Confirm, Label, Link, Notice, Panel, Row, useTapAway, Warning } from "../components/ui.js";
 
@@ -99,7 +99,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
         gantry: gantryChanged ? { span: d.span, complete: d.complete } : null,
         ...withMemo,
       };
-  const problems = blockProblems(d.blocks);
+  const problems = [...addendumProblems(note, d.time, d.editing), ...blockProblems(d.blocks)];
   const preview = desk.preview(change);
   const drop = () => desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
   const start = (patch) => {

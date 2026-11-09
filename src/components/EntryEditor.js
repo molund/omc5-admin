@@ -6,14 +6,15 @@ import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
-import { memoAt } from "../lib/deskFile.js";
+import { memoAt, stageBefore } from "../lib/deskFile.js";
+import { STAGES } from "../lib/stages.js";
 import { positionName } from "../lib/entries.js";
 import { dayOf, stamp } from "../lib/time.js";
 import { slugsOf } from "../lib/titles.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { StagePicker, chosenStage } from "./StagePicker.js";
+import { StagePicker, stageToPost } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
@@ -98,7 +99,9 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
 
   const isPost = target.type === "blog";
   const text = target.type === "position" ? (d.memo ?? "") : blockTexts(d.blocks).join("\n");
-  const stage = chosenStage(d.stage);
+  // a step is always reported, except by a position that's only a note in status.yaml (no record here) and a blog post
+  const before = stageBefore(desk.deskEntries, target.key);
+  const stage = target.type === "position" && !record ? undefined : stageToPost(d.stage, STAGES[0], text, before);
   const memo = d.memo ?? "";
   let change, problems;
   if (target.type === "followup") {
@@ -139,7 +142,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       value={d.stage}
       onChange={(s) => update({ stage: s })}
       span={record?.span}
-      optional
+      fallback={before}
       notes={memo}
       onNotes={(m) => update({ memo: m })}
       notesWhere={

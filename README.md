@@ -80,11 +80,12 @@ to self. A change writes both files in the same commit.
 - **Notes to self.** Every entry can have one. Update (and a blog post) writes the new entry's, starting from the note
   of a position already at the same time stamp; Addendum edits its parent's; Position writes one at its own time stamp.
   Empty text removes it.
-- **Gantry step.** Every new Position, Update and Addendum reports a step: the picker is always on. It starts at the
-  furthest step the rules find in what you write (`src/lib/stages.js`: "moved to span 38", "fully glued", "started
-  moving its supports" and so on), or at the step already posted for the span when they find none; drag it to change
-  it. Editing what's saved still has the "Report a step" switch, off for an entry that has no step. It can't go earlier than the furthest step already posted for the span, or than
-  "hung" once the span is hung. A move logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
+- **Gantry step.** Every Position, Update and Addendum, new or edited, reports a step: the picker is always on. It
+  starts at the furthest step the rules find in what you write (`src/lib/stages.js`: "moved to span 38", "fully
+  glued", "started moving its supports" and so on), or at the step already posted for the span when they find none
+  (editing an entry that has no step, the one before it); drag it to change it. There's no way to leave it out. It
+  can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A move
+  logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
   text for wording the rules don't know (the artifact's `sample` capability).
 - **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
   reported most recently, part-spans included, with the weekly shutdown (Saturday 6 p.m. to Sunday 6 p.m.) allowed for.

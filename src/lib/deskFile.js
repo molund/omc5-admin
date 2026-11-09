@@ -122,6 +122,10 @@ export function replaceStage(entries, key, stage, fallbackSpan) {
   return out;
 }
 
+/** The stage of the newest entry with one before a time stamp, or undefined: where the gantry was when that entry was written. */
+export const stageBefore = (entries, key) =>
+  entries.filter((e) => e.stage && compareKeys(e.key, key) < 0).sort((a, b) => compareKeys(b.key, a.key))[0]?.stage;
+
 /** The span of the newest entry at or before a time stamp, or null. */
 export function spanAt(entries, key) {
   return sortEntries(entries).find((e) => e.span && compareKeys(e.key, key) <= 0)?.span ?? null;

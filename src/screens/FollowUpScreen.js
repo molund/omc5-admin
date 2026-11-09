@@ -13,8 +13,8 @@ import { TimeStampField } from "../components/TimeStampField.js";
 import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, chosenStage, stageToPost } from "../components/StagePicker.js";
-import { memoAt, postedStage } from "../lib/deskFile.js";
+import { StagePicker, stageToPost } from "../components/StagePicker.js";
+import { memoAt, postedStage, stageBefore } from "../lib/deskFile.js";
 import { recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
 import { Body, Button, Confirm, Label, Link, Notice, Panel, Row, useTapAway, Warning } from "../components/ui.js";
@@ -77,9 +77,11 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
   // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state
   // nor earlier than the furthest step already posted for the span (not when editing: that may be a correction)
   const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
+  // an addendum being edited with no step of its own starts from the one before it; a new one, from the span's
+  const before = d.editing ? stageBefore(desk.deskEntries, d.editing) : undefined;
   const withMemo = {
     memo: { noteKey: note.key, text: memo },
-    stage: d.editing ? chosenStage(d.stage, floor) : stageToPost(d.stage, floor, text),
+    stage: stageToPost(d.stage, floor, text, before),
   };
   const change = d.editing
     ? {
@@ -142,7 +144,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
         onChange={(stage) => update({ stage })}
         floor={floor}
         span={d.editing ? null : d.span}
-        optional={!!d.editing}
+        fallback={before}
         notes={memo}
         onNotes={(m) => update({ memo: m })}
         notesWhere={`An addendum has none of its own: this is the ${note.fields.post ? "blog post's" : "update's"} (${stamp(note.key)}).`}

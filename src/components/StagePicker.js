@@ -1,16 +1,16 @@
 // The step of the gantry's cycle a change reports, for gantry-cycles.yaml and the velocity: always one. The rules (lib/stages.js)
 // suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
-// reads the text when the rules find nothing. A new position, update or addendum always reports a step: the one already
-// posted for the span, unless the rules or he move it on, so it does no harm. Editing what's saved (`optional`) can leave the
-// step out, with a switch. It can't go earlier than the furthest step already posted for the span, or than hung once the span
-// is hung.
+// reads the text when the rules find nothing. Every position, update and addendum reports a step, with no way to leave it
+// out: the one already posted for the span (or, editing an entry with none, the one before it), unless the rules or he move
+// it on, so it does no harm. It can't go earlier than the furthest step already posted for the span, or than hung once the
+// span is hung.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { Body, Button, Label, Panel, Row, Toggle } from "./ui.js";
+import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 const THUMB = 26;
 
@@ -90,23 +90,17 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
 }
 
 /**
- * The stage a change will carry: Mike's pick, never earlier than the floor (the first stage, hung once the span is hung, or
- * the furthest step already posted for the span). None until he switches the picker on.
- * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
- * @param {string} [floor] From floorStage.
- * @returns {string|undefined}
- */
-export const chosenStage = (value, floor = STAGES[0]) => (value ? atLeast(value, floor) : undefined);
-
-/**
- * The stage a new position, update or addendum carries: Mike's pick, else the furthest step the rules find in `text`, never
- * earlier than the floor, so the floor itself when there is neither.
+ * The stage a change carries: Mike's pick, else the furthest step the rules find in `text`, else `fallback`, never earlier
+ * than the floor (the first stage, hung once the span is hung, or the furthest step already posted for the span), so the
+ * floor itself when there is none of those.
  * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
  * @param {string} floor From stageFloor.
  * @param {string} text What's written.
+ * @param {string} [fallback] The step to start from when there's no pick and the rules find none.
  * @returns {string}
  */
-export const stageToPost = (value, floor, text) => atLeast(value ?? furthest(stagesIn(text)), floor);
+export const stageToPost = (value, floor, text, fallback) =>
+  atLeast(value ?? furthest(stagesIn(text)) ?? fallback, floor);
 
 /**
  * @param {object} props
@@ -118,14 +112,13 @@ export const stageToPost = (value, floor, text) => atLeast(value ?? furthest(sta
  * @param {string} [props.notes] The entry's notes, shown at the bottom of the box when `onNotes` is given.
  * @param {(text: string) => void} [props.onNotes]
  * @param {string} [props.notesWhere] A line under the notes saying whose they are.
- * @param {boolean} [props.optional] The step can be left out (editing what's saved): a switch turns it on.
+ * @param {string} [props.fallback] The step to start from when nothing is picked and the rules find none.
  */
-export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere, optional }) {
+export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere, fallback }) {
   const { tw } = useTw();
   const found = stagesIn(text);
-  const on = !optional || value !== undefined;
   const suggested = furthest(found);
-  const stage = chosenStage(value, floor) ?? atLeast(suggested, floor);
+  const stage = stageToPost(value, floor, text, fallback);
   const index = STAGES.indexOf(stage);
   const min = STAGES.indexOf(floor);
   const [claude, setClaude] = useState(false);
@@ -155,7 +148,6 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
   return (
     <Panel>
       <Label>{`Gantry step${span ? ` · span ${span}` : ""}`}</Label>
-      {optional && <Toggle label="Report a step" value={on} onChange={(next) => onChange(next ? stage : undefined)} />}
       <Row>
         <Body style={tw`font-bold`}>{name}</Body>
         <Body small mute>
@@ -176,9 +168,9 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
           {problem}
         </Body>
       )}
-      {(claude || (on && suggested && stage !== atLeast(suggested, floor))) && (
+      {(claude || (suggested && stage !== atLeast(suggested, floor))) && (
         <Row style={tw`justify-end`}>
-          {on && suggested && stage !== atLeast(suggested, floor) && (
+          {suggested && stage !== atLeast(suggested, floor) && (
             <Button small kind="link" title="Use what's found" onPress={() => onChange(atLeast(suggested, floor))} />
           )}
           {claude && !!text?.trim() && (

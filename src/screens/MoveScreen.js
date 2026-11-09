@@ -1,5 +1,5 @@
 // Position: the gantry's span, Hung and a time stamp. No text, so the card shows a Trackside button. The steps of the
-// cycle seen and a note to self go in desk.yaml; a move logs "arrived at span" and marking a span hung logs "hung" by itself, so
+// cycle seen and a note to self go in gantry-cycles.yaml; a move logs "arrived at span" and marking a span hung logs "hung" by itself, so
 // the velocity has them even when there's no update about them.
 import { useRef, useState } from "react";
 import { View } from "react-native";

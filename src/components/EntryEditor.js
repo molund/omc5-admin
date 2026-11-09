@@ -47,7 +47,7 @@ function deleteWarning(target, note, address, fu) {
   if (target.type === "followup")
     return `This addendum comes off the site when you push.${hasPhoto(fu.fields) ? " Its photo files stay in the repo." : ""}`;
   if (!note?.fields.summary)
-    return "This record comes out of desk.yaml when you push, and any steps in it leave the velocity. The gantry's span and Hung stay as they are.";
+    return "This record comes out of gantry-cycles.yaml when you push, and any steps in it leave the velocity. The gantry's span and Hung stay as they are.";
   const count = note.followUps.length;
   const photos = hasPhoto(note.fields) || note.followUps.some((f) => hasPhoto(f.fields));
   return [
@@ -172,7 +172,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
             {positionName({ note, record })}
           </Body>
         ) : (
-          <Notice>This has no record in desk.yaml to edit. It can only be deleted.</Notice>
+          <Notice>This has no record in gantry-cycles.yaml to edit. It can only be deleted.</Notice>
         )
       ) : null}
       {(target.type === "position" ? !!record : !isPost) && steps}

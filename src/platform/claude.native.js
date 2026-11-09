@@ -50,9 +50,9 @@ async function fileAt(sha, path) {
 }
 
 /**
- * main's status.yaml and desk.yaml, at the commit main is on now (so a file a cache is behind on can't be mixed with a
+ * main's status.yaml and gantry-cycles.yaml, at the commit main is on now (so a file a cache is behind on can't be mixed with a
  * newer commit's name), read again only when main has moved. When GitHub can't be reached, the last copy kept on the
- * phone. A main without desk.yaml has none.
+ * phone. A main without gantry-cycles.yaml has none.
  */
 async function readMain() {
   try {
@@ -65,7 +65,7 @@ async function readMain() {
       return copy;
     }
     const text = await fileAt(sha, "status.yaml");
-    const desk = await fileAt(sha, "desk.yaml").catch(() => null);
+    const desk = await fileAt(sha, "gantry-cycles.yaml").catch(() => null);
     const copy = { text, desk, meta: { commit: sha, syncedAt: new Date().toISOString() } };
     save("copy", copy);
     return copy;
@@ -76,15 +76,15 @@ async function readMain() {
   }
 }
 
-/** The desk's files: status.yaml, desk.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
+/** The desk's files: status.yaml, gantry-cycles.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
 export async function ownFile(path) {
   if (path === "status.yaml") {
     latest = await readMain();
     return latest.text;
   }
-  if (path === "desk.yaml") {
+  if (path === "gantry-cycles.yaml") {
     const desk = (latest ?? (await readMain())).desk;
-    if (desk == null) throw new Error("main has no desk.yaml");
+    if (desk == null) throw new Error("main has no gantry-cycles.yaml");
     return desk;
   }
   if (path === "copy.json") return JSON.stringify((latest ?? (await readMain())).meta);

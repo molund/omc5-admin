@@ -1,4 +1,4 @@
-// The steps of the Clayton Clipper's cycle, as desk.yaml tags them (see docs/gantry-cycle.md in molund/omc5), and the
+// The steps of the Clayton Clipper's cycle, as gantry-cycles.yaml tags them (see docs/gantry-cycle.md in molund/omc5), and the
 // rules that find them in what Mike writes. A tag means "this had happened by this time stamp": the earliest time stamp with
 // a tag is the best time the desk has for that step.
 

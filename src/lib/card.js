@@ -19,8 +19,8 @@ export const figuresFor = (span) => ({
 });
 
 /**
- * The velocity chart's points, oldest first: desk.yaml's earlier values, then the figure now at its newest entry's time
- * stamp, as the site's build draws them (src/lib/velocityChart.js in molund/omc5). A desk.yaml without the velocity yet
+ * The velocity chart's points, oldest first: gantry-cycles.yaml's earlier values, then the figure now at its newest entry's time
+ * stamp, as the site's build draws them (src/lib/velocityChart.js in molund/omc5). A gantry-cycles.yaml without the velocity yet
  * (before Nov. 8, 2026) has none.
  * @returns {{ key: string, value: number }[]}
  */
@@ -63,10 +63,10 @@ export function chartFor(points, width = 48, height = 16) {
 
 /**
  * @param {string} text status.yaml
- * @param {string} [deskText] desk.yaml, for the velocity chart
+ * @param {string} [deskText] gantry-cycles.yaml, for the velocity chart
  * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
  *   ahead: number, total: number, percent: number, pace: string|null, chart: object|null }}
- *   `pace`: the spans per week, as written (status.yaml's copy); `chart`: chartFor's, from desk.yaml's earlier values.
+ *   `pace`: the spans per week, as written (status.yaml's copy); `chart`: chartFor's, from gantry-cycles.yaml's earlier values.
  */
 export function cardFor(text, deskText) {
   const parsed = parseStatus(text);

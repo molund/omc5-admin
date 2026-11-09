@@ -8,7 +8,7 @@ repo, apart from the site's. It's built with Expo (React Native) and styled with
 The same app also runs as an artifact in the Claude app, through react-native-web. That's secondary: it's used only when
 making changes to the app itself from the Claude iPhone app.
 
-- [Using the desk](#using-the-desk): modes, titles, changing what's saved, desk.yaml
+- [Using the desk](#using-the-desk): modes, titles, changing what's saved, gantry-cycles.yaml
 - [How changes reach the site](#how-changes-reach-the-site): the desk's copy, pushing from the phone and from the Claude
   app, photos
 - [Development](#development): running on an iPhone, building the artifact, tests and formatting
@@ -49,7 +49,7 @@ Thursday, Nov. 5, 2026") unless you write your own, on any update, even with oth
 ### Changing what's saved
 
 The **Entries** page, reached by the link under the tabs, lists every update, blog post, addendum and position record,
-newest first. (A position record is a `desk.yaml` entry with no post at its time stamp, or a note with no summary.) Tap
+newest first. (A position record is a `gantry-cycles.yaml` entry with no post at its time stamp, or a note with no summary.) Tap
 one to edit or delete it. An edit or delete is an ordinary change: it's reviewed, waits in the list, becomes one commit,
 and can be discarded until it's pushed.
 
@@ -60,7 +60,7 @@ and can be discarded until it's pushed.
   delete that would change any note's address writes a `slug:` that keeps it.
 - **The card:** deleting what the card shows moves `updated` back to the newest time left (a status update, an addendum
   or a position, not a blog post). Span and Hung don't change; use Position for those.
-- **Steps:** an entry's stage loads into the step picker. Deleting an entry takes its `desk.yaml` record with it.
+- **Steps:** an entry's stage loads into the step picker. Deleting an entry takes its `gantry-cycles.yaml` record with it.
 - **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address
   stops working. Photo files stay in the repo, whether a photo is removed or its post deleted, because the site's
   landing check doesn't let the desk delete photos. For the same reason a published photo's file name can't be edited,
@@ -70,9 +70,9 @@ A **waiting change** can be reopened with Edit in the waiting list, or by tappin
 usual editor and keeps its place in the list, so its commit does too. The draft isn't saved: Cancel, or closing the app,
 leaves the change as it was. Deletes have nothing to edit, only Discard.
 
-### desk.yaml: notes to self, gantry steps and the velocity
+### gantry-cycles.yaml: notes to self, gantry steps and the velocity
 
-The desk keeps its own records in `desk.yaml` in molund/omc5, beside `status.yaml`. The site's pages don't read it (its
+The desk keeps its own records in `gantry-cycles.yaml` in molund/omc5, beside `status.yaml`. The site's pages don't read it (its
 build reads only the velocity, for the card's chart). Entries are keyed by time stamps, like the notes, and each can
 have the span it's about, the step of the gantry's cycle it reports (`docs/gantry-cycle.md` in molund/omc5) and a note
 to self. A change writes both files in the same commit.
@@ -90,34 +90,34 @@ to self. A change writes both files in the same commit.
   reported most recently, part-spans included, with the weekly shutdown (Saturday 6 p.m. to Sunday 6 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the
   working time to the next, logged or estimated. Every push writes the figure and its values over the past 96 hours to
-  `desk.yaml`, and a copy of the figure to `status.yaml`. The calculation is in `src/lib/velocity.js`; every assumption
+  `gantry-cycles.yaml`, and a copy of the figure to `status.yaml`. The calculation is in `src/lib/velocity.js`; every assumption
   is in [`src/lib/VELOCITY.md`](src/lib/VELOCITY.md).
 
 ## How changes reach the site
 
 ### The desk's copy and its waiting changes
 
-- **The desk's own copy of `status.yaml` and `desk.yaml` is its database.** On the phone it's read from main on GitHub
+- **The desk's own copy of `status.yaml` and `gantry-cycles.yaml` is its database.** On the phone it's read from main on GitHub
   (the repo is public, so no token), checked every minute and kept for when the phone is offline. In the Claude app it's
   published with the artifact, and `copy.json` says which commit of main it came from.
 - **Saving adds a change to a list on the device** (the phone's SQLite key-value store, or browser storage in the Claude
   app). Every screen shows the copy with the list applied. Drafts and photos are kept there too, until they're pushed.
 - **Refresh from main** reads the copy again. Waiting changes stay on top of the new copy.
 - Each change is applied with the same code wherever it's pushed from: `src/lib/changes.js` for `status.yaml` and
-  `src/lib/deskChanges.js` for `desk.yaml`. A change that no longer fits main (its update is gone, say) is skipped and
+  `src/lib/deskChanges.js` for `gantry-cycles.yaml`. A change that no longer fits main (its update is gone, say) is skipped and
   stays waiting, marked.
 
 ### Pushing from the phone
 
 Push asks for Face ID, then, through GitHub's API:
 
-1. reads main's `status.yaml` and `desk.yaml` at main's latest commit;
-2. applies each waiting change to them, in order, and makes each its own commit with its photos and `desk.yaml`, by
+1. reads main's `status.yaml` and `gantry-cycles.yaml` at main's latest commit;
+2. applies each waiting change to them, in order, and makes each its own commit with its photos and `gantry-cycles.yaml`, by
    "Mike Olund (iOS App)";
 3. points the `desk` branch at the last commit.
 
 The site's "Land Leash Log changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the
-commits only change `status.yaml` and `desk.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and
+commits only change `status.yaml` and `gantry-cycles.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and
 builds the site, moves main up to them, and starts the deploy with a `desk-pushed` event. The desk follows both runs:
 "Landing on main", then "deploying" and "Live on the site". When the landing succeeds it drops the changes and reads
 main again, and a new push can go while the site deploys. When either run fails it says so and links to the run; a
@@ -135,7 +135,7 @@ and write** and **Actions: read-only**, nothing else (not Workflows), with an ex
   until the push is done: every 5 seconds, under GitHub's limit of 5,000 requests an hour. Without it, the desk follows
   the push without a token, every 15 seconds, under the limit of 60.
 - The token can write any file in the repo apart from workflows. The workflow is what limits a push to `status.yaml`,
-  `desk.yaml` and photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the
+  `gantry-cycles.yaml` and photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the
   token on GitHub.
 
 ### Pushing from the Claude app
@@ -148,10 +148,10 @@ under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer 
 [`docs/push-session.md`](docs/push-session.md):
 
 1. pulls main;
-2. applies each change, in order, to main's `status.yaml` and `desk.yaml` with `tools/apply-changes.mjs`;
+2. applies each change, in order, to main's `status.yaml` and `gantry-cycles.yaml` with `tools/apply-changes.mjs`;
 3. runs Prettier and `npm run build`, then makes one commit per change, as Mike Olund (Claude app);
 4. pushes;
-5. republishes the desk with main's new `status.yaml` and `desk.yaml`, `copy.json` (with `handled`: the request's id)
+5. republishes the desk with main's new `status.yaml` and `gantry-cycles.yaml`, `copy.json` (with `handled`: the request's id)
    and `pushed.json` (the ids it committed), and removes the outbox.
 
 The desk reloads with the new copy and drops the changes listed in `pushed.json`. Refresh from main saves a refresh
@@ -197,8 +197,8 @@ Apple ID the app has to be rebuilt every 7 days. The iOS bundle can be checked w
 node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 ```
 
-`desk.yaml` is copied from beside `status.yaml`. Then publish `dist/index.html` as the artifact page, with `app.js`,
-`status.yaml`, `desk.yaml`, `copy.json` and `tools/apply-changes.mjs` beside it, and the source under `source/`. Its
+`gantry-cycles.yaml` is copied from beside `status.yaml`. Then publish `dist/index.html` as the artifact page, with `app.js`,
+`status.yaml`, `gantry-cycles.yaml`, `copy.json` and `tools/apply-changes.mjs` beside it, and the source under `source/`. Its
 capabilities:
 
 | Capability | What for                                                                                   |
@@ -221,7 +221,7 @@ here. Look here before renaming anything, and add a row when a new difference ap
 | In the app      | In the code and the files                                                                                   | Why the difference                                                                                |
 | --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | **Addendum**    | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update |
-| **Notes**       | `NoteToSelf`, `noteToSelf`; desk.yaml's `note:` key                                                         | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
+| **Notes**       | `NoteToSelf`, `noteToSelf`; gantry-cycles.yaml's `note:` key                                                | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
 | **GitHub sync** | `Outbox`, and "the desk's copy" in comments                                                                 | the panel is the desk's copy of main, its waiting changes and the push; the code's name is older  |
 
 The wording the desk writes for you follows the app: the suggested commit messages say "addendum", while the files they

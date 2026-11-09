@@ -1,7 +1,7 @@
-// A change's half in desk.yaml (lib/deskFile.js): the step of the gantry's cycle it reports, and the note to self. A change
-// writes both files in one commit: status.yaml through lib/changes.js, desk.yaml through this.
+// A change's half in gantry-cycles.yaml (lib/deskFile.js): the step of the gantry's cycle it reports, and the note to self. A change
+// writes both files in one commit: status.yaml through lib/changes.js, gantry-cycles.yaml through this.
 //
-// What a change can carry for desk.yaml:
+// What a change can carry for gantry-cycles.yaml:
 //   stage: "glued"                the step it reports, tagged at its own time stamp
 //   noteToSelf: "…"               (move) the note to self at its time stamp
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
@@ -56,8 +56,8 @@ export function diff(oldText, newText) {
 }
 
 /**
- * Applies a change's desk.yaml half.
- * @param {string} deskText desk.yaml as it is.
+ * Applies a change's gantry-cycles.yaml half.
+ * @param {string} deskText gantry-cycles.yaml as it is.
  * @param {object} change
  * @param {string} statusBefore status.yaml before the change (for the gantry's position before).
  * @returns {{ text: string, hunks: object[] }}
@@ -107,7 +107,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
     case "desk-edit":
     case "desk-delete": {
       if (!entries.some((e) => e.key === change.key))
-        throw new Conflict(`The record from ${change.key} isn't in desk.yaml any more.`);
+        throw new Conflict(`The record from ${change.key} isn't in gantry-cycles.yaml any more.`);
       if (change.kind === "desk-delete") entries = removeEntries(entries, [change.key]);
       else {
         if (stage) entries = replaceStage(entries, change.key, stage, head.span);
@@ -134,7 +134,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
 }
 
 /**
- * Applies a change to both files, and writes the velocity it leaves: into desk.yaml with its earlier values, and a copy of
+ * Applies a change to both files, and writes the velocity it leaves: into gantry-cycles.yaml with its earlier values, and a copy of
  * the figure into status.yaml.
  * @param {{ status: string, desk: string }} files
  * @returns {{ status: string, desk: string, hunks: object[], deskHunks: object[] }}
@@ -144,7 +144,7 @@ export function applyBoth(files, change) {
   const s = applyChange(files.status, change, { deskKeys: parseDesk(files.desk).map((e) => e.key) });
   const d = applyDeskChange(files.desk, change, files.status);
   // the velocity with this change's steps in it, and its values at the earlier steps of the past 96 hours, at the top of
-  // desk.yaml (applyDeskChange writes the entries alone, so it's put back), and its copy near the top of status.yaml
+  // gantry-cycles.yaml (applyDeskChange writes the entries alone, so it's put back), and its copy near the top of status.yaml
   const entries = parseDesk(d.text);
   const v = velocity(entries);
   const desk = setDeskVelocity(d.text, v, velocityHistory(entries)).text;

@@ -126,9 +126,9 @@ test("each change is its own commit on top of main, by the Leash Log, and desk p
   const once = applyChange(BASE, move).text;
   assert.equal(gh.files.get(first.tree)["status.yaml"], once);
   assert.equal(gh.files.get(last.tree)["status.yaml"], applyChange(once, update).text);
-  // desk.yaml, started on a main without one: the move logs "arrived at span" at span 38 in the same commit
+  // gantry-cycles.yaml, started on a main without one: the move logs "arrived at span" at span 38 in the same commit
   assert.match(
-    gh.files.get(first.tree)["desk.yaml"],
+    gh.files.get(first.tree)["gantry-cycles.yaml"],
     /- 2026-11-05T08:30-07:00:\n {6}span: 38\n {6}stage: arrived at span/,
   );
   const photo = gh.files.get(last.tree)["public/images/sorry-im-a-shitty-photographer/2026-11-05-span-38.jpg"];
@@ -312,7 +312,7 @@ test("an edit and a delete push as one commit each, and don't touch any photo", 
   assert.equal(gh.blobs.size, 0, "no photo uploaded");
   const paths = gh.calls.filter((c) => c.path === "/git/trees").flatMap((c) => c.body.tree.map((e) => e.path));
   assert.ok(
-    paths.every((p) => p === "status.yaml" || p === "desk.yaml"),
+    paths.every((p) => p === "status.yaml" || p === "gantry-cycles.yaml"),
     paths.join(),
   );
   const last = gh.objects.get(r.head);

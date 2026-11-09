@@ -42,7 +42,7 @@ function fakeGitHub({ sha = "a".repeat(40), text = "span: 37\n", down = false, n
         : ok(`001e# service=git-upload-pack\n0000003f${"b".repeat(40)} HEAD\n003d${sha} refs/heads/main\n`);
     if (url.startsWith(RAW) && !noGit) {
       if (url === `${RAW}/${sha}/status.yaml`) return ok(text);
-      if (url === `${RAW}/${sha}/desk.yaml`) return ok("records: []\n");
+      if (url === `${RAW}/${sha}/gantry-cycles.yaml`) return ok("records: []\n");
     }
     if (url.startsWith(RAW)) return missing;
     if (url === `${API}/commits/main`) return ok(sha);
@@ -66,7 +66,7 @@ test("status.yaml is read at main's commit, without the API, and copy.json names
   assert.ok(!isNaN(new Date(meta.syncedAt)));
   assert.deepEqual(
     calls.map((c) => c.url),
-    [REFS, `${RAW}/${sha}/status.yaml`, `${RAW}/${sha}/desk.yaml`],
+    [REFS, `${RAW}/${sha}/status.yaml`, `${RAW}/${sha}/gantry-cycles.yaml`],
   );
 });
 

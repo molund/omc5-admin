@@ -36,9 +36,9 @@ Nothing to commit: go to step 5 with no commits.
    `public/images/sorry-im-a-shitty-photographer/<file>` in omc5. The desk has already resized it (at most 1024 pixels
    wide, JPEG quality 85, no metadata); check that it's so, and fix it if not.
 3. For each change, in order:
-   - `node <omc5-admin>/tools/apply-changes.mjs <outbox.json> status.yaml desk.yaml --only <id>`, run in omc5.
+   - `node <omc5-admin>/tools/apply-changes.mjs <outbox.json> status.yaml gantry-cycles.yaml --only <id>`, run in omc5.
    - `CONFLICT`: leave the change out. It stays waiting on the desk, marked.
-   - `APPLIED`: `npx prettier --write status.yaml desk.yaml`, then stage `status.yaml`, `desk.yaml` and the photos
+   - `APPLIED`: `npx prettier --write status.yaml gantry-cycles.yaml`, then stage `status.yaml`, `gantry-cycles.yaml` and the photos
      whose file names appear in that change, and commit them with the change's `message` as the commit message. One
      commit per change.
 4. `npm run build` must pass. If it fails, push nothing: tell the user what failed and leave the outbox in place.
@@ -49,7 +49,7 @@ Nothing to commit: go to step 5 with no commits.
 Publish to the desk's URL, with the page file the read in step 1 saved as `file_path`, the same label style as earlier
 versions, no `capabilities` (they carry forward) and only these `files`:
 
-- `status.yaml` and `desk.yaml`: main's, after the push (`contentType: "text/plain"`).
+- `status.yaml` and `gantry-cycles.yaml`: main's, after the push (`contentType: "text/plain"`).
 - `copy.json`: `{"commit": "<main's sha>", "syncedAt": "<now, ISO>", "handled": "<the request's id>"}`.
 - `pushed.json`: `{"pushed": [<ids committed>]}` for a push; `{"pushed": []}` for a refresh.
 - `outbox.json` and each `outbox/photos/<file>`: `null`, to remove them.

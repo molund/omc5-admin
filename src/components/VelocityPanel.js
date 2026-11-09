@@ -1,4 +1,4 @@
-// The Clayton Clipper's velocity, from desk.yaml (lib/velocity.js): spans per week, from how far
+// The Clayton Clipper's velocity, from gantry-cycles.yaml (lib/velocity.js): spans per week, from how far
 // the gantry got in the week up to the latest step reported (the window it's from), each stage's share of the cycle, how long the gantry has been on its span, and each step, grouped by span,
 // with its time (BC) and the working time from it to the next step: the ones logged, and the ones that
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
@@ -84,7 +84,7 @@ export function VelocityPanel({ full, onOpen }) {
               opened: always one under the other */}
           <View style={open ? tw`gap-0.5` : tw`flex-row flex-wrap items-baseline gap-x-4`}>
             {[[v.spansPerWeek.toFixed(2), "spans-per-week", "spans/wk"]].map(([shown, key, label]) => {
-              // desk.yaml has the earlier values (status.yaml did, before Nov. 8, 2026)
+              // gantry-cycles.yaml has the earlier values (status.yaml did, before Nov. 8, 2026)
               const deskHeader = parseStatus(desk.deskText ?? "").header;
               const t = trendOf(shown, deskHeader[key] ? deskHeader : desk.parsed?.header, key);
               return (

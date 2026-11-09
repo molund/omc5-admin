@@ -74,7 +74,7 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel, warning }) {
           )}
           {preview.deskHunks?.length > 0 && (
             <>
-              <Label>Changes to desk.yaml</Label>
+              <Label>Changes to gantry-cycles.yaml</Label>
               <Hunks hunks={preview.deskHunks} />
             </>
           )}

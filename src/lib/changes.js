@@ -1,4 +1,4 @@
-// A change is one edit to status.yaml (and desk.yaml, through lib/deskChanges.js), and one commit. The desk keeps a list of
+// A change is one edit to status.yaml (and gantry-cycles.yaml, through lib/deskChanges.js), and one commit. The desk keeps a list of
 // them on top of its copy of the files, and the push applies the same list, with this same code (tools/apply-changes.mjs
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
@@ -11,11 +11,11 @@
 //   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //   { id, kind: "followup-delete", noteKey, fuKey }
-//   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in desk.yaml with no post: only desk.yaml changes
+//   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
-// parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to desk.yaml, not here.
+// parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -116,7 +116,7 @@ function setHeader(doc, values) {
   }
 }
 
-// desk.yaml's velocity block: spans per week and its earlier values (a copy of the figure goes into status.yaml)
+// gantry-cycles.yaml's velocity block: spans per week and its earlier values (a copy of the figure goes into status.yaml)
 const VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Leash Log on every push: spans per week, from how far the gantry got in",
   "# the week up to the latest step reported (the weekly shutdown allowed for), with its values at the earlier steps of the",
@@ -125,17 +125,17 @@ const VELOCITY_COMMENT = [
 ];
 // status.yaml's copy
 const COPY_COMMENT = [
-  "# the Clayton Clipper's velocity in spans per week, a copy of desk.yaml's (where its earlier values are), written by the",
+  "# the Clayton Clipper's velocity in spans per week, a copy of gantry-cycles.yaml's (where its earlier values are), written by the",
   "# Leash Log on every push",
 ];
 // the first two lines the comment had while it also gave days per span
 const OLD_VELOCITY_START = [
-  "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span and",
+  "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: working days per span and",
   "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
 ];
 const OLD_VELOCITY_COMMENTS = [
   [
-    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span over the",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: working days per span over the",
     "# last three spans, and spans per week once the weekly shutdown is allowed for",
   ],
   [...OLD_VELOCITY_START, "# for), each with its value before it last changed (_previous)"],
@@ -150,13 +150,13 @@ const OLD_VELOCITY_COMMENTS = [
     "# stage of the step each was timed by",
   ],
   [
-    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: spans per week, from how far",
     "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
   ],
   // while the earlier values were in status.yaml, for the current span and the one before it
   [
-    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: spans per week, from how far",
     "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
     "# step each was timed by",
@@ -196,7 +196,7 @@ function writeVelocity(text, block, place) {
 
 /**
  * Writes status.yaml's copy of the velocity, spans per week, after `hung:`, or where it already is. The earlier values
- * are desk.yaml's (setDeskVelocity): a status.yaml that still has them (in any of the forms they had on Nov. 7, 2026,
+ * are gantry-cycles.yaml's (setDeskVelocity): a status.yaml that still has them (in any of the forms they had on Nov. 7, 2026,
  * when they were here) loses them.
  * @param {string} text
  * @param {{ spansPerWeek: number|null }|null} v From lib/velocity.js; with no velocity the file is left as it is.
@@ -212,7 +212,7 @@ export function setVelocity(text, v) {
 }
 
 /**
- * Writes desk.yaml's velocity block, above `entries:`, or where it already is: spans per week, with its values at the
+ * Writes gantry-cycles.yaml's velocity block, above `entries:`, or where it already is: spans per week, with its values at the
  * earlier steps of the past 96 hours under it, newest first, as a `- time: value` list, each with the span and stage of
  * the step it was timed by (lib/velocity.js's velocityHistory). It's written again from them each time, so older values
  * drop out and missing ones are filled in.
@@ -238,7 +238,7 @@ export function setDeskVelocity(deskText, v, history = []) {
       : []),
   ];
   return writeVelocity(deskText, block, (header) => {
-    if (!header.entries) throw new Conflict(`desk.yaml has no "entries:" line.`);
+    if (!header.entries) throw new Conflict(`gantry-cycles.yaml has no "entries:" line.`);
     return header.entries.line;
   });
 }
@@ -301,7 +301,7 @@ function keepAddresses(doc, before) {
 
 /**
  * When what the card showed is gone, `updated` goes back to the newest time left: a status update, a follow-up or a
- * record in desk.yaml (a position). Blog posts never set it. With nothing left, it stays. Span and hung don't change.
+ * record in gantry-cycles.yaml (a position). Blog posts never set it. With nothing left, it stays. Span and hung don't change.
  */
 function fallBack(doc, removed, updated, deskKeys) {
   if (!removed.includes(updated)) return;
@@ -319,7 +319,7 @@ function fallBack(doc, removed, updated, deskKeys) {
  * Applies one change to the file's text.
  * @param {string} text
  * @param {object} change
- * @param {{ deskKeys?: string[] }} [context] desk.yaml's time stamps, for where `updated` goes back to after a delete.
+ * @param {{ deskKeys?: string[] }} [context] gantry-cycles.yaml's time stamps, for where `updated` goes back to after a delete.
  * @returns {{ text: string, hunks: object[] }}
  * @throws {Conflict} when the change no longer fits the file.
  */

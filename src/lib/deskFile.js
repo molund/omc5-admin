@@ -1,4 +1,4 @@
-// desk.yaml in molund/omc5: the Leash Log's own records, and the velocity with its earlier values above them (written by
+// gantry-cycles.yaml in molund/omc5: the Leash Log's own records, and the velocity with its earlier values above them (written by
 // changes.js's setDeskVelocity, read by the site's build for its chart; parseDesk passes over them). Entries are keyed by
 // BC time stamps like status.yaml's notes, newest first. An entry can have the span it's about, the one step of the
 // gantry's cycle it had reached by then (lib/stages.js) and a note to self. A time stamp can match a note or follow-up in
@@ -8,7 +8,7 @@ import { cleanText } from "./cleanText.js";
 import { compareKeys } from "./time.js";
 import { STAGES, currentName, furthest } from "./stages.js";
 
-export const DESK_FILE = "desk.yaml";
+export const DESK_FILE = "gantry-cycles.yaml";
 
 const HEADER = `# The Leash Log's own records (molund/omc5-admin). The site reads only the velocity below, at build time, for the
 # progress card's chart. Entries are keyed by BC time stamps, like status.yaml's notes, newest first. An entry can have:
@@ -85,7 +85,7 @@ export function formatDesk(entries) {
   return lines.join("\n") + "\n";
 }
 
-/** An empty desk.yaml, for a repo that doesn't have one yet. */
+/** An empty gantry-cycles.yaml, for a repo that doesn't have one yet. */
 export const EMPTY_DESK = formatDesk([]);
 
 /**

@@ -372,7 +372,7 @@ test("deleting what the card shows moves `updated` back, and leaves the span and
   const fixed = applyChange(withFu, { kind: "move", time: T2, span: 40, complete: true }).text;
   assert.equal(headerOf(parseStatus(applyChange(fixed, { kind: "note-delete", noteKey: T2 }).text)).updated, T3);
 
-  // to a position in desk.yaml, when that's newer still
+  // to a position in gantry-cycles.yaml, when that's newer still
   const pos = "2026-11-20T18:00-07:00";
   assert.equal(
     headerOf(parseStatus(applyChange(text, { kind: "note-delete", noteKey: T2 }, { deskKeys: [pos, T2] }).text))
@@ -524,11 +524,11 @@ test("the card's time reads as the site words it, today, recently and further ba
   }
 });
 
-test("the card's spans per week, from status.yaml's copy, and its chart, from desk.yaml's earlier values", () => {
+test("the card's spans per week, from status.yaml's copy, and its chart, from gantry-cycles.yaml's earlier values", () => {
   // none written yet: no line on the card
   assert.equal(cardFor(BASE).pace, null);
   const status = BASE.replace(/^((?:hung|complete): .*)$/m, "$1\nspans-per-week: 2.83");
-  // desk.yaml: the velocity, its earlier values newest first, and its entries (the newest at 10:45 a.m. on Nov. 7)
+  // gantry-cycles.yaml: the velocity, its earlier values newest first, and its entries (the newest at 10:45 a.m. on Nov. 7)
   const desk = (now, earlier) =>
     [
       "# desk",
@@ -565,7 +565,7 @@ test("the card's spans per week, from status.yaml's copy, and its chart, from de
   const flat = cardFor(status, desk("2.83", [["2026-11-06T22:00-07:00", "2.83"]])).chart;
   assert.equal(flat.way, "flat");
   assert.equal(flat.line, "M0 8 L48 8");
-  // fewer than two points, or no desk.yaml velocity yet: no chart
+  // fewer than two points, or no gantry-cycles.yaml velocity yet: no chart
   assert.equal(cardFor(status, desk("2.83", [])).chart, null);
   assert.equal(cardFor(status, "entries:\n").chart, null);
   assert.equal(cardFor(status).chart, null);

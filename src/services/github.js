@@ -130,7 +130,7 @@ export async function pushChanges({ token, changes, photos }) {
   let tree = (await api("GET", `/git/commits/${base}`)).tree.sha;
   let text = await api("GET", `/contents/status.yaml?ref=${base}`, undefined, true);
   // the desk's own records; a main without the file yet starts an empty one
-  let desk = await api("GET", `/contents/desk.yaml?ref=${base}`, undefined, true).catch((e) => {
+  let desk = await api("GET", `/contents/gantry-cycles.yaml?ref=${base}`, undefined, true).catch((e) => {
     if (e.status === 404) return EMPTY_DESK;
     throw e;
   });
@@ -147,7 +147,8 @@ export async function pushChanges({ token, changes, photos }) {
       continue;
     }
     const entries = [{ path: "status.yaml", mode: "100644", type: "blob", content: next.status }];
-    if (next.desk !== desk) entries.push({ path: "desk.yaml", mode: "100644", type: "blob", content: next.desk });
+    if (next.desk !== desk)
+      entries.push({ path: "gantry-cycles.yaml", mode: "100644", type: "blob", content: next.desk });
     for (const b of photosOf(change)) {
       if (!b.photoId) continue; // already on the site
       const photo = photos[b.photoId];

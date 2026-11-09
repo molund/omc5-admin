@@ -1,4 +1,4 @@
-// The Clayton Clipper's velocity: the spans per week it builds, from the steps tagged in desk.yaml, with a week's shutdown
+// The Clayton Clipper's velocity: the spans per week it builds, from the steps tagged in gantry-cycles.yaml, with a week's shutdown
 // allowed for.
 //
 // The velocity is how far the gantry got in the week (168 hours) up to the step reported most recently, so it moves with
@@ -14,7 +14,7 @@ import { STAGES } from "./stages.js";
 export const WINDOW = 3;
 // the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
 const WEEK_HOURS = 168;
-// how far back desk.yaml keeps the velocity's earlier values (velocityHistory), from the latest step
+// how far back gantry-cycles.yaml keeps the velocity's earlier values (velocityHistory), from the latest step
 export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
@@ -364,13 +364,13 @@ export function velocityHistory(entries) {
 }
 
 /**
- * Which way a velocity figure last went, from the header of the file holding its earlier values (desk.yaml's; status.yaml's
+ * Which way a velocity figure last went, from the header of the file holding its earlier values (gantry-cycles.yaml's; status.yaml's
  * before Nov. 8, 2026): the figure shown (to two decimals) against the value it had before. That's the newest of the
  * file's `-previous` values when the file already holds the figure shown, or else the file's own value (the figure shown
  * is new, with waiting changes or a new way of working it out). The forms status.yaml had on Nov. 7, 2026 are read too:
  * underscores in the keys, and a single `-previous` value.
  * @param {string} shown "2.83"
- * @param {object} header The file's parsed header (statusFile.js's parseStatus reads desk.yaml's too)
+ * @param {object} header The file's parsed header (statusFile.js's parseStatus reads gantry-cycles.yaml's too)
  * @param {string} key "spans-per-week"
  * @returns {{ way: "up"|"down", from: string }|null} null when there's nothing to compare with, or it didn't move.
  */

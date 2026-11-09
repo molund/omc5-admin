@@ -1,5 +1,5 @@
 // What the Entries tab lists: every update and blog post in status.yaml, each with its follow-ups, and the position records:
-// a desk.yaml record with no post at its time stamp, or a note with no summary (an older position's note to self, which the
+// a gantry-cycles.yaml record with no post at its time stamp, or a note with no summary (an older position's note to self, which the
 // site doesn't show). Plain JS, no React.
 import { compareKeys, dayOf } from "./time.js";
 import { followUpsNewestFirst, newestFirst } from "./statusFile.js";

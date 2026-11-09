@@ -1,4 +1,4 @@
-// The step of the gantry's cycle a change reports, for desk.yaml and the velocity: always one. The rules (lib/stages.js)
+// The step of the gantry's cycle a change reports, for gantry-cycles.yaml and the velocity: always one. The rules (lib/stages.js)
 // suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
 // reads the text when the rules find nothing. The slider is off until he switches it on, so an entry doesn't report a step by
 // accident. It can't go earlier than the furthest step already posted for the span, or than hung once the span is hung.

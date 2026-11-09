@@ -53,7 +53,7 @@ function viewOf(files) {
 }
 
 export function DeskProvider({ children }) {
-  // status.yaml's text, desk.yaml's (the desk's own records: notes to self and the gantry's steps), and where they came from
+  // status.yaml's text, gantry-cycles.yaml's (the desk's own records: notes to self and the gantry's steps), and where they came from
   const [copy, setCopy] = useState({ text: null, desk: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
@@ -71,8 +71,8 @@ export function DeskProvider({ children }) {
   const reload = useCallback(async () => {
     try {
       const text = await ownFile("status.yaml");
-      // a repo (or a desk published) before desk.yaml existed has none yet
-      const deskText = await ownFile("desk.yaml").catch(() => EMPTY_DESK);
+      // a repo (or a desk published) before gantry-cycles.yaml existed has none yet
+      const deskText = await ownFile("gantry-cycles.yaml").catch(() => EMPTY_DESK);
       const meta = await ownFile("copy.json")
         .then(JSON.parse)
         .catch(() => null);
@@ -178,7 +178,7 @@ export function DeskProvider({ children }) {
       preview: () => ({ text: null, hunks: [], deskText: null, deskHunks: [], error: null }),
       suggestMessage: () => "",
       ...view,
-      /** The gantry's velocity from desk.yaml (lib/velocity.js), with the waiting changes in it. */
+      /** The gantry's velocity from gantry-cycles.yaml (lib/velocity.js), with the waiting changes in it. */
       velocity: velocity(deskEntries),
       results: working?.results ?? new Map(),
       changes,

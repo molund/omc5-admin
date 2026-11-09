@@ -1,5 +1,5 @@
-// desk.yaml: the stage rules on Mike's own wording, the file read and written, what each change writes to it, and the
-// velocity worked out from the copy of molund/omc5's desk.yaml in fixtures/.
+// gantry-cycles.yaml: the stage rules on Mike's own wording, the file read and written, what each change writes to it, and the
+// velocity worked out from the copy of molund/omc5's gantry-cycles.yaml in fixtures/.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -30,7 +30,7 @@ import { parseKey, toKey, weekdayShort } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const STATUS = readFileSync(here("./fixtures/status.yaml"), "utf8");
-const DESK = readFileSync(here("./fixtures/desk.yaml"), "utf8");
+const DESK = readFileSync(here("./fixtures/gantry-cycles.yaml"), "utf8");
 const at = (s) => new Date(s);
 /** A note's or follow-up's fields as the desk's blocks, as the editors load them. */
 function blocksOf(fields) {
@@ -71,7 +71,7 @@ test("the rules read Mike's wording", () => {
   for (const [text, want] of cases) assert.deepEqual(stagesIn(text), want, text);
 });
 
-test("desk.yaml reads back as written, newest first, in one shape", () => {
+test("gantry-cycles.yaml reads back as written, newest first, in one shape", () => {
   const entries = parseDesk(DESK);
   // the entries as the omc5 copy has them (its comment at the top is from before Nov. 8, 2026, when the velocity moved in)
   const fromEntries = (t) => t.slice(t.indexOf("\nentries:"));
@@ -93,7 +93,7 @@ test("desk.yaml reads back as written, newest first, in one shape", () => {
   assert.match(formatDesk(old), /\n {6}stage: glued\n/);
 });
 
-test("desk.yaml's old name for the first stage reads as the new one, and is written back so", () => {
+test("gantry-cycles.yaml's old name for the first stage reads as the new one, and is written back so", () => {
   const entries = parseDesk(EMPTY_DESK + "  - 2026-11-06T08:00-07:00:\n      span: 38\n      stage: arrived\n");
   assert.equal(entries[0].stage, "arrived at span");
   assert.match(formatDesk(entries), /\n {6}stage: arrived at span\n/);
@@ -105,7 +105,7 @@ test("desk.yaml's old name for the first stage reads as the new one, and is writ
   assert.equal(stageOf({ stage: "supports moved" }), "supports started");
 });
 
-test("an entry has one stage, never earlier than hung once its span is, and a note to self goes to desk.yaml only", () => {
+test("an entry has one stage, never earlier than hung once its span is, and a note to self goes to gantry-cycles.yaml only", () => {
   assert.equal(floorStage(false), "arrived at span");
   assert.equal(floorStage(true), "hung");
   assert.equal(furthest(["glued", "hung", "arrived at span"]), "glued");
@@ -167,7 +167,7 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
   assert.equal(r.deskHunks.length, 1);
 });
 
-test("update, follow-up and blog changes write their stage and notes to self to desk.yaml", () => {
+test("update, follow-up and blog changes write their stage and notes to self to gantry-cycles.yaml", () => {
   const T = "2026-11-06T09:00-07:00";
   const head = parseStatus(STATUS);
   const upd = applyBoth(
@@ -471,7 +471,7 @@ test("a follow-up's stage can be replaced, and deleting it takes its record", ()
   assert.deepEqual(parseDesk(applyBoth(files, { kind: "followup-delete", noteKey: n.key, fuKey: fu.key }).desk), []);
 });
 
-test("a position record can be edited or deleted, and only desk.yaml changes unless the card showed it", () => {
+test("a position record can be edited or deleted, and only gantry-cycles.yaml changes unless the card showed it", () => {
   const key = "2026-11-20T09:00-07:00";
   const other = "2026-11-19T09:00-07:00";
   const desk = formatDesk([
@@ -498,7 +498,7 @@ test("a position record can be edited or deleted, and only desk.yaml changes unl
 
   assert.throws(
     () => applyBoth({ status: STATUS, desk: EMPTY_DESK }, { kind: "desk-delete", key }),
-    /isn't in desk.yaml/,
+    /isn't in gantry-cycles.yaml/,
   );
   assert.throws(
     () =>
@@ -506,7 +506,7 @@ test("a position record can be edited or deleted, and only desk.yaml changes unl
         { status: STATUS, desk: EMPTY_DESK },
         { kind: "desk-edit", key, stage: "arrived at span", noteToSelf: "" },
       ),
-    /isn't in desk.yaml/,
+    /isn't in gantry-cycles.yaml/,
   );
 });
 
@@ -548,7 +548,7 @@ test("what's waiting is found by the time stamp it created", () => {
 
 test("an edit of every saved entry, as its editor loads it, changes neither file", () => {
   const entries = parseDesk(DESK);
-  // both files as a push leaves them: desk.yaml with the velocity and its earlier values, status.yaml with its copy
+  // both files as a push leaves them: gantry-cycles.yaml with the velocity and its earlier values, status.yaml with its copy
   const DESK_NOW = setDeskVelocity(formatDesk(entries), velocity(entries), velocityHistory(entries)).text;
   const STATUS_NOW = setVelocity(STATUS, velocity(entries)).text;
   const parsed = parseStatus(STATUS_NOW);
@@ -668,7 +668,7 @@ test("status.yaml's hung: line (complete: in a file from before Nov. 6) is read 
 test("invisible characters a phone slips in are left out of both files", async () => {
   const { applyChange } = await import("../src/lib/changes.js");
   const junk = "￼6/12 segments​ glued﻿";
-  // desk.yaml: a note to self
+  // gantry-cycles.yaml: a note to self
   const desk = formatDesk([{ key: "2026-11-05T21:30-07:00", span: 38, stage: null, noteToSelf: junk }]);
   assert.match(desk, /\n {6}note: "6\/12 segments glued"\n/);
   // status.yaml: a summary, and a caption
@@ -714,7 +714,7 @@ test("status.yaml gets a copy of spans per week after hung:, and nothing more", 
   assert.equal(h["spans-per-week"].line, (h.hung ?? h.complete).line + 3);
   assert.equal(h["spans-per-week"].value, "2.83");
   assert.equal(h["spans-per-week-previous"], undefined);
-  assert.match(once, /a copy of desk\.yaml's/);
+  assert.match(once, /a copy of gantry-cycles\.yaml's/);
   // written again the same: not a character changes; a new figure: in place
   assert.equal(setVelocity(once, { spansPerWeek: 2.83 }).text, once);
   const again = setVelocity(once, { spansPerWeek: 2.86 }).text;
@@ -724,7 +724,7 @@ test("status.yaml gets a copy of spans per week after hung:, and nothing more", 
   assert.equal(setVelocity(STATUS, null).text, STATUS);
 });
 
-test("desk.yaml gets the velocity above its entries, with its earlier values as a list, newest first", () => {
+test("gantry-cycles.yaml gets the velocity above its entries, with its earlier values as a list, newest first", () => {
   const desk = formatDesk(parseDesk(DESK));
   const history = [
     { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.805, span: 38, stage: "hangers down" },
@@ -765,7 +765,7 @@ test("desk.yaml gets the velocity above its entries, with its earlier values as 
   assert.equal(setDeskVelocity(desk, null).text, desk);
 });
 
-test("a change keeps desk.yaml's velocity, worked out again, and status.yaml's copy matching it", () => {
+test("a change keeps gantry-cycles.yaml's velocity, worked out again, and status.yaml's copy matching it", () => {
   const entries = parseDesk(DESK);
   const v = velocity(entries);
   const files = {
@@ -785,14 +785,14 @@ test("a change keeps desk.yaml's velocity, worked out again, and status.yaml's c
 test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just the copy on the next push", () => {
   const after = (block) => STATUS.replace(/^((?:hung|complete): .*)$/m, ["$1", ...block].join("\n"));
   const comment = (last) => [
-    "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span and",
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: working days per span and",
     "# spans per week, from how far the gantry got in the week up to the latest step reported (the weekly shutdown allowed",
     last,
   ];
   const olds = [
     // over the last three spans, underscores, no earlier value
     [
-      "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: working days per span over the",
+      "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: working days per span over the",
       "# last three spans, and spans per week once the weekly shutdown is allowed for",
       "days_per_span: 2.15",
       "spans_per_week: 2.79",
@@ -832,7 +832,7 @@ test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just t
     ],
     // spans per week alone, its list for the current span and the one before it
     [
-      "# the Clayton Clipper's velocity, written by the Leash Log on every push from desk.yaml: spans per week, from how far",
+      "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: spans per week, from how far",
       "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
       "# earlier steps on the current span and the one before it (-previous), newest first, with the span and stage of the",
       "# step each was timed by",
@@ -853,7 +853,7 @@ test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just t
     });
 });
 
-test("which way a velocity figure went: against desk.yaml's newest earlier value, or its figure when the one shown is newer", () => {
+test("which way a velocity figure went: against gantry-cycles.yaml's newest earlier value, or its figure when the one shown is newer", () => {
   const desk = formatDesk(parseDesk(DESK));
   const history = [
     { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.6, span: 38, stage: "hangers down" },

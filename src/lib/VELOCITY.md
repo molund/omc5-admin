@@ -6,18 +6,18 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 ## What it calculates
 
 - **Spans per week**: how far the gantry got in **the 168 hours (a week) up to the step reported most recently** (the last
-  step logged in `desk.yaml`, `WEEK_HOURS`), in spans, counting the part-spans at each end. So it moves with every step,
+  step logged in `gantry-cycles.yaml`, `WEEK_HOURS`), in spans, counting the part-spans at each end. So it moves with every step,
   not only at each arrival.
   - The end is that step's place in its span's cycle: span 38's "moving supports started", 83% through its cycle, is
     38.83.
   - The start, a week earlier, is read off between the steps logged either side of that moment, on the shift clock, the
     way an estimated step is.
-- **Each stage's share of the cycle**: how the cycle splits between the steps logged in `desk.yaml`.
+- **Each stage's share of the cycle**: how the cycle splits between the steps logged in `gantry-cycles.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
 Spans per week is written on every push, to two decimals, each change its own commit, in two places:
 
-- **`desk.yaml`**, above `entries:` (`setDeskVelocity` in `changes.js`): `spans-per-week`, and under it
+- **`gantry-cycles.yaml`**, above `entries:` (`setDeskVelocity` in `changes.js`): `spans-per-week`, and under it
   `spans-per-week-previous`, its values at the earlier steps of **the past 96 hours** (`HISTORY_HOURS`, counted back from
   the latest step), newest first, each with the span and stage of the step it was timed by:
 
@@ -31,11 +31,11 @@ Spans per week is written on every push, to two decimals, each change its own co
 
 - **`status.yaml`**, after `hung:`, a copy of `spans-per-week` alone (`setVelocity`): the figure the site's card shows.
 
-- **Recalculated, not remembered.** On every push the list is worked out again from `desk.yaml`'s entries
+- **Recalculated, not remembered.** On every push the list is worked out again from `gantry-cycles.yaml`'s entries
   (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So it backfills itself, a step
   logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
 - **The chart.** The site's build (`src/lib/velocityChart.js` and `trackside/prerender.js` in molund/omc5) reads
-  `desk.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: the earlier values, then
+  `gantry-cycles.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: the earlier values, then
   the figure now at the newest entry's time, spaced by time, the y axis zoomed to their range (a tenth more each side),
   no labels, green when the last is above the first, red below, grey the same. The desk's card preview draws the same
   (`chartFor` in `card.js`).
@@ -64,7 +64,7 @@ enough that the simplification stops being fair.
 
 ## Time
 
-- **BC time is UTC−7 all year.** Every time stamp in `status.yaml` and `desk.yaml` is read as UTC−7. There's no switch to
+- **BC time is UTC−7 all year.** Every time stamp in `status.yaml` and `gantry-cycles.yaml` is read as UTC−7. There's no switch to
   standard time.
 - A "working day" is 24 working hours, not one shift.
 

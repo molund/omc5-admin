@@ -71,7 +71,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
 
   const fus = followUpsNewestFirst(note);
   const gantryChanged = d.span !== head.span || d.complete !== head.complete;
-  // a follow-up has no note to self of its own: this is its parent's (in desk.yaml)
+  // a follow-up has no note to self of its own: this is its parent's (in gantry-cycles.yaml)
   const memo = d.memo ?? memoAt(desk.deskEntries, note.key);
   const text = blockTexts(d.blocks).join("\n");
   // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state

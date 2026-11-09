@@ -15,7 +15,7 @@ import { compareKeys, nowKey, asOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, chosenStage } from "../components/StagePicker.js";
+import { StagePicker, stageToPost } from "../components/StagePicker.js";
 import { emptyBlocks } from "../components/BlockEditor.js";
 import { Button, Link, Notice, useTapAway, Warning } from "../components/ui.js";
 
@@ -40,7 +40,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stage: chosenStage(d.stage, floor),
+    stage: stageToPost(d.stage, floor, memo),
   };
   const preview = desk.preview(change);
   // an addendum goes under the newest update from today or yesterday (blog posts aren't updates, so they're left out)

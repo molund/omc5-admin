@@ -139,6 +139,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       value={d.stage}
       onChange={(s) => update({ stage: s })}
       span={record?.span}
+      optional
       notes={memo}
       onNotes={(m) => update({ memo: m })}
       notesWhere={

@@ -1,7 +1,9 @@
 // The step of the gantry's cycle a change reports, for gantry-cycles.yaml and the velocity: always one. The rules (lib/stages.js)
 // suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
-// reads the text when the rules find nothing. The slider is off until he switches it on, so an entry doesn't report a step by
-// accident. It can't go earlier than the furthest step already posted for the span, or than hung once the span is hung.
+// reads the text when the rules find nothing. A new position, update or addendum always reports a step: the one already
+// posted for the span, unless the rules or he move it on, so it does no harm. Editing what's saved (`optional`) can leave the
+// step out, with a switch. It can't go earlier than the furthest step already posted for the span, or than hung once the span
+// is hung.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -97,6 +99,16 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
 export const chosenStage = (value, floor = STAGES[0]) => (value ? atLeast(value, floor) : undefined);
 
 /**
+ * The stage a new position, update or addendum carries: Mike's pick, else the furthest step the rules find in `text`, never
+ * earlier than the floor, so the floor itself when there is neither.
+ * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
+ * @param {string} floor From stageFloor.
+ * @param {string} text What's written.
+ * @returns {string}
+ */
+export const stageToPost = (value, floor, text) => atLeast(value ?? furthest(stagesIn(text)), floor);
+
+/**
  * @param {object} props
  * @param {string} props.text What's written (the summary and paragraphs, or the note to self).
  * @param {string|undefined} props.value Mike's pick; undefined until he picks, when the rules' suggestion is used.
@@ -106,11 +118,12 @@ export const chosenStage = (value, floor = STAGES[0]) => (value ? atLeast(value,
  * @param {string} [props.notes] The entry's notes, shown at the bottom of the box when `onNotes` is given.
  * @param {(text: string) => void} [props.onNotes]
  * @param {string} [props.notesWhere] A line under the notes saying whose they are.
+ * @param {boolean} [props.optional] The step can be left out (editing what's saved): a switch turns it on.
  */
-export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere }) {
+export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere, optional }) {
   const { tw } = useTw();
   const found = stagesIn(text);
-  const on = value !== undefined;
+  const on = !optional || value !== undefined;
   const suggested = furthest(found);
   const stage = chosenStage(value, floor) ?? atLeast(suggested, floor);
   const index = STAGES.indexOf(stage);
@@ -142,7 +155,7 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
   return (
     <Panel>
       <Label>{`Gantry step${span ? ` · span ${span}` : ""}`}</Label>
-      <Toggle label="Report a step" value={on} onChange={(next) => onChange(next ? stage : undefined)} />
+      {optional && <Toggle label="Report a step" value={on} onChange={(next) => onChange(next ? stage : undefined)} />}
       <Row>
         <Body style={tw`font-bold`}>{name}</Body>
         <Body small mute>
@@ -163,9 +176,9 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
           {problem}
         </Body>
       )}
-      {(claude || (on && suggested && value !== suggested)) && (
+      {(claude || (on && suggested && stage !== atLeast(suggested, floor))) && (
         <Row style={tw`justify-end`}>
-          {on && suggested && value !== suggested && (
+          {on && suggested && stage !== atLeast(suggested, floor) && (
             <Button small kind="link" title="Use what's found" onPress={() => onChange(atLeast(suggested, floor))} />
           )}
           {claude && !!text?.trim() && (

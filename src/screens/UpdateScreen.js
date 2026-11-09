@@ -14,7 +14,7 @@ import { TitleField, titleProblems } from "../components/TitleField.js";
 import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, chosenStage } from "../components/StagePicker.js";
+import { StagePicker, stageToPost } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { Button, Confirm, Link, Notice } from "../components/ui.js";
@@ -64,7 +64,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     title: title.trim(),
     blocks: d.blocks,
     memo: { noteKey: d.time, text: memo },
-    stage: chosenStage(d.stage, floor),
+    stage: stageToPost(d.stage, floor, blockTexts(d.blocks).join("\n")),
   };
   const preview = desk.preview(change);
   const discard = () => {

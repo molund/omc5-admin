@@ -14,12 +14,17 @@ import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, parseKey, stamp, weekdayShort } from "../lib/time.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
-// the long step names, shorter for this panel's rows
+// the steps' names in this panel's rows (the log and the stage shares): each names the stage that starts at the step
 const SHORT_LABELS = {
+  "arrived at span": "Arrival",
   "hanging started": "Hanging",
+  hung: "Pre-gluing",
   "gluing started": "Gluing",
+  glued: "Curing",
   "post-tensioning started": "Post-tensioning",
-  "supports started": "Moving supports",
+  "cables down": "Hanger removal",
+  "hangers down": "Pause before movement",
+  "supports started": "Support movement",
 };
 // the stage a cycle is timed by, in full ("Hanging started to hanging started")
 const stageName = (stage) => STAGE_LABELS[stage] ?? stage;

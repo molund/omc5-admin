@@ -8,8 +8,8 @@ repo, apart from the site's. It's built with Expo (React Native) and styled with
 The same app also runs as an artifact in the Claude app, through react-native-web. That's secondary: it's used only when
 making changes to the app itself from the Claude iPhone app.
 
-- [Using the desk](#using-the-desk): modes, titles, changing what's saved, gantry-cycles.yaml
-- [How changes reach the site](#how-changes-reach-the-site): the desk's copy, pushing from the phone and from the Claude
+- [Using the Leash Log](#using-the-leash-log): modes, titles, changing what's saved, gantry-cycles.yaml
+- [How changes reach the site](#how-changes-reach-the-site): the Leash Log's copy, pushing from the phone and from the Claude
   app, photos
 - [Development](#development): running on an iPhone, building the artifact, tests and formatting
 - [Code layout](#code-layout)
@@ -17,7 +17,7 @@ making changes to the app itself from the Claude iPhone app.
 Further reading: [`src/lib/VELOCITY.md`](src/lib/VELOCITY.md) (every assumption behind the velocity) and
 [`docs/push-session.md`](docs/push-session.md) (what the Claude Code push session does).
 
-## Using the desk
+## Using the Leash Log
 
 ### Modes
 
@@ -63,7 +63,7 @@ and can be discarded until it's pushed.
 - **Steps:** an entry's stage loads into the step picker. Deleting an entry takes its `gantry-cycles.yaml` record with it.
 - **What stays behind:** a deleted post's comment thread stays on GitHub with nothing linking to it, and its address
   stops working. Photo files stay in the repo, whether a photo is removed or its post deleted, because the site's
-  landing check doesn't let the desk delete photos. For the same reason a published photo's file name can't be edited,
+  landing check doesn't let the Leash Log delete photos. For the same reason a published photo's file name can't be edited,
   so Replace on a published photo adds the new one under a new name, keeping the caption and its place in the post.
 
 A **waiting change** can be reopened with Edit in the waiting list, or by tapping it under Entries. It opens in its
@@ -72,7 +72,7 @@ leaves the change as it was. Deletes have nothing to edit, only Discard.
 
 ### gantry-cycles.yaml: notes to self, gantry steps and the velocity
 
-The desk keeps its own records in `gantry-cycles.yaml` in molund/omc5, beside `status.yaml`. The site's pages don't read it (its
+The Leash Log keeps its own records in `gantry-cycles.yaml` in molund/omc5, beside `status.yaml`. The site's pages don't read it (its
 build reads only the velocity, for the card's chart). Entries are keyed by time stamps, like the notes, and each can
 have the span it's about, the step of the gantry's cycle it reports (`docs/gantry-cycle.md` in molund/omc5) and a note
 to self. A change writes both files in the same commit.
@@ -86,7 +86,7 @@ to self. A change writes both files in the same commit.
   it. It can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A
   move logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
   text for wording the rules don't know (the artifact's `sample` capability).
-- **Velocity.** The panel under the desk copy shows spans per week: how far the gantry got in the week up to the step
+- **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
   reported most recently, part-spans included, with the weekly shutdown (Saturday 6 p.m. to Sunday 6 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the
   working time to the next, logged or estimated. Every push writes the figure and its values over the past 96 hours to
@@ -95,9 +95,9 @@ to self. A change writes both files in the same commit.
 
 ## How changes reach the site
 
-### The desk's copy and its waiting changes
+### The Leash Log's copy and its waiting changes
 
-- **The desk's own copy of `status.yaml` and `gantry-cycles.yaml` is its database.** On the phone it's read from main on GitHub
+- **The Leash Log's own copy of `status.yaml` and `gantry-cycles.yaml` is its database.** On the phone it's read from main on GitHub
   (the repo is public, so no token), checked every minute and kept for when the phone is offline. In the Claude app it's
   published with the artifact, and `copy.json` says which commit of main it came from.
 - **Saving adds a change to a list on the device** (the phone's SQLite key-value store, or browser storage in the Claude
@@ -118,10 +118,10 @@ Push asks for Face ID, then, through GitHub's API:
 
 The site's "Land Leash Log changes" workflow (`.github/workflows/desk.yml` in molund/omc5) then checks that the
 commits only change `status.yaml` and `gantry-cycles.yaml` and add photos (JPEG, at most 1024 px wide, no metadata), formats and
-builds the site, moves main up to them, and starts the deploy with a `desk-pushed` event. The desk follows both runs:
+builds the site, moves main up to them, and starts the deploy with a `desk-pushed` event. The Leash Log follows both runs:
 "Landing on main", then "deploying" and "Live on the site". When the landing succeeds it drops the changes and reads
 main again, and a new push can go while the site deploys. When either run fails it says so and links to the run; a
-failed landing keeps the changes. It checks only while the desk is on screen, and checks at once when it comes back.
+failed landing keeps the changes. It checks only while the Leash Log is on screen, and checks at once when it comes back.
 
 **The token.** The phone pushes with Mike's fine-grained GitHub token: repository `molund/omc5` only, **Contents: read
 and write** and **Actions: read-only**, nothing else (not Workflows), with an expiry date.
@@ -129,10 +129,10 @@ and write** and **Actions: read-only**, nothing else (not Workflows), with an ex
 - Paste it under the gear (Settings). "Check and save" refuses a classic token, checks the token can see the repo and
   reads when it expires.
 - It's kept in the iPhone's Keychain (expo-secure-store), on this device only (not in iCloud Keychain or backups), saved
-  so that reading it needs Face ID. The desk keeps only its last four characters and expiry date, to show, and warns a
+  so that reading it needs Face ID. The Leash Log keeps only its last four characters and expiry date, to show, and warns a
   week before the token expires.
-- Actions: read-only lets the desk follow a push's runs with the token Face ID unlocked for it, kept in memory only
-  until the push is done: every 5 seconds, under GitHub's limit of 5,000 requests an hour. Without it, the desk follows
+- Actions: read-only lets the Leash Log follow a push's runs with the token Face ID unlocked for it, kept in memory only
+  until the push is done: every 5 seconds, under GitHub's limit of 5,000 requests an hour. Without it, the Leash Log follows
   the push without a token, every 15 seconds, under the limit of 60.
 - The token can write any file in the repo apart from workflows. The workflow is what limits a push to `status.yaml`,
   `gantry-cycles.yaml` and photos, and a push to main with the token directly would skip it. If the phone is lost, revoke the
@@ -140,8 +140,8 @@ and write** and **Actions: read-only**, nothing else (not Workflows), with an ex
 
 ### Pushing from the Claude app
 
-The desk can't reach GitHub from the Claude app. So Push saves `outbox.json` (the changes, in order) and the new photos
-under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer the Leash Log" scheduled task
+The Leash Log can't reach GitHub from the Claude app. So Push saves `outbox.json` (the changes, in order) and the new photos
+under `outbox/photos/` into the Leash Log's own artifact. Then it starts the "Answer the Leash Log" scheduled task
 (`pushTrigger` in `desk.config.json`) through the Claude Code Remote connector (the artifact's `mcp` capability,
 `fire_trigger` only; the Claude app asks the first time). That wakes the Claude Code session the task is bound to (the
 "Admin tool push state" chat, which has both repositories), and the session follows
@@ -151,13 +151,13 @@ under `outbox/photos/` into the desk's own artifact. Then it starts the "Answer 
 2. applies each change, in order, to main's `status.yaml` and `gantry-cycles.yaml` with `tools/apply-changes.mjs`;
 3. runs Prettier and `npm run build`, then makes one commit per change, as Mike Olund (Claude app);
 4. pushes;
-5. republishes the desk with main's new `status.yaml` and `gantry-cycles.yaml`, `copy.json` (with `handled`: the request's id)
+5. republishes the Leash Log with main's new `status.yaml` and `gantry-cycles.yaml`, `copy.json` (with `handled`: the request's id)
    and `pushed.json` (the ids it committed), and removes the outbox.
 
-The desk reloads with the new copy and drops the changes listed in `pushed.json`. Refresh from main saves a refresh
+The Leash Log reloads with the new copy and drops the changes listed in `pushed.json`. Refresh from main saves a refresh
 request the same way.
 
-- If the desk can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into a
+- If the Leash Log can't save to itself (opened outside the Claude app, say), it offers the request as text to paste into a
   new Claude Code chat.
 - If it saved the request but couldn't start the session, it says why, with "Start Claude Code again" and a line to
   paste into a new chat instead.
@@ -203,7 +203,7 @@ capabilities:
 
 | Capability | What for                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------ |
-| `artifact` | the desk saves its outbox into itself                                                      |
+| `artifact` | the Leash Log saves its outbox into itself                                                 |
 | `sample`   | "Ask Claude" for the gantry steps                                                          |
 | `mcp`      | `{servers: [{server: "Claude Code Remote", tools: ["fire_trigger"]}]}`: starts the session |
 
@@ -218,13 +218,14 @@ files of a pair have the same shape.
 What the app calls something can differ from its name in the code and the files. That's allowed, as long as it's listed
 here. Look here before renaming anything, and add a row when a new difference appears.
 
-| In the app      | In the code and the files                                                                                   | Why the difference                                                                                |
-| --------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| **Addendum**    | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update |
-| **Notes**       | `NoteToSelf`, `noteToSelf`; gantry-cycles.yaml's `note:` key                                                | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml  |
-| **GitHub sync** | `Outbox`, and "the desk's copy" in comments                                                                 | the panel is the desk's copy of main, its waiting changes and the push; the code's name is older  |
+| In the app      | In the code and the files                                                                                    | Why the difference                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| **Addendum**    | `followup`: change kinds (`followup`, `followup-edit`), `FollowUpScreen`, `followUps`; the `follow-up:` key  | the site and status.yaml say follow-up; the app says Addendum so it reads differently from Update      |
+| **Notes**       | `NoteToSelf`, `noteToSelf`; gantry-cycles.yaml's `note:` key                                                 | the code's name is from when it was a note to self; so was the key, when it lived in status.yaml       |
+| **GitHub sync** | `Outbox`                                                                                                     | the panel is the Leash Log's copy of main, its waiting changes and the push; the code's name is older  |
+| **Leash Log**   | `desk` in names: `useDesk`, `desk.js`, `deskFile.js`, `Desk`, the `desk-edit` change kind, the `desk` branch | the app was called Status Desk; its storage keys and bundle id keep that name so nothing saved is lost |
 
-The wording the desk writes for you follows the app: the suggested commit messages say "addendum", while the files they
+The wording the Leash Log writes for you follows the app: the suggested commit messages say "addendum", while the files they
 change still have `follow-up:`. Storage keys from before Home (`mode`, `blog`, `draft.edit`) are no longer read.
 
 ## Code layout
@@ -239,7 +240,7 @@ Each file starts with a comment saying what it's for.
 | `src/screens/`             | one per tab and page                                                                                                  |
 | `src/components/`          | the pieces the screens share                                                                                          |
 | `src/lib/`                 | the files, the changes and the rules: plain JavaScript, no React, shared by the app, both kinds of push and the tests |
-| `src/state/desk.js`        | the desk's copy, the waiting changes, drafts and photos                                                               |
+| `src/state/desk.js`        | the Leash Log's copy, the waiting changes, drafts and photos                                                          |
 | `src/services/`            | pushing (from the phone and from the Claude app) and Ask Claude                                                       |
 | `src/platform/`            | one file per platform (see Platform files above)                                                                      |
 | `src/theme/`               | the site's colours for twrnc                                                                                          |

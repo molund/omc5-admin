@@ -37,9 +37,9 @@ Spans per week is written on every push, to two decimals, each change its own co
 - **The chart.** The site's build (`src/lib/velocityChart.js` and `trackside/prerender.js` in molund/omc5) reads
   `gantry-cycles.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: the earlier values, then
   the figure now at the newest entry's time, spaced by time, the y axis zoomed to their range (a tenth more each side),
-  no labels, green when the last is above the first, red below, grey the same. The desk's card preview draws the same
+  no labels, green when the last is above the first, red below, grey the same. The Leash Log's card preview draws the same
   (`chartFor` in `card.js`).
-- **The arrow** on the desk's own velocity panel compares the figure with the newest earlier value; equal, no arrow.
+- **The arrow** on the Leash Log's own velocity panel compares the figure with the newest earlier value; equal, no arrow.
 - **Earlier forms.** On Nov. 7, 2026 the earlier values were in `status.yaml`: as a list (for 96 hours, then for the
   current span and the one before it), as a single value, with underscored keys (`spans_per_week` and so on), and with
   days per span too. The next push leaves `status.yaml` with just the copy.
@@ -135,7 +135,7 @@ These short hand-offs are held near a set length in shift hours (`KNOWN_HOURS`):
 
 ## Which data counts
 
-- **Steps since Nov. 3, 2026** (`SHARES_SINCE`) for the shares. Older steps were filled in from old posts, before the desk
+- **Steps since Nov. 3, 2026** (`SHARES_SINCE`) for the shares. Older steps were filled in from old posts, before the Leash Log
   tagged steps.
 - **The newest span and the three before it** for the shares. Older spans drop out as the gantry moves on. A step tagged
   with too high a span number moves this window.

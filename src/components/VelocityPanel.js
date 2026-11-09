@@ -72,7 +72,7 @@ export function VelocityPanel({ full, onOpen }) {
       </Body>
       {t.shutdown > 0.01 && (
         <Body small mute numberOfLines={1} style={[tw`text-right`, num]}>
-          {`${Math.abs(t.shutdown - 24) < 0.01 ? "24h" : hours(t.shutdown)} shutdown not counted`}
+          {`${Math.abs(t.shutdown - Math.round(t.shutdown)) < 0.01 ? `${Math.round(t.shutdown)}h` : hours(t.shutdown)} shutdown not counted`}
         </Body>
       )}
     </View>

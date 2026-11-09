@@ -223,19 +223,19 @@ test("update, follow-up and blog changes write their stage and notes to self to 
   assert.ok(head.notes.length > 0);
 });
 
-test("working time leaves out Friday 6 p.m. to Saturday 7 a.m., and Saturday 6 p.m. to Sunday 6 p.m.", () => {
-  // Friday noon to Monday noon: 72 hours, 37 of them the shutdown
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 35);
+test("working time leaves out Friday 6 p.m. to Saturday 7 a.m., and Saturday 6 p.m. to Sunday 8 p.m.", () => {
+  // Friday noon to Monday noon: 72 hours, 39 of them the shutdown
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 33);
   // Friday 5 p.m. to Saturday 8 a.m.: one hour before Friday night's, one after
   assert.equal(workingHours(at("2026-10-30T17:00-07:00"), at("2026-10-31T08:00-07:00")), 2);
-  // Saturday 5 p.m. to Sunday 7 p.m.: one hour before it, one after
-  assert.equal(workingHours(at("2026-10-31T17:00-07:00"), at("2026-11-01T19:00-07:00")), 2);
+  // Saturday 5 p.m. to Sunday 9 p.m.: one hour before it, one after
+  assert.equal(workingHours(at("2026-10-31T17:00-07:00"), at("2026-11-01T21:00-07:00")), 2);
   // inside it
   assert.equal(workingHours(at("2026-10-31T19:00-07:00"), at("2026-11-01T17:00-07:00")), 0);
   // a weekday stretch
   assert.equal(workingHours(at("2026-11-03T13:30-07:00"), at("2026-11-05T10:00-07:00")), 44.5);
   // two weekends
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 74);
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 78);
 });
 
 test("a step logged in a shutdown's evening is overtime, and the shutdown starts there instead", () => {
@@ -387,9 +387,9 @@ test("the velocity: how far the gantry got in the week up to the step reported l
       ["arrived at span", 0],
       ["hanging started", 2.5],
       ["hung", 7],
-      ["post-tensioning started", 26.25],
-      ["cables down", 34.75],
-      ["supports started", 48.25],
+      ["post-tensioning started", 24.25],
+      ["cables down", 32.75],
+      ["supports started", 46.25],
     ],
   );
 });
@@ -1003,7 +1003,7 @@ test("the velocity over a week: a steady pace comes back, the window moves with 
   assert.equal(v.stage, "glued");
   assert.equal(v.window.end, entries.at(-1).key);
   assert.ok(parseKey(v.window.end) > parseKey(atArrival.window.end));
-  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 131);
+  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 129);
   // less than a week of steps: nothing to read the start off
   const short = entries.filter((e) => e.span >= 43);
   assert.equal(velocity(short).spansPerWeek, null);

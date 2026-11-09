@@ -36,7 +36,6 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
     return (
       <Panel>
         <Label>{label}</Label>
-        <Checkbox label="Set manually" value={false} onChange={() => onManual?.(Date.now() + MANUAL_MS)} />
         <Row>
           <Body style={tw`font-semibold`}>{longDate(value)}</Body>
           <Body style={tw`font-semibold`}>{clock(value)}</Body>
@@ -44,6 +43,7 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
         <Body small mute>
           Follows your clock, to the quarter hour. BC time.
         </Body>
+        <Checkbox label="Set manually" value={false} onChange={() => onManual?.(Date.now() + MANUAL_MS)} />
       </Panel>
     );
   return (
@@ -55,16 +55,6 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
       >
         {label}
       </Label>
-      {manual && (
-        <Checkbox
-          label="Set manually"
-          value
-          onChange={() => {
-            onManual?.(null);
-            onChange(nowKey());
-          }}
-        />
-      )}
       <Row>
         <Body style={tw`font-semibold`}>{longDate(value)}</Body>
         <Stepper
@@ -96,6 +86,16 @@ export function TimeStampField({ value, onChange, label = "Time stamp", note, au
       <Body small mute>
         {note ?? (dateOnly ? "Trackside shows a blog post's date only." : "BC time, to the quarter hour.")}
       </Body>
+      {manual && (
+        <Checkbox
+          label="Set manually"
+          value
+          onChange={() => {
+            onManual?.(null);
+            onChange(nowKey());
+          }}
+        />
+      )}
     </Panel>
   );
 }

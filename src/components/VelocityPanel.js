@@ -16,7 +16,7 @@ import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 // the steps' names in this panel's rows (the log and the stage shares): each names the stage that starts at the step
 const SHORT_LABELS = {
-  "arrived at span": "Arrival",
+  "arrived at span": "Cycle prep",
   "hanging started": "Hanging",
   hung: "Pre-gluing",
   "gluing started": "Gluing",

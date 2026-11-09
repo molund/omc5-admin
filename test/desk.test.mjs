@@ -223,9 +223,11 @@ test("update, follow-up and blog changes write their stage and notes to self to 
   assert.ok(head.notes.length > 0);
 });
 
-test("working time leaves out Saturday 6 p.m. to Sunday 6 p.m.", () => {
-  // Friday noon to Monday noon: 72 hours, 24 of them the shutdown
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 48);
+test("working time leaves out Friday 6 p.m. to Saturday 6 a.m., and Saturday 6 p.m. to Sunday 6 p.m.", () => {
+  // Friday noon to Monday noon: 72 hours, 36 of them the shutdown
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-02T12:00-07:00")), 36);
+  // Friday 5 p.m. to Saturday 7 a.m.: one hour before Friday night's, one after
+  assert.equal(workingHours(at("2026-10-30T17:00-07:00"), at("2026-10-31T07:00-07:00")), 2);
   // Saturday 5 p.m. to Sunday 7 p.m.: one hour before it, one after
   assert.equal(workingHours(at("2026-10-31T17:00-07:00"), at("2026-11-01T19:00-07:00")), 2);
   // inside it
@@ -233,7 +235,7 @@ test("working time leaves out Saturday 6 p.m. to Sunday 6 p.m.", () => {
   // a weekday stretch
   assert.equal(workingHours(at("2026-11-03T13:30-07:00"), at("2026-11-05T10:00-07:00")), 44.5);
   // two weekends
-  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 48);
+  assert.equal(workingHours(at("2026-10-30T12:00-07:00"), at("2026-11-09T12:00-07:00")), 240 - 72);
 });
 
 test("shift hours count only the day and night shifts, and not the shutdown", () => {
@@ -244,8 +246,10 @@ test("shift hours count only the day and night shifts, and not the shutdown", ()
   assert.equal(shiftHours(monday("16:00"), monday("21:00")), 2);
   // inside the break
   assert.equal(shiftHours(monday("17:30"), monday("19:30")), 0);
-  // Friday's night shift runs into Saturday morning, up to 6 a.m.
-  assert.equal(shiftHours(at("2026-11-06T23:00-07:00"), at("2026-11-07T07:00-07:00")), 7);
+  // Thursday's night shift runs into Friday morning, up to 6 a.m.
+  assert.equal(shiftHours(at("2026-11-05T23:00-07:00"), at("2026-11-06T07:00-07:00")), 7);
+  // no night shift Friday: Friday's day shift, then nothing until Saturday's day shift
+  assert.equal(shiftHours(at("2026-11-06T16:00-07:00"), at("2026-11-07T08:00-07:00")), 2);
   // Saturday's day shift, then nothing until Sunday's night shift
   assert.equal(shiftHours(at("2026-11-07T16:00-07:00"), at("2026-11-08T21:00-07:00")), 2);
   // and back: across the break, and starting inside one
@@ -365,11 +369,11 @@ test("the velocity: how far the gantry got in the week up to the step reported l
       .map((t) => [t.stage, t.hours]),
     [
       ["arrived at span", 0],
-      ["hanging started", 12.75],
-      ["hung", 17.25],
-      ["post-tensioning started", 36.5],
-      ["cables down", 45],
-      ["supports started", 58.5],
+      ["hanging started", 3.5],
+      ["hung", 8],
+      ["post-tensioning started", 27.25],
+      ["cables down", 35.75],
+      ["supports started", 49.25],
     ],
   );
 });
@@ -967,7 +971,7 @@ test("a follow-up goes under today's or yesterday's update: not older ones, blog
 
 test("the velocity over a week: a steady pace comes back, the window moves with each step, and a week of data is needed", () => {
   // spans 40 to 43 in full, then span 44 up to glued, at LENGTHS' shift hours: a span every CYCLE shift hours, and any
-  // week holds 120 (a day and a night shift on six days), so 120 / CYCLE spans a week
+  // week holds 110 (a day shift on six days, a night shift on five), so 110 / CYCLE spans a week
   const entries = runOfCycles();
   let t = parseKey(entries.at(-1).key);
   const names = Object.keys(LENGTHS);
@@ -977,13 +981,13 @@ test("the velocity over a week: a steady pace comes back, the window moves with 
   }
   const atArrival = velocity(entries.filter((e) => !(e.span === 44 && e.stage !== "arrived at span")));
   const v = velocity(entries);
-  for (const x of [atArrival, v]) assert.ok(Math.abs(x.spansPerWeek - 120 / CYCLE) < 0.05, `${x.spansPerWeek}`);
+  for (const x of [atArrival, v]) assert.ok(Math.abs(x.spansPerWeek - 110 / CYCLE) < 0.05, `${x.spansPerWeek}`);
   // the week ends at the latest step: span 44's glued, logged after its arrival
   assert.equal(atArrival.stage, "arrived at span");
   assert.equal(v.stage, "glued");
   assert.equal(v.window.end, entries.at(-1).key);
   assert.ok(parseKey(v.window.end) > parseKey(atArrival.window.end));
-  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 144);
+  assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 132);
   // less than a week of steps: nothing to read the start off
   const short = entries.filter((e) => e.span >= 43);
   assert.equal(velocity(short).spansPerWeek, null);

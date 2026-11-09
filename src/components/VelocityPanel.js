@@ -113,7 +113,7 @@ export function VelocityPanel({ full, onOpen }) {
           </View>
           {open && (
             <Body small mute>
-              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Saturday night and Sunday's day shift.`}
+              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Friday and Saturday nights and Sunday's day shift.`}
             </Body>
           )}
         </View>

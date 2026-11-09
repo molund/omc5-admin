@@ -5,8 +5,8 @@
 // every step logged. The recent gaps between steps give each stage's share of a span's cycle, in shift hours (no time
 // passes in a shift break or the shutdown), and that places every step along the gantry's progress, in spans: the place a
 // week before the last step is read off between the steps either side of it, and so is a stage or arrival that wasn't
-// logged. Working time leaves out only the weekly shutdown: Saturday night and Sunday's day shift, 6 p.m. Saturday to
-// 6 p.m. Sunday, BC time.
+// logged. Working time leaves out only the weekly shutdown: Friday night, 6 p.m. Friday to 6 a.m. Saturday, and Saturday
+// night and Sunday's day shift, 6 p.m. Saturday to 6 p.m. Sunday, BC time.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
 
@@ -18,13 +18,16 @@ const WEEK_HOURS = 168;
 export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
-// the shutdown, in hours from the start of a BC week (Sunday 00:00): Saturday 18:00 to Sunday 18:00 the next day
-const SHUTDOWN_START = 6 * 24 + 18; // Saturday 18:00
-const SHUTDOWN_HOURS = 24;
-const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWN_HOURS / 24;
+// the shutdown, as [start, hours], the start in hours from the start of a BC week (Sunday 00:00): Friday 18:00 to
+// Saturday 06:00, and Saturday 18:00 to Sunday 18:00
+const SHUTDOWNS = [
+  [5 * 24 + 18, 12], // Friday 18:00
+  [6 * 24 + 18, 24], // Saturday 18:00
+];
+const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
 // BC time is UTC−7 all year in status.yaml's time stamps
 const bc = (d) => new Date(d.getTime() - 7 * HOUR);
-// the shifts, in hours from a BC midnight: Saturday's night shift and Sunday's day shift are the shutdown
+// the shifts, in hours from a BC midnight: Friday's and Saturday's night shifts and Sunday's day shift are the shutdown
 const DAY_SHIFT = [7, 17];
 const NIGHT_SHIFT = [20, 30];
 // the stages' shares come from the steps since here: the ones before it were filled in from old posts, before the Leash Log tagged steps
@@ -44,10 +47,12 @@ export function workingHours(from, to) {
   const f = bc(from);
   let weekStart = Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) - f.getUTCDay() * DAY - 7 * DAY;
   for (; weekStart + 7 * HOUR < to.getTime() + 7 * DAY; weekStart += 7 * DAY) {
-    const s = weekStart + 7 * HOUR + SHUTDOWN_START * HOUR; // back to real time
-    const e = s + SHUTDOWN_HOURS * HOUR;
-    const overlap = Math.min(e, to.getTime()) - Math.max(s, from.getTime());
-    if (overlap > 0) total -= overlap / HOUR;
+    for (const [start, hours] of SHUTDOWNS) {
+      const s = weekStart + 7 * HOUR + start * HOUR; // back to real time
+      const e = s + hours * HOUR;
+      const overlap = Math.min(e, to.getTime()) - Math.max(s, from.getTime());
+      if (overlap > 0) total -= overlap / HOUR;
+    }
   }
   return total;
 }
@@ -60,7 +65,7 @@ function* shiftsFrom(from) {
   for (; ; midnight += DAY) {
     const weekday = bc(new Date(midnight)).getUTCDay();
     if (weekday !== 0) yield DAY_SHIFT.map((h) => midnight + h * HOUR);
-    if (weekday !== 6) yield NIGHT_SHIFT.map((h) => midnight + h * HOUR);
+    if (weekday !== 5 && weekday !== 6) yield NIGHT_SHIFT.map((h) => midnight + h * HOUR);
   }
 }
 
@@ -407,7 +412,7 @@ function progressAt(steps, shares, when) {
 /**
  * The velocity now: how far the gantry got in the 168 hours (a week) up to the step reported most recently, so it moves
  * with every step logged. That step's own place is logged; the place a week before it is read off between the steps
- * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so 6
+ * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so 5.5
  * working days).
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
  *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}

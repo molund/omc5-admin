@@ -309,7 +309,7 @@ export function VelocityPanel({ full, onOpen }) {
                 {SHORT_LABELS[s.stage] ?? STAGE_LABELS[s.stage]}
               </Body>
               <Body small mute style={num}>
-                {`${Math.round(s.share * 100)}%`}
+                {`${(s.share * 100).toFixed(1)}%`}
               </Body>
               {/* last, as in the steps below: the working time a cycle takes (a week's over the spans per week) */}
               <Body small style={[tw`w-16 text-right`, num]}>

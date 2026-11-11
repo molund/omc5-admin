@@ -34,6 +34,8 @@ export const ICONS = {
       },
     ],
   ],
+  // a stage with a set length, in the stage shares: a plain line hourglass (the colour one, `hourglass`, is for shutdowns)
+  hourglassLine: [["path", { d: "M6 3h12M6 21h12M7 3v3.5l5 5.5-5 5.5V21M17 3v3.5L12 12l5 5.5V21", fill: "none" }]],
   // the progress card's, drawn as on the site (src/Icon.svelte in molund/omc5)
   close: [["path", { d: "M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7", fill: "none" }]],
   comment: [

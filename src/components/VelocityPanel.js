@@ -9,6 +9,7 @@ import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import {
+  KNOWN_HOURS,
   shutdownEffects,
   stepsWithEstimates,
   trendOf,
@@ -301,10 +302,15 @@ export function VelocityPanel({ full, onOpen }) {
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
           <Body small mute>
-            Share of the cycle, from each step to the next, and that share of a cycle's working time at the velocity
+            Share of the cycle, from each step to the next, and that share of a cycle's working time at the velocity (an
+            hourglass marks a set length)
           </Body>
           {v.shares.map((s) => (
-            <View key={s.stage} style={tw`flex-row items-baseline gap-2`}>
+            <View key={s.stage} style={tw`flex-row items-center gap-2`}>
+              {/* a column before the name, so the hourglasses line up */}
+              <View style={tw`w-3`}>
+                {s.stage in KNOWN_HOURS ? <Icon name="hourglassLine" size={12} color={colors.mute} /> : null}
+              </View>
               <Body small style={tw`flex-1`}>
                 {SHORT_LABELS[s.stage] ?? STAGE_LABELS[s.stage]}
               </Body>

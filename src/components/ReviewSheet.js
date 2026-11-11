@@ -5,6 +5,9 @@ import { ScrollView, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
+import { shutdownsHit } from "../lib/deskChanges.js";
+import { STAGE_LABELS } from "../lib/stages.js";
+import { clock, stamp } from "../lib/time.js";
 import { CardPreview } from "./CardPreview.js";
 import { Body, Button, Field, Label, Notice, Panel } from "./ui.js";
 
@@ -51,10 +54,21 @@ export function ReviewSheet({ change, onBack, onSave, cardLabel, warning }) {
   const preview = desk.preview(change);
   const [message, setMessage] = useState(() => desk.suggestMessage(change));
   const nothing = !preview.error && !preview.hunks.length && !preview.deskHunks?.length;
+  // steps in this change that fall in a shutdown are counted at its start: say so, with what to do about it
+  const inShutdown = preview.error ? [] : shutdownsHit(desk.deskText ?? "", preview.deskText ?? "");
   return (
     <View style={tw`gap-3.5`}>
       {warning && <Notice tone="problem">{warning}</Notice>}
       {nothing && <Notice>This doesn't change anything, so there's nothing to save.</Notice>}
+      {inShutdown.map(({ key, stage, shutdown }) => (
+        <Notice key={`${key}-${stage}`}>
+          {`${STAGE_LABELS[stage] ?? stage} at ${stamp(key)} falls in ${shutdown.label}, so it will be counted at ${clock(shutdown.start)}, when that began. ${
+            shutdown.open
+              ? "It's still open: if work has resumed, add hours: or end: to it in gantry-cycles.yaml first."
+              : "If work had resumed by then, shorten the shutdown first."
+          }`}
+        </Notice>
+      ))}
       <Panel>
         <Label>Commit message</Label>
         <Field value={message} onChangeText={setMessage} label="Commit message" noPrompt />

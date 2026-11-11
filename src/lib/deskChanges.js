@@ -13,6 +13,7 @@ import { formatDesk, moveEntry, parseDesk, rawShutdowns, removeEntries, replaceS
 import { applyChange, Conflict, setDeskVelocity, setVelocity } from "./changes.js";
 import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
+import { parseKey } from "./time.js";
 
 /**
  * The lines a rewrite changed, for the review: a hunk for each run of changed lines, with the line before it, and none for
@@ -173,4 +174,27 @@ export function applyAllBoth(files, changes) {
     }
   }
   return { status, desk, results };
+}
+
+/**
+ * The steps a change reports that fall inside an irregular shutdown, for the review to warn about: a step reported during one is
+ * counted at its start (lib/velocity.js's countedAt), which is wrong if work had resumed, or if the shutdown is still open and
+ * should have been closed first. Only steps the change adds or changes are looked at, and one at the very start of a shutdown is
+ * fine: it's already counted there.
+ * @param {string} deskBefore gantry-cycles.yaml as it is.
+ * @param {string} deskAfter gantry-cycles.yaml with the change in it.
+ * @returns {{ key: string, stage: string, shutdown: object }[]} `shutdown` as lib/shutdowns.js reads it.
+ */
+export function shutdownsHit(deskBefore, deskAfter) {
+  const was = new Map(parseDesk(deskBefore).map((e) => [e.key, e.stage]));
+  const after = parseDesk(deskAfter);
+  const hits = [];
+  for (const e of after) {
+    if (!e.stage || was.get(e.key) === e.stage) continue;
+    const t = parseKey(e.key).getTime();
+    for (const shutdown of after.shutdowns)
+      if (shutdown.errors.length === 0 && shutdown.startMs < t && t < shutdown.endMs)
+        hits.push({ key: e.key, stage: e.stage, shutdown });
+  }
+  return hits;
 }

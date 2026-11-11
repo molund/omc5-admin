@@ -16,13 +16,13 @@ irregular-shutdowns:
     type: mechanical
     start: 2026-11-14T10:15-07:00
     end: 2026-11-14T15:15-07:00   # fixed by the afternoon crew
-  - type: waiting
-    start: 2026-11-20T08:00-07:00
   - label: Both given
     type: holiday
     start: 2026-12-25T00:00-07:00
     end: 2026-12-26T00:00-07:00
     hours: 24
+  - type: waiting
+    start: 2026-12-28T08:00-07:00
 spans-per-week: 2.81
 entries:
   - 2026-11-11T08:45-07:00:
@@ -31,7 +31,7 @@ entries:
 `;
 
 test("the list is read: hours, end, open-ended, quoted labels and trailing comments", () => {
-  const [day, pump, wait, both] = parseShutdowns(FILE);
+  const [day, pump, both, wait] = parseShutdowns(FILE);
   assert.equal(day.label, "Remembrance Day");
   assert.equal(day.type, "holiday");
   assert.equal(day.hours, 14);

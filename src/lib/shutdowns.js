@@ -37,6 +37,8 @@ export function typeInfo(type) {
   return t ? { ...t, known: true } : { name: type || "No type", icon: null, excused: false, known: false };
 }
 
+const FIELDS = new Set(["label", "type", "start", "end", "hours"]);
+
 const unquote = (v) => {
   v = v.trim();
   // a quoted value, with a comment after it or not
@@ -68,34 +70,91 @@ const unquote = (v) => {
  * @property {number|null} length Its length in hours, null while open or when it can't be worked out.
  * @property {string[]} errors What's wrong with it. It's left out of the velocity while it has any.
  * @property {string[]} warnings What's odd about it, but doesn't stop it counting.
+ * @property {number} line The line of the file its entry starts on (1 for the first).
  */
 
-/** The `irregular-shutdowns:` list of a gantry-cycles.yaml, in the order written. No list gives []. */
-export function parseShutdowns(text) {
-  const items = [];
+/**
+ * What's in the `irregular-shutdowns:` list of a gantry-cycles.yaml, and what can't be read: the shutdowns in the order written,
+ * the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one (`- {label: x}`, say),
+ * which are left out.
+ * @returns {{ shutdowns: Shutdown[], keys: number[], unreadable: { line: number, text: string }[] }}
+ */
+export function scanShutdowns(text) {
+  const items = [],
+    keys = [],
+    unreadable = [];
   let inList = false,
     cur = null;
-  for (const line of String(text ?? "").split("\n")) {
-    if (/^irregular-shutdowns:\s*(#.*)?$/.test(line)) {
-      inList = true;
-      continue;
-    }
-    if (!inList) continue;
-    // another key at the left edge ends the list; a comment or blank line doesn't
-    if (/^[A-Za-z]/.test(line)) break;
-    if (/^\s*(#|$)/.test(line)) continue;
-    const start = line.match(/^\s*-\s+([a-z-]+):\s*(.*)$/);
-    const field = start ?? line.match(/^\s+([a-z-]+):\s*(.*)$/);
-    if (!field) continue;
-    if (start) items.push((cur = {}));
-    if (cur) cur[field[1]] = unquote(field[2]);
-  }
-  return items.map(shutdownOf);
+  String(text ?? "")
+    .split("\n")
+    .forEach((line, i) => {
+      if (/^irregular-shutdowns:\s*(#.*)?$/.test(line)) {
+        inList = true;
+        keys.push(i + 1);
+        return;
+      }
+      if (!inList) return;
+      // another key at the left edge ends the list; a comment or blank line doesn't
+      if (/^[A-Za-z]/.test(line)) {
+        inList = false;
+        return;
+      }
+      if (/^\s*(#|$)/.test(line)) return;
+      const start = line.match(/^\s*-\s+([a-z-]+):\s*(.*)$/);
+      const field = start ?? line.match(/^\s+([a-z-]+):\s*(.*)$/);
+      if (!field || (!start && !cur)) {
+        unreadable.push({ line: i + 1, text: line });
+        return;
+      }
+      if (start) items.push((cur = { line: i + 1, fields: {}, unknown: [] }));
+      if (FIELDS.has(field[1])) cur.fields[field[1]] = unquote(field[2]);
+      else cur.unknown.push(field[1]);
+    });
+  const shutdowns = items.map(shutdownOf);
+  flagOverlaps(shutdowns);
+  return { shutdowns, keys, unreadable };
 }
 
-function shutdownOf(raw) {
+/** The `irregular-shutdowns:` list of a gantry-cycles.yaml, in the order written. No list gives []. */
+export const parseShutdowns = (text) => scanShutdowns(text).shutdowns;
+
+/** Two shutdowns that overlap are probably a mistake (a stretch written twice): each is warned about the other. */
+function flagOverlaps(list) {
+  const ok = list.filter((s) => s.errors.length === 0);
+  for (let i = 0; i < ok.length; i++)
+    for (let j = i + 1; j < ok.length; j++) {
+      const [a, b] = [ok[i], ok[j]];
+      if (a.startMs < b.endMs && b.startMs < a.endMs) {
+        a.warnings.push(`overlaps ${b.label}`);
+        b.warnings.push(`overlaps ${a.label}`);
+      }
+    }
+}
+
+/**
+ * Everything wrong with a gantry-cycles.yaml's irregular shutdowns, for the check that stops a bad list being deployed: errors
+ * (an entry that's left out of the velocity, a line that can't be read, the key twice) and warnings (a typo'd type or field,
+ * end and hours that disagree, a holiday over 24 hours, two that overlap), which the check counts as failures too.
+ * @returns {{ line: number, level: "error"|"warning", message: string }[]} In file order.
+ */
+export function checkShutdowns(text) {
+  const { shutdowns, keys, unreadable } = scanShutdowns(text);
+  const out = [];
+  if (keys.length > 1)
+    out.push({ line: keys[1], level: "error", message: "irregular-shutdowns: is in the file more than once" });
+  for (const u of unreadable)
+    out.push({ line: u.line, level: "error", message: `this line can't be read: ${u.text.trim()}` });
+  for (const s of shutdowns) {
+    for (const e of s.errors) out.push({ line: s.line, level: "error", message: `${s.label}: ${e}` });
+    for (const w of s.warnings) out.push({ line: s.line, level: "warning", message: `${s.label}: ${w}` });
+  }
+  return out.sort((a, b) => a.line - b.line);
+}
+
+function shutdownOf({ line, fields: raw, unknown }) {
   const errors = [],
     warnings = [];
+  for (const name of unknown) warnings.push(`unknown field "${name}" is ignored`);
   const type = raw.type ?? "";
   const info = typeInfo(type);
   const startMs = raw.start ? parseKey(raw.start).getTime() : NaN;
@@ -121,6 +180,11 @@ function shutdownOf(raw) {
   if (!type) errors.push("no type");
   else if (!info.known) warnings.push(`"${type}" is not a known type: it counts against the pace`);
   const valid = errors.length === 0;
+  const length = valid && Number.isFinite(endMs) ? (endMs - startMs) / HOUR : null;
+  if (info.excused && length > HOLIDAY_CAP_HOURS)
+    warnings.push(
+      `is ${length}h but a holiday is excused for ${HOLIDAY_CAP_HOURS}h at most: list consecutive holidays (Christmas, Boxing Day) as separate entries`,
+    );
   return {
     label: raw.label || info.name,
     type,
@@ -131,9 +195,10 @@ function shutdownOf(raw) {
     startMs,
     endMs: valid ? endMs : NaN,
     open: valid && open,
-    length: valid && Number.isFinite(endMs) ? (endMs - startMs) / HOUR : null,
+    length,
     errors,
     warnings,
+    line,
   };
 }
 

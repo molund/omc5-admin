@@ -7,7 +7,10 @@
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
-import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn } from "../lib/stages.js";
+import { isDoubleGirder } from "../lib/doubleGirder.js";
+import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn, stageToPost } from "../lib/stages.js";
+
+export { stageToPost };
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { NoteToSelf } from "./NoteToSelf.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
@@ -90,19 +93,6 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
 }
 
 /**
- * The stage a change carries: Mike's pick, else the furthest step the rules find in `text`, else `fallback`, never earlier
- * than the floor (the first stage, hung once the span is hung, or the furthest step already posted for the span), so the
- * floor itself when there is none of those.
- * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
- * @param {string} floor From stageFloor.
- * @param {string} text What's written.
- * @param {string} [fallback] The step to start from when there's no pick and the rules find none.
- * @returns {string}
- */
-export const stageToPost = (value, floor, text, fallback) =>
-  atLeast(value ?? furthest(stagesIn(text)) ?? fallback, floor);
-
-/**
  * @param {object} props
  * @param {string} props.text What's written (the summary and paragraphs, or the note to self).
  * @param {string|undefined} props.value Mike's pick; undefined until he picks, when the rules' suggestion is used.
@@ -118,7 +108,8 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
   const { tw } = useTw();
   const found = stagesIn(text);
   const suggested = furthest(found);
-  const stage = stageToPost(value, floor, text, fallback);
+  const girder = isDoubleGirder(span);
+  const stage = stageToPost(value, floor, text, fallback, span);
   const index = STAGES.indexOf(stage);
   const min = STAGES.indexOf(floor);
   const [claude, setClaude] = useState(false);
@@ -160,14 +151,20 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
         position={index}
         count={STAGES.length}
         min={min}
+        disabled={girder}
         onChange={(p) => onChange(STAGES[p])}
       />
+      {girder && (
+        <Body small mute>
+          Double girder span: only the arrival is logged.
+        </Body>
+      )}
       {problem && (
         <Body small mute>
           {problem}
         </Body>
       )}
-      {(claude || (suggested && stage !== atLeast(suggested, floor))) && (
+      {!girder && (claude || (suggested && stage !== atLeast(suggested, floor))) && (
         <Row style={tw`justify-end`}>
           {suggested && stage !== atLeast(suggested, floor) && (
             <Button small kind="link" title="Use what's found" onPress={() => onChange(atLeast(suggested, floor))} />

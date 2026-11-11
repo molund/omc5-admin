@@ -1,3 +1,4 @@
+import { isDoubleGirder } from "./doubleGirder.js";
 // The steps of the Clayton Clipper's cycle, as gantry-cycles.yaml tags them (see docs/gantry-cycle.md in molund/omc5), and the
 // rules that find them in what Mike writes. A tag means "this had happened by this time stamp": the earliest time stamp with
 // a tag is the best time the Leash Log has for that step.
@@ -146,3 +147,17 @@ export function stagesIn(text) {
   }
   return STAGES.filter((st) => found.has(st));
 }
+
+/**
+ * The stage a change carries: Mike's pick, else the furthest step the rules find in `text`, else `fallback`, never earlier
+ * than the floor (the first stage, hung once the span is hung, or the furthest step already posted for the span), so the
+ * floor itself when there is none of those.
+ * @param {string|undefined} value Mike's pick (or Claude's answer), if he has picked.
+ * @param {string} floor From stageFloor.
+ * (On a double girder span, only the arrival is logged: it's always the first stage.)
+ * @param {string} text What's written.
+ * @param {string} [fallback] The step to start from when there's no pick and the rules find none.
+ * @returns {string}
+ */
+export const stageToPost = (value, floor, text, fallback, span) =>
+  isDoubleGirder(span) ? STAGES[0] : atLeast(value ?? furthest(stagesIn(text)) ?? fallback, floor);

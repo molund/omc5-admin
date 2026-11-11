@@ -80,7 +80,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
   const before = d.editing ? stageBefore(desk.deskEntries, d.editing) : undefined;
   const withMemo = {
     memo: { noteKey: note.key, text: memo },
-    stage: stageToPost(d.stage, floor, text, before),
+    stage: stageToPost(d.stage, floor, text, before, d.span),
   };
   const change = d.editing
     ? {

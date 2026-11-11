@@ -157,7 +157,7 @@ export function Stepper({ value, onMinus, onPlus, label, wide }) {
   );
 }
 
-export function Toggle({ value, onChange, label }) {
+export function Toggle({ value, onChange, label, disabled }) {
   const { tw, colors } = useTw();
   return (
     <View style={tw`flex-row items-center justify-between gap-3`}>
@@ -165,6 +165,7 @@ export function Toggle({ value, onChange, label }) {
       <Switch
         accessibilityLabel={label}
         value={value}
+        disabled={disabled}
         onValueChange={onChange}
         trackColor={{ false: colors.line, true: colors.green }}
         thumbColor={colors.panel}

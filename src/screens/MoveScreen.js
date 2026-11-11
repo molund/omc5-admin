@@ -40,7 +40,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stage: stageToPost(d.stage, floor, memo),
+    stage: stageToPost(d.stage, floor, memo, undefined, d.span),
   };
   const preview = desk.preview(change);
   // an addendum goes under the newest update from today or yesterday (blog posts aren't updates, so they're left out)

@@ -301,9 +301,17 @@ export function VelocityPanel({ full, onOpen }) {
       )}
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
+          <Body small style={tw`font-bold`}>
+            One cycle (one span), split by stage
+          </Body>
           <Body small mute>
-            Share of the cycle, from each step to the next, and that share of a cycle's working time at the velocity (an
-            hourglass marks a set length)
+            {v.spansPerWeek
+              ? `The percentages add up to one whole cycle: one span, from arriving at it to arriving at the next. The hours add up to ${hours(cycleHours)}, the time one span takes at ${v.spansPerWeek.toFixed(2)} spans a week (a week's ${hours(WORKING_DAYS_PER_WEEK * 24)} of working time, divided by that). They're elapsed hours, like the steps below.`
+              : "The percentages add up to one whole cycle: one span, from arriving at it to arriving at the next."}
+          </Body>
+          <Body small mute>
+            Hourglass: a short pause. Too quick to see on most visits, so its length is set in advance, in shift hours
+            (the 7–5 and 8–6 shifts, 20 of every 24 hours). Here it shows as elapsed hours, about 1.2 times longer.
           </Body>
           {v.shares.map((s) => (
             <View key={s.stage} style={tw`flex-row items-center gap-2`}>
@@ -323,6 +331,18 @@ export function VelocityPanel({ full, onOpen }) {
               </Body>
             </View>
           ))}
+          <View style={tw`flex-row items-center gap-2 border-t border-line pt-0.5`}>
+            <View style={tw`w-3`} />
+            <Body small style={tw`flex-1 font-semibold`}>
+              One cycle
+            </Body>
+            <Body small mute style={num}>
+              {`${(v.shares.reduce((t, x) => t + x.share, 0) * 100).toFixed(1)}%`}
+            </Body>
+            <Body small style={[tw`w-16 text-right font-semibold`, num]}>
+              {v.spansPerWeek ? hours(cycleHours) : "–"}
+            </Body>
+          </View>
         </View>
       )}
       {open && v.current && (

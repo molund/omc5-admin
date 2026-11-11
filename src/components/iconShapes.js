@@ -69,7 +69,65 @@ export const ICONS = {
       },
     ],
   ],
+
+  // full colour, for the shutdowns on the Velocity page: each shape has its own fill and stroke, so these ignore the colour an
+  // icon is given (see COLOUR_ICONS). A palm tree for a holiday, a calendar for the weekly shutdown, a wrench for a mechanical
+  // failure and an hourglass for waiting on work ahead
+  palm: [
+    ["path", { d: "M3.5 22c2.2-2.4 5.3-3 8.5-3s6.3.6 8.5 3z", fill: "#ecd29a", stroke: "none" }],
+    [
+      "path",
+      { d: "M11.2 20c.1-3.7.9-6.8 2-9.8", fill: "none", stroke: "#9a6a38", strokeWidth: 2.3, strokeLinecap: "round" },
+    ],
+    ["path", { d: "M13.2 10.2Q8.85 6.38 3.42 11.32Q7.77 13.26 13.2 10.2z", fill: "#2a8a47", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q18.79 10.69 22.60 9.98Q17.01 7.61 13.2 10.2z", fill: "#2a8a47", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q11.30 4.57 6.31 5.41Q8.21 10.05 13.2 10.2z", fill: "#35a556", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q18.19 8.25 20.09 5.41Q15.10 6.37 13.2 10.2z", fill: "#35a556", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q15.10 5.60 13.20 3.40Q11.30 7.40 13.2 10.2z", fill: "#3fb862", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q8.99 10.05 6.15 18.27Q10.36 15.61 13.2 10.2z", fill: "#23783d", stroke: "none" }],
+    ["path", { d: "M13.2 10.2Q16.04 13.81 20.25 18.27Q17.41 11.85 13.2 10.2z", fill: "#23783d", stroke: "none" }],
+    ["circle", { cx: 12.3, cy: 11.5, r: 1.15, fill: "#7a4b22", stroke: "none" }],
+    ["circle", { cx: 14.4, cy: 11.6, r: 1.15, fill: "#7a4b22", stroke: "none" }],
+  ],
+  calendar: [
+    ["rect", { x: 3, y: 4.5, width: 18, height: 16.5, rx: 2.5, fill: "#ffffff", stroke: "#aeb7c0", strokeWidth: 1 }],
+    ["path", { d: "M3 7a2.5 2.5 0 0 1 2.5-2.5h13A2.5 2.5 0 0 1 21 7v2.8H3z", fill: "#e5483d", stroke: "none" }],
+    ["rect", { x: 7.2, y: 2.3, width: 2.2, height: 4.4, rx: 1.1, fill: "#4b5560", stroke: "none" }],
+    ["rect", { x: 14.6, y: 2.3, width: 2.2, height: 4.4, rx: 1.1, fill: "#4b5560", stroke: "none" }],
+    ["circle", { cx: 8, cy: 13.3, r: 1.05, fill: "#8a949e", stroke: "none" }],
+    ["circle", { cx: 12, cy: 13.3, r: 1.05, fill: "#8a949e", stroke: "none" }],
+    ["circle", { cx: 16, cy: 13.3, r: 1.05, fill: "#8a949e", stroke: "none" }],
+    ["circle", { cx: 8, cy: 17.2, r: 1.05, fill: "#8a949e", stroke: "none" }],
+    ["circle", { cx: 12, cy: 17.2, r: 1.05, fill: "#8a949e", stroke: "none" }],
+  ],
+  wrench: [
+    ["path", { d: "M5.2 18.8L9.4 14.6", fill: "none", stroke: "#f08a24", strokeWidth: 3.8, strokeLinecap: "round" }],
+    ["path", { d: "M9.4 14.6L14 10", fill: "none", stroke: "#8794a3", strokeWidth: 3.2, strokeLinecap: "round" }],
+    [
+      "path",
+      { d: "M20 9.6A4.3 4.3 0 1 1 14.4 4", fill: "none", stroke: "#8794a3", strokeWidth: 3, strokeLinecap: "round" },
+    ],
+  ],
+  hourglass: [
+    [
+      "path",
+      {
+        d: "M7 4.7h10c0 4-2.6 5.6-4 7.3 1.4 1.7 4 3.3 4 7.3H7c0-4 2.6-5.6 4-7.3-1.4-1.7-4-3.3-4-7.3z",
+        fill: "#d4eaf7",
+        stroke: "#7aaed0",
+        strokeWidth: 1,
+      },
+    ],
+    ["path", { d: "M9 6.3h6c-.3 1.8-1.6 2.9-3 4-1.4-1.1-2.7-2.2-3-4z", fill: "#f0b84a", stroke: "none" }],
+    ["rect", { x: 11.55, y: 11, width: 0.9, height: 4.4, fill: "#f0b84a", stroke: "none" }],
+    ["path", { d: "M8.4 18.6h7.2c-.5-2.2-2-3.3-3.6-3.3s-3.1 1.1-3.6 3.3z", fill: "#f0b84a", stroke: "none" }],
+    ["rect", { x: 5, y: 2.4, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
+    ["rect", { x: 5, y: 19.2, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
+  ],
 };
 
 // The width of an icon's grid when it isn't the usual 24 (it's always 24 tall); it's drawn that much wider than its size.
 export const WIDTHS = { glasses: 43 };
+
+// Icons in full colour: each shape carries its own fill and stroke, so they're drawn without the colour an icon is given.
+export const COLOUR_ICONS = new Set(["palm", "calendar", "wrench", "hourglass"]);

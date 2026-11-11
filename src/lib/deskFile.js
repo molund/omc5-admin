@@ -7,6 +7,7 @@
 import { cleanText } from "./cleanText.js";
 import { compareKeys } from "./time.js";
 import { STAGES, currentName, furthest } from "./stages.js";
+import { parseShutdowns } from "./shutdowns.js";
 
 export const DESK_FILE = "gantry-cycles.yaml";
 
@@ -36,7 +37,8 @@ const q = (s) => JSON.stringify(String(s));
 /**
  * @typedef {{ key: string, span: number|null, stage: string|null, noteToSelf: string }} DeskEntry
  * stage: null only on an entry that is just a note to self (a blog post's).
- * @returns {DeskEntry[]} Newest first.
+ * @returns {DeskEntry[]} Newest first. It also carries the file's irregular shutdowns (lib/shutdowns.js) as a `shutdowns` property
+ * that doesn't show up when it's copied or looped over, which the velocity's calculations read.
  */
 export function parseDesk(text) {
   const entries = [];
@@ -65,7 +67,9 @@ export function parseDesk(text) {
         ) ?? null;
     else if (k === "note") cur.noteToSelf = unquote(v);
   }
-  return sortEntries(entries);
+  const sorted = sortEntries(entries);
+  Object.defineProperty(sorted, "shutdowns", { value: parseShutdowns(text), enumerable: false });
+  return sorted;
 }
 
 const sortEntries = (entries) => [...entries].sort((a, b) => compareKeys(b.key, a.key));

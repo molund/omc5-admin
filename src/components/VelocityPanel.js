@@ -150,6 +150,8 @@ export function VelocityPanel({ full, onOpen }) {
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
+  // the two column headings, small enough that "Observed" and "Estimated" fit their columns at large text sizes
+  const header = { fontSize: 9, lineHeight: 12 };
   const cycleHours = v.spansPerWeek ? (WORKING_DAYS_PER_WEEK * 24) / v.spansPerWeek : null;
   const expected = Object.fromEntries(v.shares.map((s) => [s.stage, cycleHours && s.share * cycleHours]));
   const offStyle = (t) => {
@@ -357,13 +359,13 @@ export function VelocityPanel({ full, onOpen }) {
             Steps, with the working time from each to the next (est.: not logged, estimated)
           </Body>
           {/* the same columns as the rows below: when each step started, and how long it ran */}
-          <View style={tw`flex-row items-baseline gap-2 pl-3`}>
+          <View style={tw`flex-row items-end gap-2 pl-3`}>
             <View style={tw`flex-1`} />
-            <Body small mute numberOfLines={1} style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }]}>
-              Start
+            <Body small mute style={[tw`text-right`, { width: 56, flexShrink: 0 }, header]}>
+              Observed Time
             </Body>
-            <Body small mute style={tw`w-16 text-right`}>
-              Duration
+            <Body small mute style={[tw`w-16 text-right`, header]}>
+              Estimated Duration
             </Body>
           </View>
           {bySpan.map((g) => (

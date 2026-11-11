@@ -105,15 +105,23 @@ So the cycle lengths and spans per week include the shift-change gaps, and the s
 
 In cycle order (`stages.js`). Each stage runs until the next one starts; the last runs until the next span's arrival.
 
-1. Arrived at span
-2. Hanging started
-3. All segments hung
-4. Gluing started
-5. Glued
-6. Post-tensioning started
-7. Cables down
-8. Hangers down
-9. Moving supports started
+What's observed is a step: the moment something is seen to have happened, tagged in `gantry-cycles.yaml`. Each step
+starts a stage, the stretch of work up to the next step, which the Velocity page names (`SHORT_LABELS` in
+`VelocityPanel.js`):
+
+|     | Step observed (Leash Log) | Tag in `gantry-cycles.yaml` | Stage it starts (Velocity page) | Runs until              | Length        |
+| --- | ------------------------- | --------------------------- | ------------------------------- | ----------------------- | ------------- |
+| 1   | Arrived at span           | `arrived at span`           | Cycle prep                      | Hanging started         | Set: 0.5 h    |
+| 2   | Hanging started           | `hanging started`           | Hanging                         | All segments hung       | From the logs |
+| 3   | All segments hung         | `hung`                      | Pre-gluing                      | Gluing started          | Set: 1 h      |
+| 4   | Gluing started            | `gluing started`            | Gluing                          | Glued                   | From the logs |
+| 5   | Glued                     | `glued`                     | Curing                          | Post-tensioning started | Set: 1 h      |
+| 6   | Post-tensioning started   | `post-tensioning started`   | Post-tensioning                 | Cables down             | From the logs |
+| 7   | Cables down               | `cables down`               | Hanger removal                  | Hangers down            | Set: 2.5 h    |
+| 8   | Hangers down              | `hangers down`              | Pause before movement           | Moving supports started | Set: 1 h      |
+| 9   | Moving supports started   | `supports started`          | Gantry movement                 | The next span's arrival | From the logs |
+
+"Set" lengths are in shift hours, held near that length (see below); the others are fitted to the gaps logged.
 
 ## Hard-coded stage lengths
 

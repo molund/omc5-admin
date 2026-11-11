@@ -468,8 +468,7 @@ export const sinceArrival = scoped(function sinceArrival(entries) {
 
 /**
  * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
- * steps logged by then, as if it were that moment: [{ key, spansPerWeek, span, stage }], newest first, `span` and `stage`
- * the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are counted
+ * steps logged by then, as if it were that moment: [{ key, spansPerWeek }], newest first. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are counted
  * where their time stamps put them.
  */
 export const velocityHistory = scoped(function velocityHistory(entries) {
@@ -486,8 +485,6 @@ export const velocityHistory = scoped(function velocityHistory(entries) {
       out.push({
         key: toKey(new Date(t)),
         spansPerWeek: v.spansPerWeek,
-        span: v.window.span,
-        stage: v.stage,
       });
   }
   return out;
@@ -507,8 +504,11 @@ export const velocityHistory = scoped(function velocityHistory(entries) {
 export function trendOf(shown, header, key) {
   const field = (k) => header?.[k] ?? header?.[k.replaceAll("-", "_")];
   const now = field(key)?.value;
+  // the new list has the figure now first, so the one before it is second; the old `-previous` list began with that one
+  const data = field("calculated-chart-data");
   const before = field(`${key}-previous`);
-  const from = now === shown ? (before?.list?.[0]?.value ?? (before?.value || undefined)) : now;
+  const earlier = data?.list ? data.list[1]?.value : (before?.list?.[0]?.value ?? (before?.value || undefined));
+  const from = now === shown ? earlier : now;
   if (from == null || +from === +shown) return null;
   return { way: +shown > +from ? "up" : "down", from };
 }

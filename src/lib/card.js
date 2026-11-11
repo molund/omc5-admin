@@ -19,8 +19,8 @@ export const figuresFor = (span) => ({
 });
 
 /**
- * The velocity chart's points, oldest first: gantry-cycles.yaml's earlier values, then the figure now at its newest entry's time
- * stamp, as the site's build draws them (src/lib/velocityChart.js in molund/omc5). A gantry-cycles.yaml without the velocity yet
+ * The velocity chart's points, oldest first: gantry-cycles.yaml's `calculated-chart-data` (the older `spans-per-week-previous` plus the figure now
+ * at its newest entry's time stamp, until the file has the new list), as the site's build draws them (src/lib/velocityChart.js in molund/omc5). A gantry-cycles.yaml without the velocity yet
  * (before Nov. 8, 2026) has none.
  * @returns {{ key: string, value: number }[]}
  */
@@ -29,8 +29,11 @@ export function velocityPoints(deskText) {
   const now = h["spans-per-week"]?.value;
   const newest = parseDesk(deskText ?? "")[0]?.key;
   if (now == null || !newest) return [];
-  const earlier = (h["spans-per-week-previous"]?.list ?? []).map((i) => ({ key: i.key, value: +i.value })).reverse();
-  return [...earlier, { key: newest, value: +now }];
+  const list = (name) => (h[name]?.list ?? []).map((i) => ({ key: i.key, value: +i.value }));
+  // the new list holds the figure now as its first point, so it isn't added again
+  const data = list("calculated-chart-data");
+  const points = data.length ? data : [{ key: newest, value: +now }, ...list("spans-per-week-previous")];
+  return points.filter((p, i) => points.findIndex((q) => q.key === p.key) === i).reverse();
 }
 
 /**

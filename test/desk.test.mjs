@@ -8,6 +8,7 @@ import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "..
 import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { setDeskVelocity, setVelocity } from "../src/lib/changes.js";
+import { velocityPoints } from "../src/lib/card.js";
 import {
   afterShiftHours,
   arrivals,
@@ -741,7 +742,7 @@ test("status.yaml gets a copy of spans per week after hung:, and nothing more", 
   // (the fixture is from before Nov. 6, 2026, so its hung: line is still complete:) after it, its two lines of comment
   assert.equal(h["spans-per-week"].line, (h.hung ?? h.complete).line + 3);
   assert.equal(h["spans-per-week"].value, "2.83");
-  assert.equal(h["spans-per-week-previous"], undefined);
+  assert.equal(h["calculated-chart-data"], undefined);
   assert.match(once, /a copy of gantry-cycles\.yaml's/);
   // written again the same: not a character changes; a new figure: in place
   assert.equal(setVelocity(once, { spansPerWeek: 2.83 }).text, once);
@@ -755,39 +756,47 @@ test("status.yaml gets a copy of spans per week after hung:, and nothing more", 
 test("gantry-cycles.yaml gets the velocity above its entries, with its earlier values as a list, newest first", () => {
   const desk = formatDesk(parseDesk(DESK));
   const history = [
-    { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.805, span: 38, stage: "hangers down" },
-    { key: "2026-11-05T10:00-07:00", spansPerWeek: 2.77, span: 38, stage: "arrived at span" },
+    { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.805 },
+    { key: "2026-11-05T10:00-07:00", spansPerWeek: 2.77 },
   ];
-  const once = setDeskVelocity(desk, { spansPerWeek: 2.83 }, history).text;
+  const once = setDeskVelocity(desk, { spansPerWeek: 2.83, window: { end: "2026-11-07T10:45-07:00" } }, history).text;
   const h = parseStatus(once).header;
   assert.equal(h["spans-per-week"].value, "2.83");
   assert.ok(h["spans-per-week"].line < h.entries.line);
   assert.deepEqual(
-    h["spans-per-week-previous"].list.map(({ key, value, span, stage }) => [key, value, span, stage]),
+    h["calculated-chart-data"].list.map(({ key, value }) => [key, value]),
     [
-      ["2026-11-06T22:00-07:00", "2.81", "38", "hangers down"],
-      ["2026-11-05T10:00-07:00", "2.77", "38", "arrived at span"],
+      // the figure now first, then the earlier ones, with no span or stage under them
+      ["2026-11-07T10:45-07:00", "2.83"],
+      ["2026-11-06T22:00-07:00", "2.81"],
+      ["2026-11-05T10:00-07:00", "2.77"],
     ],
   );
-  assert.equal(h["spans-per-week-previous"].end, h.entries.line - 1);
+  assert.equal(h["calculated-chart-data"].end, h.entries.line - 1);
   // the entries read as they were
   assert.deepEqual(parseDesk(once), parseDesk(desk));
   // written again the same: not a character changes
-  assert.equal(setDeskVelocity(once, { spansPerWeek: 2.83 }, history).text, once);
+  assert.equal(
+    setDeskVelocity(once, { spansPerWeek: 2.83, window: { end: "2026-11-07T10:45-07:00" } }, history).text,
+    once,
+  );
   // a newer step: the whole block, in place, with the older value gone
-  const later = [{ key: "2026-11-07T08:15-07:00", spansPerWeek: 2.83, span: 38, stage: "supports started" }];
-  const again = setDeskVelocity(once, { spansPerWeek: 2.86 }, [...later, history[0]]).text;
+  const later = [{ key: "2026-11-07T08:15-07:00", spansPerWeek: 2.83 }];
+  const again = setDeskVelocity(once, { spansPerWeek: 2.86, window: { end: "2026-11-07T10:45-07:00" } }, [
+    ...later,
+    history[0],
+  ]).text;
   const g = parseStatus(again).header;
   assert.equal(g["spans-per-week"].value, "2.86");
   assert.deepEqual(
-    g["spans-per-week-previous"].list.map((i) => i.key),
-    ["2026-11-07T08:15-07:00", "2026-11-06T22:00-07:00"],
+    g["calculated-chart-data"].list.map((i) => i.key),
+    ["2026-11-07T10:45-07:00", "2026-11-07T08:15-07:00", "2026-11-06T22:00-07:00"],
   );
   assert.equal(again.split("\n").length, once.split("\n").length);
   assert.deepEqual(parseDesk(again), parseDesk(desk));
   // no earlier values: no list; no velocity yet: left as it is
   assert.equal(
-    parseStatus(setDeskVelocity(desk, { spansPerWeek: 2.4 }).text).header["spans-per-week-previous"],
+    parseStatus(setDeskVelocity(desk, { spansPerWeek: 2.4 }).text).header["calculated-chart-data"],
     undefined,
   );
   assert.equal(setDeskVelocity(desk, null).text, desk);
@@ -884,23 +893,27 @@ test("status.yaml's earlier velocity forms, all from Nov. 7, 2026, become just t
 test("which way a velocity figure went: against gantry-cycles.yaml's newest earlier value, or its figure when the one shown is newer", () => {
   const desk = formatDesk(parseDesk(DESK));
   const history = [
-    { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.6, span: 38, stage: "hangers down" },
-    { key: "2026-11-05T10:00-07:00", spansPerWeek: 3.0, span: 38, stage: "arrived at span" },
+    { key: "2026-11-06T22:00-07:00", spansPerWeek: 2.6 },
+    { key: "2026-11-05T10:00-07:00", spansPerWeek: 3.0 },
   ];
-  const h = parseStatus(setDeskVelocity(desk, { spansPerWeek: 2.83 }, history).text).header;
+  const h = parseStatus(
+    setDeskVelocity(desk, { spansPerWeek: 2.83, window: { end: "2026-11-07T10:45-07:00" } }, history).text,
+  ).header;
   // the file holds the figure shown: against the newest earlier value
   assert.deepEqual(trendOf("2.83", h, "spans-per-week"), { way: "up", from: "2.60" });
   // a figure newer than the file (waiting changes, or worked out a new way): against the file's
   assert.deepEqual(trendOf("2.70", h, "spans-per-week"), { way: "down", from: "2.83" });
   // the same as the newest earlier value: no arrow
-  const same = parseStatus(setDeskVelocity(desk, { spansPerWeek: 2.6 }, history).text).header;
+  const same = parseStatus(
+    setDeskVelocity(desk, { spansPerWeek: 2.6, window: { end: "2026-11-07T10:45-07:00" } }, history).text,
+  ).header;
   assert.equal(trendOf("2.60", same, "spans-per-week"), null);
   // nothing to compare with
   assert.equal(trendOf("2.83", parseStatus(desk).header, "spans-per-week"), null);
   assert.equal(trendOf("2.83", null, "spans-per-week"), null);
 });
 
-test("the velocity's history: as worked out at each earlier step of the last 96 hours, with that step's span and stage", () => {
+test("the velocity's history: as worked out at each earlier step of the last 96 hours", () => {
   const entries = runOfCycles();
   let t = parseKey(entries.at(-1).key);
   const names = Object.keys(LENGTHS);
@@ -920,9 +933,8 @@ test("the velocity's history: as worked out at each earlier step of the last 96 
     // the velocity as it was then: only the steps logged by that moment
     const then = velocity(entries.filter((e) => parseKey(e.key) <= at));
     assert.equal(h.spansPerWeek, then.spansPerWeek);
-    assert.equal(h.stage, then.stage);
-    assert.equal(h.span, then.window.span);
-    assert.equal(h.stage, entries.find((e) => e.key === h.key).stage);
+    // no span or stage: nothing reads them
+    assert.deepEqual(Object.keys(h), ["key", "spansPerWeek"]);
   }
   // every earlier step of those 96 hours with a velocity by then is in it, and none older
   const kept = entries.filter(
@@ -1043,4 +1055,28 @@ test("an addendum's time stamp: the same day as its update, 15 minutes after it 
     "An addendum has to be at least 15 minutes after its blog post: 12:15am or later.",
   ]);
   assert.deepEqual(addendumProblems(post, "2026-11-08T09:00-07:00"), []);
+});
+
+test("the chart's points: the new list has the figure now in it once; the older form gets it added", () => {
+  const entries = ["entries:", "  - 2026-11-07T10:45-07:00:", "      span: 38", "      stage: supports started"];
+  const fresh = [
+    "spans-per-week: 2.83",
+    "calculated-chart-data:",
+    "  - 2026-11-07T10:45-07:00: 2.83",
+    "  - 2026-11-06T22:00-07:00: 2.81",
+    ...entries,
+  ].join("\n");
+  const old = [
+    "spans-per-week: 2.83",
+    "spans-per-week-previous:",
+    "  - 2026-11-06T22:00-07:00: 2.81",
+    "    span: 38",
+    ...entries,
+  ].join("\n");
+  const want = [
+    { key: "2026-11-06T22:00-07:00", value: 2.81 },
+    { key: "2026-11-07T10:45-07:00", value: 2.83 },
+  ];
+  assert.deepEqual(velocityPoints(fresh), want);
+  assert.deepEqual(velocityPoints(old), want);
 });

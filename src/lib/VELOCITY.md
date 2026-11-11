@@ -18,15 +18,16 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 Spans per week is written on every push, to two decimals, each change its own commit, in two places:
 
 - **`gantry-cycles.yaml`**, above `entries:` (`setDeskVelocity` in `changes.js`): `spans-per-week`, and under it
-  `spans-per-week-previous`, its values at the earlier steps of **the past 96 hours** (`HISTORY_HOURS`, counted back from
-  the latest step), newest first, each with the span and stage of the step it was timed by:
+  `calculated-chart-data`, the figure at each step of **the past 96 hours** (`HISTORY_HOURS`, counted back from the latest
+  step), newest first. Its first point is `spans-per-week` itself, at the latest step's time; the chart doesn't draw it twice.
+  (It was `spans-per-week-previous` before, the earlier values only, each with the span and stage of its step; nothing read
+  those two, so they're gone. Both forms are read, and the file takes the new one on the next push.)
 
   ```yaml
   spans-per-week: 2.83
-  spans-per-week-previous:
+  calculated-chart-data:
+    - 2026-11-08T10:00-07:00: 2.83
     - 2026-11-06T22:00-07:00: 2.81
-      span: 38
-      stage: hangers down
   ```
 
 - **`status.yaml`**, after `hung:`, a copy of `spans-per-week` alone (`setVelocity`): the figure the site's card shows.
@@ -35,8 +36,7 @@ Spans per week is written on every push, to two decimals, each change its own co
   (`velocityHistory`): the velocity at each earlier step, from the steps logged by then. So it backfills itself, a step
   logged late lands where its time stamp puts it, and values more than 96 hours before the latest step are pruned.
 - **The chart.** The site's build (`src/lib/velocityChart.js` and `trackside/prerender.js` in molund/omc5) reads
-  `gantry-cycles.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: the earlier values, then
-  the figure now at the newest entry's time, spaced by time, the y axis zoomed to their range (a tenth more each side),
+  `gantry-cycles.yaml`'s velocity and draws `velocity.svg` for the progress card, in place of an arrow: `calculated-chart-data`, spaced by time, the y axis zoomed to their range (a tenth more each side),
   no labels, green when the last is above the first, red below, grey the same. The Leash Log's card preview draws the same
   (`chartFor` in `card.js`).
 - **The arrow** on the Leash Log's own velocity panel compares the figure with the newest earlier value; equal, no arrow.

@@ -8,8 +8,10 @@
 const COLOURS = { up: ["#4f8a6b", "#7fbf9a"], down: ["#b0564f", "#e0928b"], flat: ["#5b6670", "#a3adb5"] };
 
 /**
- * The chart's points from gantry-cycles.yaml, oldest first: its `spans-per-week-previous` list (newest first in the file, each
- * "- time: value"), then `spans-per-week` at its newest entry's time stamp. None when gantry-cycles.yaml has no velocity.
+ * The chart's points from gantry-cycles.yaml, oldest first: its `calculated-chart-data` list, newest first in the file, each
+ * "- time: value", with the figure now first. The Leash Log wrote the earlier values as `spans-per-week-previous` before, with
+ * the figure now only as `spans-per-week`, at its newest entry's time stamp: that form is read too, until every file has the new
+ * one. None when gantry-cycles.yaml has no velocity.
  * @param {string} text gantry-cycles.yaml
  * @returns {{ time: Date, value: number }[]}
  */
@@ -17,7 +19,8 @@ export function velocityPoints(text) {
   let now = null,
     newest = null,
     section = null;
-  const earlier = [];
+  const earlier = [],
+    data = [];
   for (const line of String(text ?? "").split("\n")) {
     const key = line.match(/^([a-z][a-z-]*):\s*(.*?)\s*$/);
     if (key) {
@@ -25,13 +28,19 @@ export function velocityPoints(text) {
       if (section === "spans-per-week") now = +key[2];
       continue;
     }
-    // under `spans-per-week-previous:`, "  - time: value"; under `entries:`, "  - time:" (the newest first)
+    // under `calculated-chart-data:` or the older `spans-per-week-previous:`, "  - time: value"; under `entries:`,
+    // "  - time:" (the newest first)
     const item = line.match(/^ {2}-\s+(\S+):\s*(.*?)\s*$/);
+    if (item && section === "calculated-chart-data") data.push({ time: new Date(item[1]), value: +item[2] });
     if (item && section === "spans-per-week-previous") earlier.push({ time: new Date(item[1]), value: +item[2] });
     if (item && section === "entries" && !newest) newest = new Date(item[1]);
   }
+  // the figure now is in the list as its first point, so it isn't added again; a time stamp is never drawn twice
+  const once = (list) =>
+    list.filter((p, i) => !isNaN(p.time) && !isNaN(p.value) && list.findIndex((q) => +q.time === +p.time) === i);
+  if (data.length) return once(data).reverse();
   if (now == null || isNaN(now) || !newest) return [];
-  return [...earlier.reverse(), { time: newest, value: now }];
+  return once([{ time: newest, value: now }, ...earlier]).reverse();
 }
 
 /**

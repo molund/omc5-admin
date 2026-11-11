@@ -116,12 +116,13 @@ function setHeader(doc, values) {
   }
 }
 
-// gantry-cycles.yaml's velocity block: spans per week and its earlier values (a copy of the figure goes into status.yaml)
+// gantry-cycles.yaml's velocity block: spans per week, and the series the progress card's chart is drawn from (a copy of the
+// figure goes into status.yaml)
 const VELOCITY_COMMENT = [
   "# the Clayton Clipper's velocity, written by the Leash Log on every push: spans per week, from how far the gantry got in",
-  "# the week up to the latest step reported (the weekly shutdown allowed for), with its values at the earlier steps of the",
-  "# past 96 hours (-previous), newest first, with the span and stage of the step each was timed by. status.yaml has a",
-  "# copy of spans-per-week; the site's build draws the rest as the progress card's chart",
+  "# the week up to the latest step reported (the weekly shutdown allowed for). calculated-chart-data is the figure at each",
+  "# step of the past 96 hours, newest first, the first being spans-per-week itself; the site's build draws it as the progress",
+  "# card's chart. status.yaml has a copy of spans-per-week",
 ];
 // status.yaml's copy
 const COPY_COMMENT = [
@@ -154,6 +155,12 @@ const OLD_VELOCITY_COMMENTS = [
     "# the gantry got in the week up to the latest step reported (the weekly shutdown allowed for), with its values at the",
     "# earlier steps of the past 96 hours (-previous), newest first, with the span and stage of the step each was timed by",
   ],
+  [
+    "# the Clayton Clipper's velocity, written by the Leash Log on every push: spans per week, from how far the gantry got in",
+    "# the week up to the latest step reported (the weekly shutdown allowed for), with its values at the earlier steps of the",
+    "# past 96 hours (-previous), newest first, with the span and stage of the step each was timed by. status.yaml has a",
+    "# copy of spans-per-week; the site's build draws the rest as the progress card's chart",
+  ],
   // while the earlier values were in status.yaml, for the current span and the one before it
   [
     "# the Clayton Clipper's velocity, written by the Leash Log on every push from gantry-cycles.yaml: spans per week, from how far",
@@ -164,9 +171,13 @@ const OLD_VELOCITY_COMMENTS = [
 ];
 // every name the velocity's lines have had: hyphens, and underscores earlier on Nov. 7, 2026; days per span is no longer
 // written, and is removed where it's found
-const VELOCITY_NAMES = ["days-per-span", "spans-per-week"].flatMap((k) =>
-  [k, `${k}-previous`].flatMap((n) => [n, n.replaceAll("-", "_")]),
-);
+const VELOCITY_NAMES = [
+  ...["days-per-span", "spans-per-week"].flatMap((k) =>
+    [k, `${k}-previous`].flatMap((n) => [n, n.replaceAll("-", "_")]),
+  ),
+  "calculated-chart-data",
+  "calculated_chart_data",
+];
 
 /**
  * Writes a velocity block into a file's header, replacing the one there (in any of the forms it has had, with its comment
@@ -226,14 +237,12 @@ export function setDeskVelocity(deskText, v, history = []) {
   const block = [
     ...VELOCITY_COMMENT,
     `spans-per-week: ${v.spansPerWeek.toFixed(2)}`,
+    // the figure now first (at the latest step), then the earlier ones
     ...(history.length
       ? [
-          "spans-per-week-previous:",
-          ...history.flatMap((h) => [
-            `  - ${h.key}: ${h.spansPerWeek.toFixed(2)}`,
-            `    span: ${h.span}`,
-            `    stage: ${h.stage}`,
-          ]),
+          "calculated-chart-data:",
+          `  - ${v.window.end}: ${v.spansPerWeek.toFixed(2)}`,
+          ...history.map((h) => `  - ${h.key}: ${h.spansPerWeek.toFixed(2)}`),
         ]
       : []),
   ];

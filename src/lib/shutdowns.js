@@ -18,7 +18,10 @@
 import { parseKey } from "./time.js";
 
 export const HOUR = 3600 * 1000;
-/** The most of a holiday that's excused, counted from its start. */
+/**
+ * The most of a holiday that's excused, counted from its start. Christmas and Boxing Day are the only consecutive holidays, so
+ * they're two holidays, listed as two entries (one per day), not one of 48 hours: the second day would be 24 hours short.
+ */
 export const HOLIDAY_CAP_HOURS = 24;
 
 /** What each type is called, its icon (iconShapes.js, in colour) and whether the velocity excuses it. */

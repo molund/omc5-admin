@@ -30,6 +30,8 @@ const SHUTDOWNS_COMMENT = `# irregular-shutdowns: stretches with no gantry work 
 #   end: a BC time stamp, or hours: how long it lasted (14, 5.5): either one, whichever saves the arithmetic
 #   with neither, it's still going: add one when work starts again
 # Write the real stretch: if the crews worked into it, shorten it. A step reported during a shutdown is counted at its start.
+# A holiday is excused for 24 hours at most. Christmas and Boxing Day are two holidays: list them as two entries, one for
+# each day, not one of 48 hours.
 # Examples (take out the "# "):
 #   - label: Remembrance Day
 #     type: holiday

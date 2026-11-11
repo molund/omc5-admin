@@ -118,6 +118,9 @@ irregular-shutdowns:
   | `waiting`    | hourglass | Counts against the pace (waiting on work ahead to finish).                       |
   | any other    | none      | Counts against the pace, so a typo can't quietly change the velocity.            |
 
+  A holiday is excused for 24 hours at most. Christmas and Boxing Day are the only consecutive holidays in Canada: list them
+  as two entries, one for each day, not one of 48 hours.
+
 - **A step reported during a shutdown is counted at its start**, whatever the type: there's no gantry work in one, so the
   step happened before it. Remembrance Day from 6 a.m.: the "hung" reported at 8:45 a.m. is counted at 6 a.m. The step
   keeps its time stamp in the file, and the Velocity page shows "(reported 8:45am)". (A step in the weekly shutdown's

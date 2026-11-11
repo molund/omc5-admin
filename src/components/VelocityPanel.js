@@ -378,7 +378,7 @@ export function VelocityPanel({ full, onOpen }) {
                   {t.newDay && i > 0 && dayBar(t)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <Body small mute={t.estimated} style={[tw`flex-1`, offStyle(t)]}>
-                      {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
+                      {SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}
                       {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
                     </Body>
                     <Body
@@ -387,7 +387,7 @@ export function VelocityPanel({ full, onOpen }) {
                       numberOfLines={1}
                       style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}
                     >
-                      {clock(t.key)}
+                      {t.estimated ? "–" : clock(t.key)}
                     </Body>
                     <Body small mute={t.estimated} style={[tw`w-16 text-right`, num, offStyle(t)]}>
                       {t.stepHours == null ? "–" : hours(t.stepHours)}

@@ -36,14 +36,17 @@ export function typeInfo(type) {
 
 const unquote = (v) => {
   v = v.trim();
-  if (v.startsWith('"')) {
+  // a quoted value, with a comment after it or not
+  let m = v.match(/^"((?:[^"\\]|\\.)*)"\s*(?:#.*)?$/);
+  if (m) {
     try {
-      return JSON.parse(v);
+      return JSON.parse(`"${m[1]}"`);
     } catch {
-      return v.slice(1, -1);
+      return m[1];
     }
   }
-  if (v.startsWith("'")) return v.slice(1, -1).replace(/''/g, "'");
+  m = v.match(/^'((?:[^']|'')*)'\s*(?:#.*)?$/);
+  if (m) return m[1].replace(/''/g, "'");
   // an unquoted value ends at a trailing comment
   return v.replace(/\s+#.*$/, "").trim();
 };

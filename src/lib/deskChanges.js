@@ -9,7 +9,7 @@
 // change implies one: "arrived at span" for a new span, "hung" for marking the span hung. A stage picked is never earlier than
 // "hung" with the span hung (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
-import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
+import { formatDesk, moveEntry, parseDesk, rawShutdowns, removeEntries, replaceStage, setEntry } from "./deskFile.js";
 import { applyChange, Conflict, setDeskVelocity, setVelocity } from "./changes.js";
 import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
@@ -129,7 +129,8 @@ export function applyDeskChange(deskText, change, statusBefore) {
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
   if (change.memo) at(change.memo.noteKey, undefined, undefined, change.memo.text);
-  const text = formatDesk(entries);
+  // the irregular shutdowns list is written by hand: it goes back as it was
+  const text = formatDesk(entries, { shutdowns: rawShutdowns(deskText) });
   return { text, hunks: diff(deskText, text) };
 }
 

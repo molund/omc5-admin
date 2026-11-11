@@ -133,8 +133,15 @@ irregular-shutdowns:
   estimated steps. Only a holiday leaves working time, so the stage that crosses one isn't inflated, and a breakdown or wait
   shows in the durations (in red, if it ran well over what's expected).
 - **Mistakes.** An entry with no start, a start or end that isn't a time stamp, an end not after the start, hours of zero or
-  less, or no type is left out of every calculation, and the Velocity page says why. An unknown type, or an end and hours
-  that disagree (the end is used), count but are flagged.
+  less, or no type is left out of every calculation, and the Velocity page says why. These count but are flagged: an unknown
+  type, an unknown field (`hour:` for `hours:`, which would leave a shutdown open), end and hours that disagree (the end is
+  used), a holiday over 24 hours, and two shutdowns that overlap (each is flagged about the other; an open one overlaps
+  everything after it).
+- **The check.** `scripts/check-shutdowns.mjs` finds all of that, and a line it can't read (`- {label: x}`) or the key twice,
+  and prints each as a GitHub annotation on its line. molund/omc5's `deploy.yml` and `desk.yml` run it before building, so any
+  problem, **warnings included**, fails the run: nothing is deployed, a phone push doesn't land on main, and GitHub emails the
+  failure. It's plain Node with no packages, run from a fresh clone of this repo, so there's one set of rules. (A crash in it
+  fails the deploy too.)
 - **The Velocity page** lists them all, with their icons, hours and what each did to the week (`shutdownEffects` in
   `velocity.js`), and puts each in a box among the steps, dashed like the weekly shutdown's, which has a calendar icon.
 

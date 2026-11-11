@@ -55,7 +55,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     ...blockProblems(d.blocks),
     ...(taken ? ["There's already an update at this time stamp. Move it a quarter hour."] : []),
   ];
-  const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
+  const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span, d.time));
   const change = {
     kind: "update",
     time: d.time,

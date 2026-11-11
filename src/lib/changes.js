@@ -340,7 +340,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
       break;
     case "update": {
-      setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
+      // one older than the card (a position turned into an update, or a back-dated one) leaves the card as it is
+      if (compareKeys(change.time, head.updated) >= 0)
+        setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
       for (const r of change.retitle ?? []) {
         const note = findNote(doc.parsed, r.key);
         const lines = [`  - ${note.key}: ${q(r.title)}`];
@@ -355,7 +357,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       insertNote(doc, change.date, noteLines(change.date, change.title, change.blocks, true));
       break;
     case "followup": {
-      if (change.gantry) setHeader(doc, { span: change.gantry.span, complete: change.gantry.complete });
+      // the gantry it reports, only when it isn't older than the card
+      if (change.gantry && compareKeys(change.time, head.updated) >= 0)
+        setHeader(doc, { span: change.gantry.span, complete: change.gantry.complete });
       // the newest word moves the card's time stamp; a back-dated follow-up doesn't
       setHeader(doc, { updated: later(change.time, head.updated) });
       const note = findNote(doc.parsed, change.noteKey);

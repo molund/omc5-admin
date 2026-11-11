@@ -180,8 +180,12 @@ export function spanAt(entries, key) {
   return sortEntries(entries).find((e) => e.span && compareKeys(e.key, key) <= 0)?.span ?? null;
 }
 
-/** The furthest step posted for a span, or undefined. */
-export const postedStage = (entries, span) => furthest(entries.filter((e) => e.span === span).map((e) => e.stage));
+/**
+ * The furthest step posted for a span, or undefined. With a time stamp, only the steps posted before it: a back-dated entry
+ * (or a position turned into an update) isn't held to steps that came after it.
+ */
+export const postedStage = (entries, span, before) =>
+  furthest(entries.filter((e) => e.span === span && (!before || compareKeys(e.key, before) < 0)).map((e) => e.stage));
 
 /** Takes these time stamps out altogether. */
 export const removeEntries = (entries, keys) => entries.filter((e) => !keys.includes(e.key));

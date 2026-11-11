@@ -6,12 +6,14 @@ import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
-import { memoAt, stageBefore } from "../lib/deskFile.js";
-import { STAGES } from "../lib/stages.js";
-import { addendumProblems, positionName } from "../lib/entries.js";
-import { dayOf, stamp } from "../lib/time.js";
+import { memoAt, postedStage, spanAt, stageBefore } from "../lib/deskFile.js";
+import { STAGES, furthest } from "../lib/stages.js";
+import { addendumProblems, positionName, recentUpdates } from "../lib/entries.js";
+import { headerOf } from "../lib/statusFile.js";
+import { compareKeys, dayOf, stamp } from "../lib/time.js";
+import { TurnIntoLinks } from "./TurnIntoLinks.js";
 import { slugsOf } from "../lib/titles.js";
-import { BlockEditor, blockProblems, blockTexts, blocksOf } from "./BlockEditor.js";
+import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
 import { StagePicker, stageToPost } from "./StagePicker.js";
@@ -70,8 +72,9 @@ function deleteWarning(target, note, address, fu) {
  * @param {(change: object, opts: object) => void} props.onReview
  * @param {boolean} [props.noDelete] A waiting edit has only Discard, in the waiting list.
  * @param {boolean} [props.noBack] The way back is already on the page.
+ * @param {(page: string, seed: object) => void} [props.onSwitch] Turns a position into an update or an addendum.
  */
-export function EntryEditor({ target, draft: d, update, onClose, onReview, noDelete, noBack }) {
+export function EntryEditor({ target, draft: d, update, onClose, onReview, noDelete, noBack, onSwitch }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [asking, setAsking] = useState(false); // Delete was pressed, and wants its confirmation
@@ -152,6 +155,26 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       }
     />
   );
+  // an addendum goes under the newest update from today or yesterday (blog posts aren't updates, so they're left out)
+  const under = recentUpdates(desk.parsed)[0];
+  // Turn it into an update or an addendum: at the position's time stamp, with its step and notes, so it takes over its record.
+  // The newest position has the card's gantry; an older one has its own span, hung if its step had got that far, and leaves
+  // the card alone (changes.js).
+  const turnInto = (page) => {
+    const head = headerOf(desk.parsed);
+    const latest = compareKeys(target.key, head.updated) >= 0;
+    const span = latest ? head.span : (record.span ?? spanAt(desk.deskEntries, target.key) ?? head.span);
+    const reached = furthest([postedStage(desk.deskEntries, span, target.key), record.stage]);
+    const complete = latest ? head.complete : !!reached && STAGES.indexOf(reached) >= STAGES.indexOf("hung");
+    const shared = { time: target.key, span, complete, stage: d.stage, blocks: emptyBlocks() };
+    onSwitch(
+      page,
+      page === "update"
+        ? { ...shared, memo, title: "", titleSet: false }
+        : // an addendum's notes are its update's: an empty one would clear them, so it's left out
+          { ...shared, noteKey: under.key, editing: null, memo: memo || undefined },
+    );
+  };
   const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key), fu);
   const deleteChange =
     target.type === "followup"
@@ -180,6 +203,10 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
         )
       ) : null}
       {(target.type === "position" ? !!record : !isPost) && steps}
+      {/* only a position that's a record alone: one with a note in status.yaml already has an entry there */}
+      {target.type === "position" && record && !note && onSwitch && (
+        <TurnIntoLinks under={under} onUpdate={() => turnInto("update")} onAddendum={() => turnInto("followup")} />
+      )}
       {(target.type === "update" || isPost) && (
         <TitleField
           kind={isPost ? "blog" : "update"}

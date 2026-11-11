@@ -9,7 +9,7 @@ import prettier from "prettier";
 import { applyChange, applyAll, commitMessage } from "../src/lib/changes.js";
 import { parseStatus, newestFirst, headerOf } from "../src/lib/statusFile.js";
 import { slugFor, slugsOf, titleAdvice, dateTitle } from "../src/lib/titles.js";
-import { cardAsOf, pageHeading, parseKey, toKey } from "../src/lib/time.js";
+import { cardAsOf, compareKeys, pageHeading, parseKey, toKey } from "../src/lib/time.js";
 import { cardFor, chartFor, figuresFor, velocityPoints } from "../src/lib/card.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
@@ -101,6 +101,18 @@ test("move changes only the three header lines", async () => {
     commitMessage({ kind: "move", span: 38, complete: false, time: T }, BASE),
     "Move the Clayton Clipper to span 38",
   );
+});
+
+test("an update or addendum older than the card leaves the card as it is", () => {
+  const old = "2026-11-01T09:00-07:00";
+  const before = headerOf(parseStatus(BASE));
+  const update = { kind: "update", time: old, span: 36, complete: false, title: dateTitle(old), blocks };
+  const after = parseStatus(applyChange(BASE, update).text);
+  assert.deepEqual(headerOf(after), before);
+  assert.ok(after.notes.some((n) => n.key === old));
+  const note = newestFirst(parseStatus(BASE).notes).find((n) => n.fields.summary && compareKeys(n.key, old) < 0);
+  const addendum = { kind: "followup", noteKey: note.key, time: old, blocks, gantry: { span: 36, complete: false } };
+  assert.deepEqual(headerOf(parseStatus(applyChange(BASE, addendum).text)), before);
 });
 
 test("update adds a note the site reads, with its photo and blocks", async () => {

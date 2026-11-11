@@ -145,6 +145,14 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
     ),
     "glued",
   );
+  // with a time stamp, only the steps before it: not the one at it, nor a later one
+  const posted = [
+    { key: "2026-11-02T08:00-07:00", span: 5, stage: "arrived at span" },
+    { key: "2026-11-03T08:00-07:00", span: 5, stage: "hung" },
+    { key: "2026-11-04T08:00-07:00", span: 5, stage: "glued" },
+  ];
+  assert.equal(postedStage(posted, 5, "2026-11-03T08:00-07:00"), "arrived at span");
+  assert.equal(postedStage(posted, 5, "2026-11-02T08:00-07:00"), undefined);
   assert.equal(stageFloor(true, "glued"), "glued");
   assert.equal(stageFloor(true, "arrived at span"), "hung");
   assert.equal(stageOfMove({ span: 38, complete: true }), "hung");

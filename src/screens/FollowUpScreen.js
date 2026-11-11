@@ -75,7 +75,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
   const text = blockTexts(d.blocks).join("\n");
   // a follow-up that doesn't change the gantry is about the span as it is; one being edited has no say about the span's state
   // nor earlier than the furthest step already posted for the span (not when editing: that may be a correction)
-  const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
+  const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span, d.time));
   // an addendum being edited with no step of its own starts from the one before it; a new one, from the span's
   const before = d.editing ? stageBefore(desk.deskEntries, d.editing) : undefined;
   const withMemo = {

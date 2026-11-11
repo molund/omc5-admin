@@ -28,7 +28,7 @@ function SavedEntry({ target, seed, onCancel, onReview }) {
 export function WaitingEditor({ change, onCancel, onReview }) {
   const { tw } = useTw();
   const desk = useDesk();
-  const [plan] = useState(() => reopenAs(change, headerOf(desk.parsed)));
+  const [plan, setPlan] = useState(() => reopenAs(change, headerOf(desk.parsed)));
   const Screen = SCREENS[plan.screen];
   return (
     <View style={tw`gap-3`}>
@@ -42,7 +42,14 @@ export function WaitingEditor({ change, onCancel, onReview }) {
         </Body>
       </Panel>
       {Screen ? (
-        <Screen draftKey={null} seed={plan.seed} onReview={onReview} />
+        <Screen
+          key={plan.screen}
+          draftKey={null}
+          seed={plan.seed}
+          onReview={onReview}
+          // a position can be turned into an update or an addendum: it takes the position's place in the list when it's saved
+          onSwitch={plan.screen === "move" ? (screen, seed) => setPlan({ screen, seed }) : undefined}
+        />
       ) : (
         <SavedEntry target={plan.target} seed={plan.seed} onCancel={onCancel} onReview={onReview} />
       )}

@@ -56,8 +56,9 @@ function Desk() {
   const [stack, setStack] = useState([{ page: "home" }]);
   const top = stack[stack.length - 1];
   const go = (page, more) => setStack((s) => [...s, { page, ...more }]);
-  // one page turned into another (Position into Update and back), in the same place in the stack
-  const replace = (page) => setStack((s) => [...s.slice(0, -1), { page }]);
+  // one page turned into another (Position into Update and back), in the same place in the stack; a saved position being
+  // edited hands the new page a seed: it starts from that, and keeps no draft
+  const replace = (page, seed) => setStack((s) => [...s.slice(0, -1), { page, seed }]);
   const [review, setReview] = useState(null); // { change, after, cardLabel, warning }
   const reopened = top.page === "waiting" ? desk.changes.find((c) => c.id === top.id) : null;
   const startReview = (change, opts = {}) => setReview({ change, ...opts });
@@ -88,7 +89,7 @@ function Desk() {
   else if (top.page === "velocity") screen = <VelocityPanel full />;
   else if (top.page === "entries") screen = <EntriesScreen onOpen={openEntry} />;
   else if (top.page === "entry")
-    screen = <EntryScreen key={top.target.key} target={top.target} onReview={startReview} />;
+    screen = <EntryScreen key={top.target.key} target={top.target} onReview={startReview} onSwitch={replace} />;
   else if (top.page === "waiting")
     screen = reopened ? (
       <BeforeChange id={reopened.id}>
@@ -100,7 +101,11 @@ function Desk() {
   else if (top.page === "followup" && !canFollowUp) screen = <NoUpdateWarning />;
   else {
     const Screen = page.screen;
-    screen = <Screen key={top.page} onReview={startReview} onSwitch={replace} />;
+    screen = top.seed ? (
+      <Screen key={top.page} onReview={startReview} draftKey={null} seed={top.seed} />
+    ) : (
+      <Screen key={top.page} onReview={startReview} onSwitch={replace} />
+    );
   }
 
   return (

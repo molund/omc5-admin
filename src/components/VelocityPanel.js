@@ -4,7 +4,7 @@
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
 // steps added up.
 // Home shows only the velocity itself, with a way to the Velocity page, which shows it all (`full`).
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -21,6 +21,7 @@ import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
 import { clock, dayOf, parseKey, stamp, toKey, weekdayShort } from "../lib/time.js";
 import { HOLIDAY_CAP_HOURS } from "../lib/shutdowns.js";
+import { cachedWeather, refreshWeather } from "../services/weather.js";
 import { Icon } from "./Icon";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
@@ -94,6 +95,11 @@ function shutdownNote(e, window) {
 export function VelocityPanel({ full, onOpen }) {
   const { tw, colors } = useTw();
   const desk = useDesk();
+  // each day's rain or snow, for its day bar: what's kept on the phone at once, then the latest when it's due
+  const [weather, setWeather] = useState(cachedWeather);
+  useEffect(() => {
+    refreshWeather().then((days) => days && setWeather(days));
+  }, []);
   const open = !!full;
   const v = desk.velocity;
   if (!v) return null;
@@ -195,10 +201,11 @@ export function VelocityPanel({ full, onOpen }) {
           </Body>
         </View>
       )}
-      <View style={tw`my-0.5 flex-row items-baseline gap-2 rounded-sm bg-line px-2`}>
+      <View style={tw`my-0.5 flex-row items-center gap-2 rounded-sm bg-line px-2`}>
         <Body small style={tw`flex-1`}>
           {`${weekdayShort(t.key)} ${Number(dayOf(t.key).slice(8))}`}
         </Body>
+        {weather[dayOf(t.key)] && <Icon name={weather[dayOf(t.key)]} size={14} color={colors.mute} />}
       </View>
     </>
   );

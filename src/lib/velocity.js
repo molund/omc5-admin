@@ -58,8 +58,10 @@ const SATURDAY_DAY_SHIFT = [7, 16];
 const NIGHT_SHIFT = [20, 30];
 // the stages' shares come from the steps since here: the ones before it were filled in from old posts, before the Leash Log tagged steps
 export const SHARES_SINCE = "2026-11-03";
-// the shift hours from a stage to the next, where the job says how long it should be: most of these are nearly one moment
-const KNOWN_HOURS = { "arrived at span": 0.5, hung: 1, glued: 1, "cables down": 2.5, "hangers down": 1 };
+// the shift hours from a stage to the next, where the job says how long it should be: the pauses, each nearly one moment
+// (hanger removal isn't one of them: how long it takes varies, so it's fitted like the rest). The Velocity page marks these
+// stages with an hourglass.
+export const KNOWN_HOURS = { "arrived at span": 0.5, hung: 1, glued: 1, "hangers down": 1 };
 // how hard a segment's length is pulled toward that, or toward the average; the gaps logged are worth 1 each
 const FIRM = 10;
 const LIGHT = 0.05;

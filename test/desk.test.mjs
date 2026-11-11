@@ -375,7 +375,7 @@ test("the velocity: how far the gantry got in the week up to the step reported l
   assert.equal(v.window.start, "2026-10-29T17:15-07:00");
   assert.equal(v.window.end, "2026-11-05T17:15-07:00");
   assert.equal(v.window.span, 38);
-  assert.equal(v.window.from.toFixed(2), "35.54");
+  assert.equal(v.window.from.toFixed(2), "35.53");
   assert.equal(v.window.to.toFixed(2), "38.15");
   assert.equal(v.spansPerWeek.toFixed(2), "2.61");
   // a week holds one shutdown, so spans per week is the distance covered in it

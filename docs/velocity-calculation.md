@@ -172,7 +172,7 @@ starts a stage, the stretch of work up to the next step, which the Velocity page
 | 4   | Gluing started            | `gluing started`            | Gluing                          | Glued                   | From the logs |
 | 5   | Glued                     | `glued`                     | Curing                          | Post-tensioning started | Set: 1 h      |
 | 6   | Post-tensioning started   | `post-tensioning started`   | Post-tensioning                 | Cables down             | From the logs |
-| 7   | Cables down               | `cables down`               | Hanger removal                  | Hangers down            | Set: 2.5 h    |
+| 7   | Cables down               | `cables down`               | Hanger removal                  | Hangers down            | From the logs |
 | 8   | Hangers down              | `hangers down`              | Pause before movement           | Moving supports started | Set: 1 h      |
 | 9   | Moving supports started   | `supports started`          | Gantry movement                 | The next span's arrival | From the logs |
 
@@ -180,19 +180,18 @@ starts a stage, the stretch of work up to the next step, which the Velocity page
 
 ## Hard-coded stage lengths
 
-These short hand-offs are held near a set length in shift hours (`KNOWN_HOURS`):
+These short pauses are held near a set length in shift hours (`KNOWN_HOURS`). The Velocity page marks them with an hourglass. Hanger removal isn't one of them: how long it takes varies, so it's fitted from the logs like the rest:
 
 | From              | To                      | Shift hours |
 | ----------------- | ----------------------- | ----------- |
 | Arrived at span   | Hanging started         | 0.5         |
 | All segments hung | Gluing started          | 1           |
 | Glued             | Post-tensioning started | 1           |
-| Cables down       | Hangers down            | 2.5         |
 | Hangers down      | Moving supports started | 1           |
 
 - Each is pulled toward its length as firmly as 10 logged gaps would pull it (`FIRM`). With only a few spans of data,
   they barely move.
-- The other stages (hanging, gluing, post-tensioning and the supports move) come from the logged gaps. One that was
+- The other stages (hanging, gluing, post-tensioning, hanger removal and the supports move) come from the logged gaps. One that was
   never logged is pulled lightly (`LIGHT`, 0.05) toward the average, so it gets a share.
 - With no gaps logged at all, every stage is assumed to take 4 shift hours: about a day and a half a cycle.
 

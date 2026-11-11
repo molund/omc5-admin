@@ -131,7 +131,7 @@ test("the calendar is in force only during a calculation", () => {
 test("on the real log: the velocity's week now ends at 6:00 a.m., when the holiday began", () => {
   const without = velocity(plain);
   assert.equal(without.window.end, "2026-11-11T08:45-07:00");
-  assert.equal(without.spansPerWeek.toFixed(2), "2.79");
+  assert.equal(without.spansPerWeek.toFixed(2), "2.78");
   const v = velocity(holiday);
   assert.equal(v.window.end, "2026-11-11T06:00-07:00");
   assert.equal(v.window.start, "2026-11-04T06:00-07:00");

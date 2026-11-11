@@ -508,8 +508,9 @@ function progressAt(steps, shares, when) {
  * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so about 5.29
  * working days).
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
- *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
- *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span.
+ *   to: number, span: number, extended: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span;
+ *   `extended`, the hours a holiday in it extended the week by (0 with none).
  */
 export const velocity = scoped(function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
@@ -523,13 +524,23 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   const current = since
     ? { span: top, since, days: workingHours(parseKey(since), now, loggedTimes(steps)) / 24 }
     : null;
-  const start = last && new Date(last.at.getTime() - WEEK_HOURS * HOUR);
+  // A holiday in the week extends it: the week reaches back 168 hours that aren't one, so a day off isn't a slow week. What
+  // extends it is the holidays' excused hours (up to 24 each) outside the weekly shutdown, which a week already leaves out.
+  // Reaching back by them can bring more of a holiday into the week, so it goes on until it stops.
+  const excusedIn = (a, b) => workingHours(a, b, [], []) - workingHours(a, b, []);
+  let extended = 0;
+  for (let i = 0; last && i < 100; i++) {
+    const hours = excusedIn(new Date(last.at.getTime() - (WEEK_HOURS + extended) * HOUR), last.at);
+    if (Math.abs(hours - extended) < 1e-9) break;
+    extended = hours;
+  }
+  const start = last && new Date(last.at.getTime() - (WEEK_HOURS + extended) * HOUR);
   const from = last && progressAt(steps, shares, start);
   const to = last && last.span + shares[last.index].position;
   if (from == null || !(to > from))
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
   // without overtime: a week's working time is the same every week, so this is the distance covered in it
   const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
-  const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span };
+  const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span, extended };
   return { spansPerWeek, stage, window, shares, current };
 });

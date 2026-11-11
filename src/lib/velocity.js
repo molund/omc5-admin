@@ -10,6 +10,29 @@
 // either is overtime: that part of the shutdown starts at the step instead.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
+import { rangesOf } from "./shutdowns.js";
+
+// The irregular shutdowns of the file being worked on (lib/shutdowns.js), as time ranges in ms, while a calculation runs:
+// `off` are all of them (no gantry work in them: the shift clock leaves them out, and a step reported in one is counted at its
+// start), `excused` the holidays (which leave working time too). It's set from the entries' `shutdowns` (what parseDesk
+// returns carries them) by the calculations that take entries; a copy of the entries that has lost them (a filter) keeps
+// whatever the caller set.
+let calendar = { off: [], excused: [] };
+/** Runs a calculation with the entries' irregular shutdowns in force. */
+export function withCalendar(entries, fn) {
+  if (!entries?.shutdowns) return fn();
+  const before = calendar;
+  calendar = rangesOf(entries.shutdowns);
+  try {
+    return fn();
+  } finally {
+    calendar = before;
+  }
+}
+const scoped =
+  (fn) =>
+  (entries, ...rest) =>
+    withCalendar(entries, () => fn(entries, ...rest));
 
 // the spans before the newest that the stage shares are fitted on, and the velocity panel lists steps for
 export const WINDOW = 3;
@@ -43,31 +66,43 @@ const LIGHT = 0.05;
 const QUARTER = HOUR / 4;
 
 /**
- * Hours between two Dates that aren't in a shutdown. `logged`, the times of the steps logged (ms): one in a shutdown's
- * evening is overtime, so that shutdown starts at the latest of them instead.
+ * Hours between two Dates that aren't in a shutdown: the weekly one, and the excused irregular ones (holidays), where the two
+ * overlap counted once. `logged`, the times of the steps logged (ms): one in a weekly shutdown's evening is overtime, so that
+ * shutdown starts at the latest of them instead. `excused` can be given to leave the holidays out of the sum or put others in.
  */
-export function workingHours(from, to, logged = []) {
+export function workingHours(from, to, logged = [], excused = calendar.excused) {
   if (to <= from) return 0;
-  let total = (to - from) / HOUR;
+  const [a, b] = [from.getTime(), to.getTime()];
+  const off = [];
+  const add = (s, e) => {
+    const [lo, hi] = [Math.max(s, a), Math.min(e, b)];
+    if (hi > lo) off.push([lo, hi]);
+  };
   // the Sunday 00:00 (BC) on or before `from`, a week back to catch a shutdown already under way
   const f = bc(from);
   let weekStart = Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) - f.getUTCDay() * DAY - 7 * DAY;
-  for (; weekStart + 7 * HOUR < to.getTime() + 7 * DAY; weekStart += 7 * DAY) {
+  for (; weekStart + 7 * HOUR < b + 7 * DAY; weekStart += 7 * DAY) {
     for (const [start, hours] of SHUTDOWNS) {
       let s = weekStart + 7 * HOUR + start * HOUR; // back to real time
       const e = s + hours * HOUR;
       // the evening, up to midnight: a step logged in it is the day shift's overtime
       const evening = s + (24 - (start % 24)) * HOUR;
       for (const t of logged) if (t > s && t < evening) s = t;
-      const overlap = Math.min(e, to.getTime()) - Math.max(s, from.getTime());
-      if (overlap > 0) total -= overlap / HOUR;
+      add(s, e);
     }
   }
-  return total;
+  for (const [s, e] of excused) add(s, e);
+  off.sort((x, y) => x[0] - y[0]);
+  let removed = 0,
+    reached = -Infinity;
+  for (const [lo, hi] of off) {
+    removed += Math.max(0, hi - Math.max(lo, reached));
+    reached = Math.max(reached, hi);
+  }
+  return (b - a - removed) / HOUR;
 }
 
-/** The shifts as [start, end] in milliseconds, in order, the first of them no later than any shift under way at `from`. */
-function* shiftsFrom(from) {
+function* rawShiftsFrom(from) {
   const f = bc(from);
   // the day before: its night shift runs into this morning
   let midnight = Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), f.getUTCDate()) + 7 * HOUR - DAY;
@@ -76,6 +111,22 @@ function* shiftsFrom(from) {
     if (weekday !== 0) yield (weekday === 6 ? SATURDAY_DAY_SHIFT : DAY_SHIFT).map((h) => midnight + h * HOUR);
     if (weekday !== 5 && weekday !== 6) yield NIGHT_SHIFT.map((h) => midnight + h * HOUR);
   }
+}
+
+/** A shift with the irregular shutdowns cut out of it: in pieces, or nothing. */
+function* clipped([start, end]) {
+  let at = start;
+  for (const [s, e] of [...calendar.off].sort((x, y) => x[0] - y[0])) {
+    if (e <= at || s >= end) continue;
+    if (s > at) yield [at, s];
+    at = Math.max(at, e);
+    if (at >= end) return;
+  }
+  if (at < end) yield [at, end];
+}
+
+function* shiftsFrom(from) {
+  for (const shift of rawShiftsFrom(from)) yield* clipped(shift);
 }
 
 /** Hours between two Dates that are inside a shift. */
@@ -99,23 +150,45 @@ export function afterShiftHours(from, hours) {
   }
 }
 
+/**
+ * When a step reported at a time counts as having happened. There's no gantry work in an irregular shutdown, so a step reported
+ * during one happened before it: it's counted at the shutdown's start (the report stays as it was written, in the entries).
+ * @param {string} key
+ * @returns {string} The same key, or the start of the shutdown it fell in.
+ */
+export function countedAt(key) {
+  let t = parseKey(key).getTime();
+  const reported = t;
+  // moved to a start that's itself inside an earlier shutdown, so on until it isn't
+  for (let moved = true; moved;) {
+    moved = false;
+    for (const [s, e] of calendar.off)
+      if (s < t && t < e) {
+        t = s;
+        moved = true;
+      }
+  }
+  return t === reported ? key : toKey(new Date(t));
+}
+
 /** For each span, the earliest time stamp each step was seen: { [span]: { [stage]: key } }. */
-export function stepsBySpan(entries) {
+export const stepsBySpan = scoped(function stepsBySpan(entries) {
   const out = {};
   for (const e of entries) {
     if (!e.span || !e.stage) continue;
     const s = (out[e.span] ??= {});
-    if (!s[e.stage] || parseKey(e.key) < parseKey(s[e.stage])) s[e.stage] = e.key;
+    const key = countedAt(e.key);
+    if (!s[e.stage] || parseKey(key) < parseKey(s[e.stage])) s[e.stage] = key;
   }
   return out;
-}
+});
 
 /**
  * The days each span took, from its arrival to the next span's arrival: { [span]: { start, end, shutdown } }. `end` is null
  * for the newest span (or one whose next arrival wasn't logged), `shutdown` whether the weekly shutdown fell inside it.
  * A span with no logged arrival isn't in it.
  */
-export function spanDays(entries) {
+export const spanDays = scoped(function spanDays(entries) {
   const by = stepsBySpan(entries);
   const logged = loggedTimes(allSteps(entries));
   const out = {};
@@ -127,7 +200,7 @@ export function spanDays(entries) {
     out[span] = { start, end, shutdown: !!end && workingHours(a, b, logged) < (b - a) / HOUR };
   }
   return out;
-}
+});
 
 /** Every step, in the order logged: [{ span, index (in STAGES), at (a Date) }]. */
 function allSteps(entries) {
@@ -152,7 +225,7 @@ const loggedTimes = (steps) => steps.map((t) => t.at.getTime());
  * squares fit of those gaps. A segment with a known length is pulled firmly to it, the rest lightly to the average, which fills
  * in what was never logged.
  */
-export function stageShares(entries) {
+export const stageShares = scoped(function stageShares(entries) {
   const steps = allSteps(entries);
   const top = Math.max(0, ...steps.map((t) => t.span));
   const since = parseKey(SHARES_SINCE);
@@ -198,14 +271,14 @@ export function stageShares(entries) {
     sofar += lengths[k];
     return { stage, position, share: lengths[k] / total };
   });
-}
+});
 
 /**
  * When each span's arrival was: { [span]: { key, estimated } }. A logged arrival as logged. A missing one is read off the
  * gantry's progress, in shift hours, between the nearest steps either side of it, to the quarter hour. With no step on one
  * side, the span isn't in it.
  */
-export function arrivals(entries, shares = stageShares(entries)) {
+export const arrivals = scoped(function arrivals(entries, shares = stageShares(entries)) {
   const steps = allSteps(entries);
   if (!steps.length) return {};
   const by = stepsBySpan(entries);
@@ -222,7 +295,7 @@ export function arrivals(entries, shares = stageShares(entries)) {
     if (key) out[span] = { key, estimated: true };
   }
   return out;
-}
+});
 
 /**
  * When the gantry reached a point in its progress (a span number plus how far through that span's cycle), read off between
@@ -252,7 +325,7 @@ function estimator(steps, shares) {
  * it and when it was expected, estimated the same way from the other steps, negative when it came earlier (null with no other
  * step on one side of it).
  */
-export function stepsWithEstimates(entries, shares = stageShares(entries)) {
+export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, shares = stageShares(entries)) {
   const steps = allSteps(entries);
   if (!steps.length) return [];
   const by = stepsBySpan(entries);
@@ -277,7 +350,7 @@ export function stepsWithEstimates(entries, shares = stageShares(entries)) {
       next && next.span <= t.span + 1 ? workingHours(parseKey(t.key), parseKey(next.key), logged) : null;
     return { ...t, stepHours, offHours: t.estimated ? null : offHours(steps, shares, t) };
   });
-}
+});
 
 // how far a logged step is from when it was expected: estimated as if it hadn't been logged, from the other steps, in working hours,
 // negative when it came earlier than expected
@@ -319,7 +392,7 @@ function stageTimes(entries, shares, stage) {
  * Only consecutive spans, each from a stage on one span to the same stage on the next (arrival, unless another is named),
  * logged or estimated, in working time.
  */
-export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]) {
+export const cycles = scoped(function cycles(entries, shares = stageShares(entries), stage = STAGES[0]) {
   const times = stageTimes(entries, shares, stage);
   const logged = loggedTimes(allSteps(entries));
   const out = [];
@@ -340,14 +413,14 @@ export function cycles(entries, shares = stageShares(entries), stage = STAGES[0]
     });
   }
   return out;
-}
+});
 
 /**
  * The arrival itself and each step logged after it, once, at its earliest, with the working hours since that arrival:
  * [{ span, stage, key, hours }]. Highest span first, then the shortest since arrival first (the arrival). A span with no logged arrival
  * has none.
  */
-export function sinceArrival(entries) {
+export const sinceArrival = scoped(function sinceArrival(entries) {
   const logged = loggedTimes(allSteps(entries));
   const out = [];
   for (const [span, steps] of Object.entries(stepsBySpan(entries))) {
@@ -359,7 +432,7 @@ export function sinceArrival(entries) {
     }
   }
   return out.sort((a, b) => b.span - a.span || a.hours - b.hours);
-}
+});
 
 /**
  * The velocity at each earlier step of the 96 hours before the latest one (`HISTORY_HOURS`), worked out again from the
@@ -367,7 +440,7 @@ export function sinceArrival(entries) {
  * the step it was timed by. Older ones aren't in it, so a push keeps only the last 96 hours; steps logged late are counted
  * where their time stamps put them.
  */
-export function velocityHistory(entries) {
+export const velocityHistory = scoped(function velocityHistory(entries) {
   const steps = allSteps(entries);
   if (!steps.length) return [];
   const last = steps.at(-1).at.getTime();
@@ -386,7 +459,7 @@ export function velocityHistory(entries) {
       });
   }
   return out;
-}
+});
 
 /**
  * Which way a velocity figure last went, from the header of the file holding its earlier values (gantry-cycles.yaml's; status.yaml's
@@ -438,7 +511,7 @@ function progressAt(steps, shares, when) {
  *   to: number, span: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
  *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span.
  */
-export function velocity(entries, now = new Date()) {
+export const velocity = scoped(function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
   const steps = allSteps(entries);
   // the step logged last (allSteps is in the order logged), and its stage
@@ -459,4 +532,4 @@ export function velocity(entries, now = new Date()) {
   const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
   const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span };
   return { spansPerWeek, stage, window, shares, current };
-}
+});

@@ -8,10 +8,19 @@ import { Fragment } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
-import { stepsWithEstimates, trendOf, WINDOW, WORKING_DAYS_PER_WEEK, workingHours } from "../lib/velocity.js";
+import {
+  shutdownEffects,
+  stepsWithEstimates,
+  trendOf,
+  WINDOW,
+  WORKING_DAYS_PER_WEEK,
+  workingHours,
+} from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { STAGE_LABELS } from "../lib/stages.js";
-import { clock, dayOf, parseKey, stamp, weekdayShort } from "../lib/time.js";
+import { clock, dayOf, parseKey, stamp, toKey, weekdayShort } from "../lib/time.js";
+import { HOLIDAY_CAP_HOURS } from "../lib/shutdowns.js";
+import { Icon } from "./Icon";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 // the steps' names in this panel's rows (the log and the stage shares): each names the stage that starts at the step
@@ -39,10 +48,42 @@ const OFF_SHARE = 0.2;
 
 const days = (n) => `${n.toFixed(2)} days`;
 const hours = (h) => `${h.toFixed(2)}h`;
+// hours as "14h", "2h 45m" or "45m"
+const hm = (h) => {
+  const m = Math.round(h * 60);
+  if (m === 0) return "0h";
+  const [hh, mm] = [Math.floor(m / 60), m % 60];
+  return hh && mm ? `${hh}h ${mm}m` : hh ? `${hh}h` : `${mm}m`;
+};
 // shutdown hours: whole ones without the decimals
 const gapHours = (h) => (Math.abs(h - Math.round(h)) < 0.01 ? `${Math.round(h)}h` : hours(h));
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
+
+/** What an irregular shutdown does to the week, in a sentence or two. */
+function shutdownNote(e, window) {
+  const { shutdown, info } = e;
+  if (!e.valid) return `Left out: ${shutdown.errors.join("; ")}.`;
+  const before = window && shutdown.endMs <= parseKey(window.start).getTime();
+  const parts = [];
+  if (shutdown.open) parts.push("Open: it has no end or hours yet. Add one when work starts again.");
+  else if (e.state === "on") parts.push("In progress.");
+  else if (e.state === "upcoming") parts.push("Upcoming.");
+  if (info.excused) {
+    if (e.extends > 0) {
+      const cut =
+        shutdown.length > HOLIDAY_CAP_HOURS
+          ? ` (excused up to ${HOLIDAY_CAP_HOURS}h of its ${hm(shutdown.length)})`
+          : "";
+      parts.push(`Extends the week by ${hm(e.extends)}${cut}.`);
+    } else if (before) parts.push("Before this week.");
+    else parts.push(`It joins the week, up to ${HOLIDAY_CAP_HOURS}h, once a step is logged after it began.`);
+  } else if (e.inWeek > 0) parts.push(`${hm(e.inWeek)} of it is in the week. It counts against the pace.`);
+  else if (before) parts.push("Before this week.");
+  else parts.push("It counts against the pace once it's in the week.");
+  if (shutdown.warnings.length) parts.push(`${shutdown.warnings.join("; ")}.`);
+  return parts.join(" ");
+}
 
 /**
  * @param {object} props
@@ -50,7 +91,7 @@ const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 
  * @param {() => void} [props.onOpen] Opens the Velocity page.
  */
 export function VelocityPanel({ full, onOpen }) {
-  const { tw } = useTw();
+  const { tw, colors } = useTw();
   const desk = useDesk();
   const open = !!full;
   const v = desk.velocity;
@@ -69,18 +110,42 @@ export function VelocityPanel({ full, onOpen }) {
     const prev = all[i - 1];
     if (prev?.stepHours == null) return;
     const [a, b] = [parseKey(prev.key), parseKey(t.key)];
-    const shutdown = (b - a) / 3600000 - prev.stepHours;
+    // the weekly shutdown's hours in the gap (an irregular one's are shown in a box of its own)
+    const shutdown = prev.weeklyGap;
     // the scheduled shutdown in the gap, before a step logged in its evening cut it short
     carried += (b - a) / 3600000 - workingHours(a, b) - shutdown;
     gaps.set(t, { shutdown, overtime: shutdown > 0.01 ? carried : 0 });
     if (shutdown > 0.01) carried = 0;
   });
+  // each irregular shutdown in a box above the first step after it began, or at the end when no step has come since
+  const effects = shutdownEffects(desk.deskEntries, v);
+  const firstAt = recent.length ? parseKey(recent[0].key).getTime() : Infinity;
+  const boxesBefore = new Map();
+  const boxesAfter = [];
+  for (const e of [...effects].reverse().filter((e) => e.valid && e.shutdown.startMs >= firstAt)) {
+    const next = recent.find((t) => parseKey(t.key).getTime() > e.shutdown.startMs);
+    if (next) boxesBefore.set(next, [...(boxesBefore.get(next) ?? []), e]);
+    else boxesAfter.push(e);
+  }
+  const windowNotes = v.window
+    ? [
+        v.window.extended > 0 &&
+          `${hm(168 + v.window.extended)}: the 168 hours, extended by ${hm(v.window.extended)} of holidays`,
+        v.window.reported &&
+          `the ${clock(v.window.reported)} step is counted at ${clock(v.window.end)}, when ${
+            effects.find((e) => e.valid && e.shutdown.startMs === parseKey(v.window.end).getTime())?.shutdown.label ??
+            "a shutdown"
+          } began`,
+      ].filter(Boolean)
+    : [];
   let lastDay = null;
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
     const day = dayOf(t.key);
     const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
-    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime });
+    bySpan
+      .at(-1)
+      .steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime, irregular: boxesBefore.get(t) ?? [] });
     lastDay = day;
   }
   const num = { fontVariant: ["tabular-nums"] };
@@ -94,11 +159,35 @@ export function VelocityPanel({ full, onOpen }) {
   // above the span's heading when its first step starts the day, so the day always comes before the span, with the
   // shutdown hours left out since the step before, when there are any, in a box of their own above it: dashed, as time
   // that isn't counted, and free to wrap onto a second line
+  // an irregular shutdown in a box of its own, dashed like a gap, with its icon: a holiday's hours aren't counted, any other
+  // kind's are
+  const shutdownBox = (e, key) => {
+    const { shutdown, info } = e;
+    const long = !shutdown.open && shutdown.length > HOLIDAY_CAP_HOURS;
+    const rule = info.excused
+      ? long
+        ? `first ${HOLIDAY_CAP_HOURS}h not counted`
+        : "not counted"
+      : "counts against the pace";
+    const state = e.state === "on" ? "in progress, " : e.state === "upcoming" ? "upcoming, " : "";
+    return (
+      <View
+        key={key}
+        style={tw`mt-1 flex-row items-center gap-1.5 rounded-sm border border-dashed border-mute px-2 py-0.5`}
+      >
+        {info.icon && <Icon name={info.icon} size={14} color={colors.mute} />}
+        <Body small mute style={[tw`flex-1`, num]}>
+          {`${shutdown.label} · ${shutdown.open ? `open since ${clock(shutdown.start)}` : hm(shutdown.length)} · ${state}${rule}`}
+        </Body>
+      </View>
+    );
+  };
   const dayBar = (t) => (
     <>
       {t.shutdown > 0.01 && (
-        <View style={tw`mt-1 rounded-sm border border-dashed border-mute px-2 py-0.5`}>
-          <Body small mute style={num}>
+        <View style={tw`mt-1 flex-row items-center gap-1.5 rounded-sm border border-dashed border-mute px-2 py-0.5`}>
+          <Icon name="calendar" size={14} color={colors.mute} />
+          <Body small mute style={[tw`flex-1`, num]}>
             {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} · ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
           </Body>
         </View>
@@ -146,7 +235,7 @@ export function VelocityPanel({ full, onOpen }) {
           </View>
           {open && (
             <Body small mute>
-              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Friday and Saturday nights and Sunday's day shift.`}
+              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Friday and Saturday nights and Sunday's day shift. A statutory holiday extends the week by its hours without gantry work, up to ${HOLIDAY_CAP_HOURS} each; any other irregular shutdown counts against the pace. A step reported during one is counted at its start.`}
             </Body>
           )}
         </View>
@@ -160,11 +249,54 @@ export function VelocityPanel({ full, onOpen }) {
           <View style={tw`flex-1 gap-0.5`}>
             <Body small>{`About span ${v.window.from.toFixed(2)} to span ${v.window.to.toFixed(2)}`}</Body>
             <Body small mute>
-              {`${stamp(v.window.start)} to ${stamp(v.window.end)}. The end is where ${stageName(v.stage).toLowerCase()} comes in span ${v.window.span}'s cycle; the start is read off between the steps either side of it.`}
+              {`${stamp(v.window.start)} to ${stamp(v.window.end)}${windowNotes.length ? ` (${windowNotes.join("; ")})` : ""}. The end is where ${stageName(v.stage).toLowerCase()} comes in span ${v.window.span}'s cycle; the start is read off between the steps either side of it.`}
             </Body>
           </View>
           <Body small>{`${(v.window.to - v.window.from).toFixed(2)} spans`}</Body>
         </Row>
+      )}
+      {open && effects.length > 0 && (
+        <View style={tw`gap-2 border-t border-line pt-2`}>
+          <Body small mute>
+            Irregular shutdowns, newest first
+          </Body>
+          {effects.map((e, i) => {
+            const { shutdown, info } = e;
+            const endKey = e.valid && !shutdown.open ? toKey(new Date(shutdown.endMs)) : null;
+            const when = !e.valid
+              ? null
+              : shutdown.open
+                ? `${stamp(shutdown.start)} · still going`
+                : `${stamp(shutdown.start)} to ${dayOf(shutdown.start) === dayOf(endKey) ? clock(endKey) : stamp(endKey)} · ${hm(shutdown.length)}`;
+            return (
+              <View key={i} style={tw`flex-row items-start gap-2`}>
+                <View style={{ width: 22 }}>
+                  {info.icon && e.valid ? <Icon name={info.icon} size={22} color={colors.mute} /> : null}
+                </View>
+                <View style={tw`flex-1 gap-0.5`}>
+                  <Body>
+                    {shutdown.label}
+                    <Body small mute>{`  ${shutdown.type || "no type"}`}</Body>
+                  </Body>
+                  {when && (
+                    <Body small mute style={num}>
+                      {when}
+                    </Body>
+                  )}
+                  <Body small mute={e.valid} style={e.valid ? null : tw`text-del-ink`}>
+                    {shutdownNote(e, v.window)}
+                  </Body>
+                </View>
+                <Body small style={[tw`font-semibold`, num]}>
+                  {e.valid ? `+${hm(e.extends)}` : "–"}
+                </Body>
+              </View>
+            );
+          })}
+          <Body small mute>
+            Every shutdown is listed. Only holidays extend the week.
+          </Body>
+        </View>
       )}
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
@@ -214,10 +346,12 @@ export function VelocityPanel({ full, onOpen }) {
               <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
               {g.steps.map((t, i) => (
                 <Fragment key={t.stage}>
+                  {t.irregular.map((e, k) => shutdownBox(e, k))}
                   {t.newDay && i > 0 && dayBar(t)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <Body small mute={t.estimated} style={[tw`flex-1`, offStyle(t)]}>
                       {`${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}${t.estimated ? " (est.)" : ""}`}
+                      {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
                     </Body>
                     <Body
                       small
@@ -233,6 +367,7 @@ export function VelocityPanel({ full, onOpen }) {
                   </View>
                 </Fragment>
               ))}
+              {g === bySpan.at(-1) && boxesAfter.map((e, k) => shutdownBox(e, k))}
               <View style={tw`flex-row items-baseline gap-2 border-t border-line pl-3 pt-0.5`}>
                 <Body small style={tw`flex-1 font-semibold`}>
                   {g.steps.at(-1).stepHours == null ? "Total so far" : "Total"}

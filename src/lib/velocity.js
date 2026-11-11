@@ -10,7 +10,7 @@
 // either is overtime: that part of the shutdown starts at the step instead.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
-import { rangesOf } from "./shutdowns.js";
+import { HOLIDAY_CAP_HOURS, rangesOf, typeInfo } from "./shutdowns.js";
 
 // The irregular shutdowns of the file being worked on (lib/shutdowns.js), as time ranges in ms, while a calculation runs:
 // `off` are all of them (no gantry work in them: the shift clock leaves them out, and a step reported in one is counted at its
@@ -318,6 +318,18 @@ function estimator(steps, shares) {
 }
 
 /**
+ * When a logged step was reported, if that isn't when it's counted: the step moved to the start of the shutdown it was reported
+ * in. Null when it's counted where it was reported.
+ */
+function reportedAt(entries, { span, stage, key }) {
+  const raw = entries
+    .filter((e) => e.span === span && e.stage === stage && countedAt(e.key) === key)
+    .map((e) => e.key)
+    .sort((a, b) => parseKey(a) - parseKey(b))[0];
+  return raw && raw !== key ? raw : null;
+}
+
+/**
  * Like sinceArrival, but lowest span first, with the steps that weren't logged estimated too, and spans whose arrival is an
  * estimate: [{ span, stage, key, hours, stepHours, estimated }]. `stepHours` is the working time from the step to the next one,
  * a span's last running to the next span's arrival, and null with no next step to run to. A step is estimated the way an arrival is, between the nearest steps either side
@@ -348,7 +360,19 @@ export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, sh
     const next = out[i + 1];
     const stepHours =
       next && next.span <= t.span + 1 ? workingHours(parseKey(t.key), parseKey(next.key), logged) : null;
-    return { ...t, stepHours, offHours: t.estimated ? null : offHours(steps, shares, t) };
+    // the weekly shutdown's hours in the gap to the next step, apart from any irregular shutdown's (a holiday's are left out of
+    // stepHours too)
+    const weeklyGap =
+      stepHours == null
+        ? null
+        : (parseKey(next.key) - parseKey(t.key)) / HOUR - workingHours(parseKey(t.key), parseKey(next.key), logged, []);
+    return {
+      ...t,
+      stepHours,
+      weeklyGap,
+      reported: t.estimated ? null : reportedAt(entries, t),
+      offHours: t.estimated ? null : offHours(steps, shares, t),
+    };
   });
 });
 
@@ -508,9 +532,10 @@ function progressAt(steps, shares, when) {
  * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so about 5.29
  * working days).
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
- *   to: number, span: number, extended: number }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ *   to: number, span: number, extended: number, reported: string|null }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
  *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span;
- *   `extended`, the hours a holiday in it extended the week by (0 with none).
+ *   `extended`, the hours a holiday in it extended the week by (0 with none); `reported`, when its last step was reported if
+ *   it was counted earlier, at the start of a shutdown (else null).
  */
 export const velocity = scoped(function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
@@ -541,6 +566,45 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
   // without overtime: a week's working time is the same every week, so this is the distance covered in it
   const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
-  const window = { start: toKey(start), end: toKey(last.at), from, to, span: last.span, extended };
+  const end = toKey(last.at);
+  const window = {
+    start: toKey(start),
+    end,
+    from,
+    to,
+    span: last.span,
+    extended,
+    reported: reportedAt(entries, { span: last.span, stage: STAGES[last.index], key: end }),
+  };
   return { spansPerWeek, stage, window, shares, current };
 });
+
+/**
+ * Each irregular shutdown in the file, newest first, with what it does to the velocity's week: `inWeek` its hours that fall in
+ * the week, `extends` the hours it extends it by (a holiday's excused hours outside the weekly shutdown, up to 24; 0 for any other
+ * type, which counts against the pace), and its `state` now: "upcoming", "on", "over", or "error" (left out of everything).
+ * @param {object[]} entries What parseDesk returns.
+ * @param {{ window: { start: string, end: string }|null }|null} v The velocity (`velocity(entries)`).
+ * @param {Date} [now]
+ */
+export function shutdownEffects(entries, v, now = new Date()) {
+  const week = v?.window && [parseKey(v.window.start), parseKey(v.window.end)];
+  return [...(entries.shutdowns ?? [])]
+    .sort((a, b) => (isNaN(b.startMs) ? -Infinity : b.startMs) - (isNaN(a.startMs) ? -Infinity : a.startMs) || 0)
+    .map((shutdown) => {
+      const info = typeInfo(shutdown.type);
+      const valid = shutdown.errors.length === 0;
+      let inWeek = 0,
+        extended = 0;
+      if (valid && week) {
+        inWeek = Math.max(0, Math.min(shutdown.endMs, +week[1]) - Math.max(shutdown.startMs, +week[0])) / HOUR;
+        if (info.excused) {
+          const mine = [[shutdown.startMs, Math.min(shutdown.endMs, shutdown.startMs + HOLIDAY_CAP_HOURS * HOUR)]];
+          extended = workingHours(week[0], week[1], [], []) - workingHours(week[0], week[1], [], mine);
+        }
+      }
+      const t = now.getTime();
+      const state = !valid ? "error" : t < shutdown.startMs ? "upcoming" : t >= shutdown.endMs ? "over" : "on";
+      return { shutdown, info, valid, inWeek, extends: extended, state };
+    });
+}

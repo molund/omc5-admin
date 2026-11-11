@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { parseDesk } from "../src/lib/deskFile.js";
 import {
   countedAt,
+  shutdownEffects,
   shiftHours,
   stepsBySpan,
   stepsWithEstimates,
@@ -203,4 +204,59 @@ test("hours already in the weekly shutdown don't extend the week", () => {
   // Friday Nov. 6, 12:00 to midnight: 6 of its hours are before the weekly shutdown starts at 18:00
   const v = velocity(later("  - type: holiday\n    start: 2026-11-06T12:00-07:00\n    hours: 12"));
   assert.equal(v.window.extended, 6);
+});
+
+test("a step that was moved says when it was reported, and so does the week's last step", () => {
+  const rows = stepsWithEstimates(holiday).filter((t) => t.span === 40);
+  assert.equal(rows.find((t) => t.stage === "hung").reported, "2026-11-11T08:45-07:00");
+  assert.equal(rows.find((t) => t.stage === "arrived at span").reported, null);
+  assert.equal(velocity(holiday).window.reported, "2026-11-11T08:45-07:00");
+  assert.equal(velocity(plain).window.reported, null);
+});
+
+test("a gap's weekly part leaves out a holiday's hours", () => {
+  // Saturday's weekly shutdown ends Sunday at 20:00; a holiday on the Monday is a separate gap
+  const mon = parseDesk(withList("  - type: holiday\n    start: 2026-11-09T06:00-07:00\n    hours: 14"));
+  const none = stepsWithEstimates(plain);
+  const some = stepsWithEstimates(mon);
+  // no step's weekly gap changes, though the holiday is out of the hours between steps
+  assert.deepEqual(
+    some.map((t) => t.weeklyGap),
+    none.map((t) => t.weeklyGap),
+  );
+  assert.ok(
+    some.some((t, i) => t.stepHours !== none[i].stepHours),
+    "the holiday is out of some step's hours",
+  );
+  // and the weekly shutdown is in a gap, once
+  assert.ok(none.some((t) => t.weeklyGap > 20));
+});
+
+test("what each shutdown does to the week", () => {
+  const now = new Date("2026-11-11T08:45:00-07:00");
+  const [today] = shutdownEffects(holiday, velocity(holiday), now);
+  assert.equal(today.shutdown.label, "Remembrance Day");
+  assert.deepEqual([today.state, today.inWeek, today.extends], ["on", 0, 0], "the week ends where it began");
+
+  const entries = later(`${HOLIDAY}
+  - label: Pump
+    type: mechanical
+    start: 2026-11-08T22:00-07:00
+    hours: 2
+  - label: Typo
+    type: holiday
+    hours: 4`);
+  const effects = shutdownEffects(entries, velocity(entries), new Date("2026-11-12T09:00:00-07:00"));
+  const by = Object.fromEntries(effects.map((e) => [e.shutdown.label, e]));
+  assert.deepEqual(
+    [by["Remembrance Day"].state, by["Remembrance Day"].inWeek, by["Remembrance Day"].extends],
+    ["over", 14, 14],
+  );
+  assert.deepEqual([by["Pump"].inWeek, by["Pump"].extends], [2, 0], "in the week, but it counts against the pace");
+  assert.deepEqual([by["Typo"].state, by["Typo"].inWeek], ["error", 0]);
+  assert.deepEqual(
+    effects.map((e) => e.shutdown.label),
+    ["Remembrance Day", "Pump", "Typo"],
+    "newest first, and one with no start last",
+  );
 });

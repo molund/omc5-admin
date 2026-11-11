@@ -16,6 +16,24 @@ export const STAGES = [
   "supports started",
 ];
 
+/**
+ * Steps that can't be observed on a span: shown on the slider but not selectable. These spans needed in-place casting. Its
+ * casting and form work are prerequisites to cables down (they aren't part of gluing), so these spans go from gluing to
+ * cables down with no glued observation in between.
+ */
+const IN_PLACE_CASTING = [1, 12, 13, 30, 50];
+export const NOT_OBSERVED = Object.fromEntries(IN_PLACE_CASTING.map((n) => [n, ["glued"]]));
+
+/** Whether a step can't be picked on a span. */
+export const isNotObserved = (span, stage) => !!NOT_OBSERVED[span]?.includes(stage);
+
+/** A stage that can be picked on the span: the one before it (the nearest step that did happen) when it can't. */
+export function observable(span, stage) {
+  let i = STAGES.indexOf(stage);
+  while (i > 0 && isNotObserved(span, STAGES[i])) i--;
+  return STAGES[i] ?? stage;
+}
+
 /** How each tag reads in the Leash Log. */
 export const STAGE_LABELS = {
   "arrived at span": "Arrived at span",
@@ -160,4 +178,4 @@ export function stagesIn(text) {
  * @returns {string}
  */
 export const stageToPost = (value, floor, text, fallback, span) =>
-  isDoubleGirder(span) ? STAGES[0] : atLeast(value ?? furthest(stagesIn(text)) ?? fallback, floor);
+  isDoubleGirder(span) ? STAGES[0] : observable(span, atLeast(value ?? furthest(stagesIn(text)) ?? fallback, floor));

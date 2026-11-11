@@ -8,7 +8,16 @@ import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { isDoubleGirder } from "../lib/doubleGirder.js";
-import { STAGES, STAGE_LABELS, atLeast, furthest, stagesIn, stageToPost } from "../lib/stages.js";
+import {
+  STAGES,
+  STAGE_LABELS,
+  atLeast,
+  furthest,
+  stagesIn,
+  stageToPost,
+  isNotObserved,
+  observable,
+} from "../lib/stages.js";
 
 export { stageToPost };
 import { askClaude, canAskClaude } from "../services/stageAI.js";
@@ -18,16 +27,20 @@ import { Body, Button, Label, Panel, Row } from "./ui.js";
 const THUMB = 26;
 
 /** A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. */
-function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled }) {
+function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled, off = [] }) {
   const { tw } = useTw();
   const width = useRef(0);
   const startX = useRef(0);
   const latest = useRef();
-  latest.current = { position, count, min, onChange, disabled };
+  latest.current = { position, count, min, onChange, disabled, off };
   const go = (next) => {
-    const { position, count, min, onChange, disabled } = latest.current;
+    const { position, count, min, onChange, disabled, off } = latest.current;
     if (disabled) return;
-    const clamped = Math.min(count - 1, Math.max(min, next));
+    let clamped = Math.min(count - 1, Math.max(min, next));
+    // a step that can't be picked is stepped over, in the direction of the move
+    const dir = next >= position ? 1 : -1;
+    while (off.includes(clamped) && clamped + dir >= min && clamped + dir <= count - 1) clamped += dir;
+    if (off.includes(clamped)) return;
     if (clamped !== position) onChange(clamped);
   };
   const goToX = (x) => {
@@ -77,7 +90,7 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
             key={i}
             style={[
               tw`absolute h-2 w-2 rounded-full ${i <= position ? "bg-accent" : "bg-line"}`,
-              { left: `${(i / (count - 1)) * 100}%`, marginLeft: -4, opacity: i < min ? 0.3 : 1 },
+              { left: `${(i / (count - 1)) * 100}%`, marginLeft: -4, opacity: i < min || off.includes(i) ? 0.3 : 1 },
             ]}
           />
         ))}
@@ -152,6 +165,7 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
         count={STAGES.length}
         min={min}
         disabled={girder}
+        off={STAGES.flatMap((st, i) => (isNotObserved(span, st) ? [i] : []))}
         onChange={(p) => onChange(STAGES[p])}
       />
       {girder && (
@@ -159,15 +173,27 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
           Double girder span: only the arrival is logged.
         </Body>
       )}
+      {STAGES.some((st) => isNotObserved(span, st)) && !girder && (
+        <Body small mute>
+          {`Span ${span} has no ${STAGES.filter((st) => isNotObserved(span, st))
+            .map((st) => STAGE_LABELS[st].toLowerCase())
+            .join(", ")} step: its in-place casting and form work are prerequisites to cables down.`}
+        </Body>
+      )}
       {problem && (
         <Body small mute>
           {problem}
         </Body>
       )}
-      {!girder && (claude || (suggested && stage !== atLeast(suggested, floor))) && (
+      {!girder && (claude || (suggested && stage !== observable(span, atLeast(suggested, floor)))) && (
         <Row style={tw`justify-end`}>
-          {suggested && stage !== atLeast(suggested, floor) && (
-            <Button small kind="link" title="Use what's found" onPress={() => onChange(atLeast(suggested, floor))} />
+          {suggested && stage !== observable(span, atLeast(suggested, floor)) && (
+            <Button
+              small
+              kind="link"
+              title="Use what's found"
+              onPress={() => onChange(observable(span, atLeast(suggested, floor)))}
+            />
           )}
           {claude && !!text?.trim() && (
             <Button small title={asking ? "Asking Claude…" : "Ask Claude"} disabled={asking} onPress={ask} />

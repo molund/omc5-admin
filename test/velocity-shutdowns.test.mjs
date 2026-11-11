@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseDesk } from "../src/lib/deskFile.js";
 import {
+  afterShiftHours,
   countedAt,
   shutdownEffects,
   shiftHours,
@@ -259,4 +260,50 @@ test("what each shutdown does to the week", () => {
     ["Remembrance Day", "Pump", "Typo"],
     "newest first, and one with no start last",
   );
+});
+
+// an open shutdown has no end, so the shift clock has no shifts after it starts; the walks through the shifts must stop there
+// (they once never did). Each test has a time limit so a hang fails quickly.
+const OPEN = "  - label: Remembrance Day\n    type: holiday\n    start: 2026-11-11T06:00-07:00";
+
+test("an open shutdown: the shift clock stops where it starts", { timeout: 10000 }, () => {
+  const open = parseDesk(withList(OPEN));
+  const [a, b] = [D("2026-11-11T00:00-07:00"), D("2027-06-01T00:00-07:00")];
+  assert.equal(
+    in_(open, () => shiftHours(a, b)),
+    6,
+    "only the night shift's hours before it began",
+  );
+  assert.equal(
+    in_(open, () => afterShiftHours(D("2026-11-11T05:00-07:00"), 100)),
+    undefined,
+    "the hours run out",
+  );
+  assert.equal(
+    in_(open, () => afterShiftHours(D("2026-11-11T05:00-07:00"), 1))?.toISOString(),
+    D("2026-11-11T06:00-07:00").toISOString(),
+  );
+  assert.equal(
+    in_(open, () => shiftHours(D("2026-12-01T00:00-07:00"), D("2026-12-05T00:00-07:00"))),
+    0,
+    "after it began",
+  );
+});
+
+test("an open shutdown: the velocity and the steps are worked out, as with it closed", { timeout: 20000 }, () => {
+  const open = parseDesk(withList(OPEN));
+  const v = velocity(open);
+  assert.equal(v.window.end, "2026-11-11T06:00-07:00");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.82", "the same as with the 14 hours written in");
+  assert.ok(stepsWithEstimates(open).length > 0);
+  const [e] = shutdownEffects(open, v, new Date("2026-11-11T09:00:00-07:00"));
+  assert.deepEqual([e.shutdown.open, e.state, e.extends], [true, "on", 0]);
+  // a step reported long after is counted at its start
+  const later = parseDesk(
+    withList(OPEN).replace(
+      "entries:\n",
+      "entries:\n  - 2026-12-01T09:00-07:00:\n      span: 41\n      stage: arrived at span\n",
+    ),
+  );
+  assert.equal(velocity(later).window.end, "2026-11-11T06:00-07:00");
 });

@@ -126,7 +126,13 @@ function* clipped([start, end]) {
 }
 
 function* shiftsFrom(from) {
-  for (const shift of rawShiftsFrom(from)) yield* clipped(shift);
+  // an open shutdown has no end, so there are no shifts once it starts: without this the walk through the shifts, each cut to
+  // nothing, would never stop
+  const horizon = Math.min(Infinity, ...calendar.off.filter(([, end]) => end === Infinity).map(([start]) => start));
+  for (const shift of rawShiftsFrom(from)) {
+    if (shift[0] >= horizon) return;
+    yield* clipped(shift);
+  }
 }
 
 /** Hours between two Dates that are inside a shift. */
@@ -139,13 +145,14 @@ export function shiftHours(from, to) {
   return total / HOUR;
 }
 
-/** The Date some shift hours after a Date. */
+/** The Date some shift hours after a Date, or undefined when there aren't that many left (an open shutdown ends them). */
 export function afterShiftHours(from, hours) {
   let left = hours * HOUR;
   for (const [shiftStart, end] of shiftsFrom(from)) {
     const start = Math.max(shiftStart, from.getTime());
     if (end <= start) continue;
-    if (left <= end - start) return new Date(start + left);
+    // (a millisecond over is rounding)
+    if (left <= end - start + 1) return new Date(Math.min(start + left, end));
     left -= end - start;
   }
 }
@@ -313,6 +320,7 @@ function estimator(steps, shares) {
     if (!before || !after) return null;
     const part = (point - before.position) / (after.position - before.position);
     const when = afterShiftHours(origin, before.hours + (after.hours - before.hours) * part);
+    if (!when) return null;
     return toKey(new Date(Math.round(when.getTime() / QUARTER) * QUARTER));
   };
 }

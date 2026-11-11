@@ -126,6 +126,21 @@ export const ICONS = {
     ["rect", { x: 5, y: 2.4, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
     ["rect", { x: 5, y: 19.2, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
   ],
+  // the weather on a day bar in Velocity: a cloud with two drops for rain, four longer ones for heavy rain, and flakes for snow
+  rain: [
+    ["path", { d: "M7 14a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 6.5a3.75 3.75 0 0 1 0 7.5z", fill: "none" }],
+    ["path", { d: "M10 17l-1 3M15 17l-1 3", fill: "none" }],
+  ],
+  heavyRain: [
+    ["path", { d: "M7 14a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 6.5a3.75 3.75 0 0 1 0 7.5z", fill: "none" }],
+    ["path", { d: "M7 16.5l-1.5 4.5M11 16.5l-1.5 4.5M15 16.5l-1.5 4.5M19 16.5l-1.5 4.5", fill: "none" }],
+  ],
+  snow: [
+    ["path", { d: "M7 14a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 6.5a3.75 3.75 0 0 1 0 7.5z", fill: "none" }],
+    ["circle", { cx: 8, cy: 18, r: 1.1, fill: "currentColor", stroke: "none" }],
+    ["circle", { cx: 12, cy: 20.5, r: 1.1, fill: "currentColor", stroke: "none" }],
+    ["circle", { cx: 16, cy: 18, r: 1.1, fill: "currentColor", stroke: "none" }],
+  ],
 };
 
 // The width of an icon's grid when it isn't the usual 24 (it's always 24 tall); it's drawn that much wider than its size.

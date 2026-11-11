@@ -7,7 +7,7 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
 
 - **Spans per week**: how far the gantry got in **the 168 hours (a week) up to the step reported most recently** (the last
   step logged in `gantry-cycles.yaml`, `WEEK_HOURS`), in spans, counting the part-spans at each end. So it moves with every step,
-  not only at each arrival.
+  not only at each arrival. A statutory holiday in the week extends it (see Irregular shutdowns below).
   - The end is that step's place in its span's cycle: span 38's "moving supports started", 83% through its cycle, is
     38.83.
   - The start, a week earlier, is read off between the steps logged either side of that moment, on the shift clock, the
@@ -83,21 +83,66 @@ enough that the simplification stops being fair.
 - On the shift clock this is Saturday's night shift and Sunday's day shift. The Sunday night shift (from 8 p.m.) runs.
 - Cycle lengths and the velocity use working time (`workingHours`): every hour counts except the shutdown, including
   the gaps between shifts.
-- No holidays or other days off are allowed for. A stat holiday, a weather day or a breakdown counts as working time.
+- Days off that aren't weekly are irregular shutdowns (below). A breakdown or a wait counts as working time, because it
+  slowed the gantry; a statutory holiday doesn't.
 - **Seen Nov. 7, 2026, not yet in the code:** the Friday night shift is pretty much nonexistent. There was a little
   activity early Friday evening, the hangers being lowered, which doesn't need a big crew; it may have just been the day
   shift working overtime. The day shift works six days a week and the night shift only five (Sunday to Thursday nights),
   so the working week is uneven, which is why the velocity is given only per week (spans per week), not as days per
   span.
 
+## Irregular shutdowns
+
+Stretches with no gantry work that the weekly shutdown doesn't cover. They're added by hand, under `irregular-shutdowns:` in
+`gantry-cycles.yaml` (`lib/shutdowns.js`; the file's header has examples to uncomment). The Leash Log writes that file whole on
+every push and writes the list back line for line, comments included.
+
+```yaml
+irregular-shutdowns:
+  - label: Remembrance Day
+    type: holiday
+    start: 2026-11-11T06:00-07:00
+    hours: 14
+```
+
+- **Each has** a label, a type, a `start`, and an `end` or `hours` (the length; either one, whichever saves the arithmetic). With
+  neither it's open, still going: add one when work starts again. It's the real stretch, so if the crews worked into it,
+  shorten it. Nothing is trimmed from the steps logged, because a step records when something was seen, not when it
+  happened.
+- **The type decides what it means** (`TYPES` in `shutdowns.js`):
+
+  | Type         | Icon      | Meaning                                                                          |
+  | ------------ | --------- | -------------------------------------------------------------------------------- |
+  | `holiday`    | palm tree | Excused: the week is extended by its hours, up to 24 each (`HOLIDAY_CAP_HOURS`). |
+  | `mechanical` | wrench    | Counts against the pace.                                                         |
+  | `waiting`    | hourglass | Counts against the pace (waiting on work ahead to finish).                       |
+  | any other    | none      | Counts against the pace, so a typo can't quietly change the velocity.            |
+
+- **A step reported during a shutdown is counted at its start**, whatever the type: there's no gantry work in one, so the
+  step happened before it. Remembrance Day from 6 a.m.: the "hung" reported at 8:45 a.m. is counted at 6 a.m. The step
+  keeps its time stamp in the file, and the Velocity page shows "(reported 8:45am)". (A step in the weekly shutdown's
+  evening works the other way: it's overtime, and moves that shutdown's start later.)
+- **A holiday extends the week.** The week reaches back 168 hours that aren't an excused holiday: a holiday inside it moves the
+  start back by its hours, up to 24, and the pace is the distance covered in that longer week. Hours already in the weekly
+  shutdown don't extend it, and a holiday that starts before the week brings the rest of itself in as the start moves back. So a
+  holiday that begins where the week ends extends nothing until a step is logged after it.
+- **The two clocks.** Every irregular shutdown leaves the shift clock, so a breakdown can't distort the stage shares or the
+  estimated steps. Only a holiday leaves working time, so the stage that crosses one isn't inflated, and a breakdown or wait
+  shows in the durations (in red, if it ran well over what's expected).
+- **Mistakes.** An entry with no start, a start or end that isn't a time stamp, an end not after the start, hours of zero or
+  less, or no type is left out of every calculation, and the Velocity page says why. An unknown type, or an end and hours
+  that disagree (the end is used), count but are flagged.
+- **The Velocity page** lists them all, with their icons, hours and what each did to the week (`shutdownEffects` in
+  `velocity.js`), and puts each in a box among the steps, dashed like the weekly shutdown's, which has a calendar icon.
+
 ## Two clocks
 
 The code keeps two clocks, and they don't agree on the gaps between shifts:
 
-| Used for                         | Clock        | Counts                                     |
-| -------------------------------- | ------------ | ------------------------------------------ |
-| Cycle lengths, spans per week    | Working time | Every hour except the shutdown             |
-| Stage shares, estimated arrivals | Shift hours  | Only the hours inside a day or night shift |
+| Used for                         | Clock        | Counts                                                                        |
+| -------------------------------- | ------------ | ----------------------------------------------------------------------------- |
+| Cycle lengths, spans per week    | Working time | Every hour except the weekly shutdown and holidays (up to 24 h each)          |
+| Stage shares, estimated arrivals | Shift hours  | Only the hours inside a day or night shift, and none in an irregular shutdown |
 
 So the cycle lengths and spans per week include the shift-change gaps, and the shares don't.
 

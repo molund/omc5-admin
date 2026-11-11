@@ -87,6 +87,11 @@ to self. A change writes both files in the same commit.
   can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A move
   logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
   text for wording the rules don't know (the artifact's `sample` capability).
+- **Irregular shutdowns.** Holidays, breakdowns and waits are added by hand under `irregular-shutdowns:` in
+  `gantry-cycles.yaml` (the header there has examples): a label, a type (`holiday`, `mechanical` or `waiting`), a start,
+  and an end or hours. A holiday extends the velocity's week by its hours, up to 24; the others count against the pace. A step
+  reported during one is counted at its start. The Leash Log writes the list back untouched on every push, and lists it
+  on the Velocity page. The rules are in [`src/lib/VELOCITY.md`](src/lib/VELOCITY.md).
 - **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
   reported most recently, part-spans included, with the weekly shutdown (Saturday 6 p.m. to Sunday 6 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the

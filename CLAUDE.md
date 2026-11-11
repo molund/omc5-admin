@@ -12,3 +12,7 @@ The admin app for the Clayton Clipper site (molund/omc5): a React Native editor 
 - Format every changed file with Prettier before committing (`npx prettier --write <file>`, or `npm run format` for everything).
   The options, including the 120-character width, are in `.prettierrc`. `npm run format:check` must pass.
 - `test/fixtures/` holds verbatim copies of files from molund/omc5 and is never formatted (see `.prettierignore`).
+
+## Artifacts
+
+- When listing artifacts, list only the Leash Log (`artifactUrl` in `desk.config.json`). Leave the others out.

@@ -1,5 +1,6 @@
-// The prompt a field's sparkle icon copies, to paste into Claude or Copilot. The style rules started as the "Writing style"
-// section of molund/omc5's CLAUDE.md, but they're this prompt's own now.
+// The prompt a field's sparkle icon copies, to paste into Claude or Copilot, and the walk notes' prompt (walkPrompt), which
+// turns everything written on a walk into a whole update or blog post. The style rules started as the "Writing style"
+// section of molund/omc5's CLAUDE.md, but they're these prompts' own now.
 
 export const WRITES_INTRO = "a blog intro paragraph";
 export const WRITES_SECONDARY = "a blog secondary paragraph";
@@ -28,6 +29,13 @@ export function postContext({ title, blocks, at, above = [], heading }) {
   const own = blocks.map((b, i) => (i === at ? HERE : blockLine(b)));
   return [...above, heading, titleLine(title), ...own].filter(Boolean).join("\n\n");
 }
+
+const ABOUT =
+  "my personal blog about the Clayton Clipper, the gantry building the SkyTrain extension along Fraser Highway";
+
+const VOICE = `Keep my voice: first person, casual, with whatever opinions and jokes are already there. It should sound like me on a good day, not a news report or a press release. Fix spelling and grammar, but keep my wording where it works.`;
+
+const NO_INVENTION = `Don't add anything I didn't say: no new facts, numbers, reasons, feelings or opinions, and no wrap-up sentence. If something's unclear, leave it as I wrote it rather than guessing.`;
 
 const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the start of a sentence.
 - Girders: a precast concrete or steel one connecting two supports is a "girder", never a "span" or "beam"; use the span's number only to say where it goes ("both precast concrete girders for span 34").
@@ -67,11 +75,11 @@ export function writingPrompt(writes, text, context, alone = false) {
     post && post !== HERE
       ? `Here's the rest of the post, for context. Don't repeat it or rewrite it; just make my text fit where it goes (marked ${HERE}):\n\n${post}\n\n`
       : "";
-  return `Tidy this up into ${writes} for my personal blog about the Clayton Clipper, the gantry building the SkyTrain extension along Fraser Highway.
+  return `Tidy this up into ${writes} for ${ABOUT}.
 
-Keep my voice: first person, casual, with whatever opinions and jokes are already there. It should sound like me on a good day, not a news report or a press release. Fix spelling and grammar, but keep my wording where it works.
+${VOICE}
 
-Don't add anything I didn't say: no new facts, numbers, reasons, feelings or opinions, and no wrap-up sentence. If something's unclear, leave it as I wrote it rather than guessing.
+${NO_INVENTION}
 
 Style:
 
@@ -82,4 +90,66 @@ ${around}${alone ? REPLY_ALONE : REPLY_TWICE}
 Here's my text:
 
 ${text}`;
+}
+
+/**
+ * The walk notes' prompt: everything Mike wrote on a walk, and his captions for its photos, to be cut down into a whole update
+ * or blog post. The reply comes back in a tagged format, one item per line (walkReply.js reads it).
+ * @param {object} w
+ * @param {"update" | "blog"} w.kind
+ * @param {string} [w.standardTitle] An update's date title, for the model to keep or replace.
+ * @param {string} w.notes
+ * @param {string[]} w.captions Mike's caption for each photo, in order.
+ * @param {boolean} [alone] Ask for the reply with nothing around it, for the kept prompts (promptLog.js), instead of in a
+ *   code block, which is only there to make copying easy in the Gemini and Copilot iPhone apps.
+ * @returns {string}
+ */
+export function walkPrompt({ kind, standardTitle, notes, captions }, alone = false) {
+  const update = kind === "update";
+  const title = update
+    ? `- A title. The standard title is "${standardTitle}". Keep it unless something from this walk stands out enough for a title of its own, like "Clayton Clipper finishes hanging span 35; new girder arrives" or "Surrey Sprinter hangs its first span past Green Timbers".`
+    : `- A title, like "The curious case of Clayton Clipper span 50" or "I found someone who posts Clayton Clipper videos on TikTok".`;
+  const photos = captions.length
+    ? `\n- My photos, each with a caption. Rewrite my captions in the same voice, and put each photo after the paragraph it goes with.`
+    : "";
+  const format = [
+    update ? "TITLE: keep (or TITLE: the new title)" : "TITLE: the title",
+    "SUMMARY: the summary",
+    "PARAGRAPH: a paragraph",
+    ...(captions.length ? ["PHOTO 1: its caption", "PARAGRAPH: another paragraph"] : ["PARAGRAPH: another paragraph"]),
+  ].join("\n");
+  const mine = captions.length
+    ? `My photos, with my captions for them:\n\n${captions.map((c, i) => `PHOTO ${i + 1}: ${c.trim() || "(no caption)"}`).join("\n")}\n\n`
+    : "";
+  return `Turn my walk notes into ${update ? "a construction update" : "a blog post"} for ${ABOUT}.
+
+My notes hold too much on purpose. Make it engaging and concise: keep only what someone following the build would find interesting, and leave the rest out without mentioning it. Lead with the most interesting thing, and use as few, tight paragraphs as it needs.
+
+The notes mix what I saw with instructions to you, like "include a link to https://…" (usually an earlier post of mine) or "mention this in the summary". Follow the instructions, but never put them in the post.
+
+${VOICE}
+
+${NO_INVENTION}
+
+The post has:
+
+${title}
+- A summary: one sentence, short enough for the status card on the site's home page. It's a hook to get readers to open the full post, so give them the most interesting thing without giving it all away.
+- Paragraphs after the summary.${photos}
+
+Style:
+
+${STYLE_GUIDE}
+
+Reply in exactly this format, one item per line, in the order they go in the post, with no line breaks inside an item:
+
+${format}
+${captions.length ? "\nUse every photo exactly once, by its number.\n" : ""}
+In every item, ${MARKDOWN}
+
+${alone ? "Reply with nothing before or after it." : "Put the whole reply in one code block, with nothing before or after it."}
+
+${mine}My walk notes:
+
+${notes}`;
 }

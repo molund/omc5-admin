@@ -24,7 +24,9 @@ export function RichScope({ children }) {
   return (
     <RichContext.Provider value={ctx}>
       {children}
-      <KeyboardBar visible={!!box && !sheet}>{box && <Toolbar box={box} onLink={openLink} />}</KeyboardBar>
+      <KeyboardBar visible={!!box && !sheet} focusKey={box?.id}>
+        {box && <Toolbar box={box} onLink={openLink} />}
+      </KeyboardBar>
       {sheet && <LinkSheet sheet={sheet} onClose={() => setSheet(null)} />}
     </RichContext.Provider>
   );

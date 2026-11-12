@@ -20,6 +20,7 @@ export function Frame({ children }) {
   const wide = useRef(width);
   wide.current = width;
   const scroll = useRef(null);
+  const offset = useRef(0); // how far the page is scrolled, for the keyboard bar's scroll
   const depth = useRef(0);
   const frame = useMemo(
     () => ({
@@ -52,7 +53,7 @@ export function Frame({ children }) {
   return (
     <SafeAreaProvider>
       <StatusBar style="auto" />
-      <KeyboardBarHost>
+      <KeyboardBarHost scroll={scroll} offset={offset}>
         <SafeAreaView style={tw`flex-1 bg-bg`}>
           <BackContext.Provider value={frame}>
             <Animated.View style={[tw`flex-1`, { transform: [{ translateX: x }] }]} {...swipe.panHandlers}>
@@ -64,6 +65,8 @@ export function Frame({ children }) {
                 keyboardDismissMode="interactive"
                 delaysContentTouches={false}
                 automaticallyAdjustKeyboardInsets
+                scrollEventThrottle={16}
+                onScroll={(e) => (offset.current = e.nativeEvent.contentOffset.y)}
               >
                 {children}
               </ScrollView>

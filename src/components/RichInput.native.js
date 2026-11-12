@@ -26,10 +26,14 @@ export const RichInput = forwardRef(function RichInput(
   const { colors } = useTw();
   const input = useRef(null);
   const [state, setState] = useState(() => ({ runs: fromMarkdown(value), md: value }));
+  // the markdown last handed up, or taken from outside: compared with, not `value`, which is out of date when two changes come
+  // before the box is drawn again (iOS ends a dictation by clearing its words and then putting them back)
+  const sent = useRef(value);
   // a new value from outside (another note opened, a draft cleared) starts the runs again
   let runs = state.runs;
   if (value !== state.md) {
     runs = fromMarkdown(value);
+    sent.current = value;
     setState({ runs, md: value });
   }
   const sel = useRef({ start: 0, end: 0 });
@@ -51,7 +55,10 @@ export const RichInput = forwardRef(function RichInput(
     const md = toMarkdown(next);
     latest.current = next;
     setState({ runs: next, md });
-    if (md !== value) onChangeText?.(md);
+    if (md !== sent.current) {
+      sent.current = md;
+      onChangeText?.(md);
+    }
     report(next);
   };
   const select = (start, end = start) => {
@@ -132,14 +139,23 @@ export const RichInput = forwardRef(function RichInput(
         report();
       }}
     >
-      {runs.map((r, i) => (
-        <Text
-          key={i}
-          style={[r.bold && { fontWeight: "700" }, r.href && { color: colors.accent, textDecorationLine: "underline" }]}
-        >
-          {r.text}
-        </Text>
-      ))}
+      {/* plain text goes in bare, as a plain box's does: iOS finishes dictation a moment after the box loses the focus, and
+          text in a <Text> of its own never matches what's in the box, so drawing it again then throws the dictation away */}
+      {runs.map((r, i) =>
+        r.bold || r.href ? (
+          <Text
+            key={i}
+            style={[
+              r.bold && { fontWeight: "700" },
+              r.href && { color: colors.accent, textDecorationLine: "underline" },
+            ]}
+          >
+            {r.text}
+          </Text>
+        ) : (
+          r.text
+        ),
+      )}
     </TextInput>
   );
 });

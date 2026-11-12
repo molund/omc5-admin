@@ -7,6 +7,7 @@
 import { build } from "esbuild";
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { promptVersion } from "./promptVersion.cjs";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const args = process.argv.slice(2);
@@ -27,7 +28,12 @@ await build({
   // the header's logo goes in the bundle as a data URL, which react-native-web's Image takes as its source
   loader: { ".js": "jsx", ".png": "dataurl" },
   jsx: "automatic",
-  define: { "process.env.NODE_ENV": '"production"', __DEV__: "false", global: "window" },
+  define: {
+    "process.env.NODE_ENV": '"production"',
+    "process.env.PROMPT_VERSION": JSON.stringify(promptVersion()),
+    __DEV__: "false",
+    global: "window",
+  },
   legalComments: "none",
   logLevel: "warning",
 });

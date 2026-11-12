@@ -1,13 +1,18 @@
-// Settings: the GitHub token the phone pushes with (kept in the Keychain; see platform/secrets) and where commits go.
-// The Claude app version has no token: it pushes through Claude Code.
+// Settings: the GitHub token the phone pushes with (kept in the Keychain; see platform/secrets), the kept sparkle prompts
+// (lib/promptLog.js), shared as a zip, and where commits go. The Claude app version has no token: it pushes through Claude
+// Code.
 import { useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { canKeepToken, removeToken, saveToken } from "../platform/secrets";
 import { BRANCH, checkToken, NEW_TOKEN_URL, REPO_NAME, AUTHOR } from "../services/github.js";
-import { dateOf } from "../lib/time.js";
-import { Body, Button, Field, Label, Link, Notice, Panel, Row } from "../components/ui.js";
+import { zipSync, strToU8 } from "fflate";
+import { dateOf, todayKey } from "../lib/time.js";
+import { clearPromptLog, promptFiles, promptLog } from "../lib/promptLog.js";
+import { PROMPT_VERSION } from "../platform/promptVersion";
+import { shareFile } from "../platform/shareFile";
+import { Body, Button, Confirm, Field, Label, Link, Notice, Panel, Row } from "../components/ui.js";
 import { Icon } from "../components/Icon";
 
 function TokenForm({ onSaved, onCancel }) {
@@ -116,6 +121,68 @@ function SavedToken({ info }) {
   );
 }
 
+/** The kept sparkle prompts: how many, shared as a zip of a .txt (the prompt) and a .json (its inputs) for each, or cleared. */
+function SparklePrompts() {
+  const { tw } = useTw();
+  const [log, setLog] = useState(promptLog);
+  const [busy, setBusy] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [error, setError] = useState(null);
+  const n = log.length;
+
+  async function share() {
+    setBusy(true);
+    setError(null);
+    try {
+      const files = Object.entries(promptFiles(log)).map(([name, text]) => [name, strToU8(text)]);
+      await shareFile(`sparkle-prompts-${todayKey()}.zip`, zipSync(Object.fromEntries(files)));
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Panel>
+      <Label>Sparkle prompts</Label>
+      <Body small mute>
+        Every prompt the sparkle icon copies is saved here with its inputs, as test data for evaluating models and
+        prompts when enhancing the AI writing feature later.
+      </Body>
+      {!n ? (
+        <Body small mute>
+          No prompts kept yet.
+        </Body>
+      ) : (
+        <>
+          <Body small>{`${n} prompt${n === 1 ? "" : "s"} kept since ${dateOf(log[0].at)}`}</Body>
+          <Body small mute>{`Prompt version ${PROMPT_VERSION}`}</Body>
+          {error && <Notice tone="problem">{error}</Notice>}
+          {clearing ? (
+            <Confirm
+              action="Clear"
+              onCancel={() => setClearing(false)}
+              onConfirm={() => {
+                clearPromptLog();
+                setLog([]);
+                setClearing(false);
+              }}
+            >
+              {`Clear the ${n} kept prompt${n === 1 ? "" : "s"}? Share them first if you want them.`}
+            </Confirm>
+          ) : (
+            <Row style={tw`justify-start`}>
+              <Button small title={busy ? "Zipping…" : "Share as zip…"} disabled={busy} onPress={share} />
+              <Button small kind="danger" title="Clear" onPress={() => setClearing(true)} />
+            </Row>
+          )}
+        </>
+      )}
+    </Panel>
+  );
+}
+
 export function SettingsScreen() {
   const { tw } = useTw();
   const desk = useDesk();
@@ -134,6 +201,7 @@ export function SettingsScreen() {
           <TokenForm />
         )}
       </Panel>
+      <SparklePrompts />
       <Panel>
         <Label>Commits</Label>
         <Body small mute>

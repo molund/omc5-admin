@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 mkdirSync(here("./.out"), { recursive: true });
@@ -97,4 +98,7 @@ test("the files: the prompt as .txt, its inputs as readable .json, the same seco
 `,
   );
   assert.ok(!files["2026-11-12 08.15.32 (2).json"].includes("context"));
+  // zipped as Settings does, and back
+  const zip = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])));
+  assert.equal(strFromU8(unzipSync(zip)["2026-11-12 08.15.32.json"]), files["2026-11-12 08.15.32.json"]);
 });

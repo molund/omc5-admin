@@ -37,6 +37,7 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Pillar, support, tulip, hammerhead, bent: use the word as written.
 - Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles.
 - Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".
+- SkyTrain: always "SkyTrain", never "Skytrain".
 - Stations: the official names ("Green Timbers Station", "Hillcrest-184 Street Station").
 - Times: "a.m." and "p.m."; posts show the date only.`;
 

@@ -10,7 +10,14 @@ import { clock, dayOf, nowKey, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
-import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "../components/BlockEditor.js";
+import {
+  addendumAbove,
+  BlockEditor,
+  blockProblems,
+  blockTexts,
+  blocksOf,
+  emptyBlocks,
+} from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, stageToPost } from "../components/StagePicker.js";
@@ -254,6 +261,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
           day={dayOf(d.time)}
           nameHint={d.blocks[0].text}
           followUp
+          above={addendumAbove(note, d.editing)}
         />
       </View>
 

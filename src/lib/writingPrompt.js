@@ -3,7 +3,31 @@
 
 export const WRITES_INTRO = "a blog intro paragraph";
 export const WRITES_SECONDARY = "a blog secondary paragraph";
-export const WRITES_FOLLOW_UP = "an addendum to the attached blog post";
+export const WRITES_FOLLOW_UP = "an addendum to the blog post below";
+
+/** Where the text being written sits in its post's context. */
+export const HERE = "▶ HERE";
+
+const blockLine = (b) => (b.type === "photo" ? b.caption.trim() && `[Photo: ${b.caption.trim()}]` : b.text.trim());
+const titleLine = (title) => title?.trim() && `Title: ${title.trim()}`;
+
+/** A whole post's title and blocks as lines of text, for a prompt's context. Empty ones are left out. */
+export const postLines = (title, blocks) => [titleLine(title), ...blocks.map(blockLine)].filter(Boolean);
+
+/**
+ * The post around the block being written, with HERE where it goes.
+ * @param {object} c
+ * @param {string} [c.title]
+ * @param {object[]} c.blocks
+ * @param {number} c.at The block being written.
+ * @param {string[]} [c.above] Lines before the post: for an addendum, the update it goes under and its other addendums.
+ * @param {string} [c.heading] A line before the blocks ("This addendum:").
+ * @returns {string}
+ */
+export function postContext({ title, blocks, at, above = [], heading }) {
+  const own = blocks.map((b, i) => (i === at ? HERE : blockLine(b)));
+  return [...above, heading, titleLine(title), ...own].filter(Boolean).join("\n\n");
+}
 
 const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the start of a sentence.
 - Girders: a precast concrete or steel one connecting two supports is a "girder", never a "span" or "beam"; use the span's number only to say where it goes ("both precast concrete girders for span 34").
@@ -19,9 +43,14 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 /**
  * @param {string} writes What to turn the text into: "a blog intro paragraph", say.
  * @param {string} text The field's text.
+ * @param {string} [context] The rest of the post (postContext), when the text is part of one.
  * @returns {string}
  */
-export function writingPrompt(writes, text) {
+export function writingPrompt(writes, text, context) {
+  const around =
+    context && context !== HERE
+      ? `Here's the rest of the post, for context. Don't repeat it or rewrite it; just make my text fit where it goes (marked ${HERE}):\n\n${context}\n\n`
+      : "";
   return `Tidy this up into ${writes} for my personal blog about the Clayton Clipper, the gantry building the SkyTrain extension along Fraser Highway.
 
 Keep my voice: first person, casual, with whatever opinions and jokes are already there. It should sound like me on a good day, not a news report or a press release. Fix spelling and grammar, but keep my wording where it works.
@@ -32,7 +61,7 @@ Style:
 
 ${STYLE_GUIDE}
 
-Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
+${around}Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
 
 In the code block, write any links as [text](url) and bold as **text**, and no other markdown. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.
 

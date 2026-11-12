@@ -136,6 +136,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
         onChange={(blocks) => update({ blocks })}
         day={dayOf(d.time)}
         nameHint={d.titleSet ? title : d.blocks[0].text}
+        title={title}
       />
       <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />

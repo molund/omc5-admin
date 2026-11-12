@@ -272,7 +272,8 @@ export function ZoomScope({ children }) {
  * A `rich` field shows its bold and links as they'll look, and edits the markdown behind them; its zoom and prompt buttons
  * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link. Its Enter key calls `onEnter`, when
  * given, instead of starting a new line, and a paste with line breaks calls `onSplit(blocks, cursor)` (richText.js's
- * splitPaste). `cursorAt` is where the cursor goes when it opens with the focus.
+ * splitPaste). `cursorAt` is where the cursor goes when it opens with the focus. `context` gives the rest of the post the
+ * text is part of (writingPrompt.js's postContext), for the prompt.
  */
 export function Field({
   value,
@@ -295,6 +296,7 @@ export function Field({
   onEnter,
   onSplit,
   cursorAt,
+  context,
 }) {
   const { tw, colors } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
@@ -322,7 +324,7 @@ export function Field({
   };
   const size = small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 };
   const name = label ?? placeholder;
-  const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value);
+  const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value, context?.());
   async function copyPrompt() {
     if (copied === false) return setCopied(null); // a second press closes the prompt shown below
     const ok = await copyText(prompt());

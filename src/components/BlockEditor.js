@@ -7,9 +7,9 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { pickPhoto, preparePhoto } from "../platform/photos";
 import { slugify } from "../lib/titles.js";
-import { parseStatus } from "../lib/statusFile.js";
+import { followUpsNewestFirst, parseStatus } from "../lib/statusFile.js";
 import { photosOf } from "../lib/changes.js";
-import { WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
+import { postContext, postLines, WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
 import { Body, Button, Confirm, Field, Label, Notice, Panel } from "./ui.js";
 import { RichScope } from "./RichScope.js";
 
@@ -103,6 +103,8 @@ function SitePhoto({ file, caption }) {
  * @param {string} props.day "2026-11-04", for photo names
  * @param {string} props.nameHint The title or summary, for photo names
  * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
+ * @param {string} [props.title] The post's title, for the fields' AI prompts
+ * @param {string[]} [props.above] For a follow-up, its update and other addendums (addendumAbove), for the AI prompts
  */
 export const BlockEditor = (props) => (
   <RichScope>
@@ -110,7 +112,7 @@ export const BlockEditor = (props) => (
   </RichScope>
 );
 
-function Blocks({ blocks, onChange, day, nameHint, followUp }) {
+function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -126,6 +128,9 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
     return out;
   }, [desk.changes]);
 
+  // the rest of the post, for a field's AI prompt
+  const context = (i) => () =>
+    postContext({ title, blocks, at: i, above, heading: followUp ? "This addendum:" : undefined });
   const set = (i, patch) => onChange(blocks.map((b, j) => (j === i ? { ...b, ...patch } : b)));
   const move = (i, d) => {
     const j = i + d;
@@ -238,6 +243,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               onSplit={(texts, at) => splitAt(i, "text", texts, at)}
               label="Summary"
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
+              context={context(i)}
             />
           );
         if (b.type === "text")
@@ -257,6 +263,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
                 cursorAt={fresh === b.k ? freshAt : null}
                 label={`Paragraph ${i}`}
                 writes={followUp ? WRITES_FOLLOW_UP : WRITES_SECONDARY}
+                context={context(i)}
               />
               {confirmRemove(b, "paragraph")}
             </View>
@@ -316,6 +323,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp }) {
               onEnter={() => newAfter(i)}
               onSplit={(texts, at) => splitAt(i, "caption", texts, at)}
               label="Caption"
+              context={context(i)}
               autoFocus={fresh === b.photoId}
               style={tw`min-h-14`}
             />
@@ -390,6 +398,15 @@ export function blocksOf(fields) {
   );
   return out;
 }
+
+/** An update's text and its addendums but `skip` (the one being edited), oldest first, for an addendum's AI prompts. */
+export const addendumAbove = (note, skip) => [
+  ...postLines(note.title, blocksOf(note.fields)),
+  ...followUpsNewestFirst(note)
+    .reverse()
+    .filter((f) => f.key !== skip)
+    .flatMap((f) => ["Addendum:", ...postLines(null, blocksOf(f.fields))]),
+];
 
 /** The text of the blocks, for the style checks. */
 export const blockTexts = (blocks) => blocks.map((b) => (b.type === "photo" ? b.caption : b.text));

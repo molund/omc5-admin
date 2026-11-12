@@ -38,7 +38,13 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
     <View style={tw`gap-3`}>
       <TimeStampField label="Date" value={d.date} onChange={(date) => update({ date })} />
       <TitleField kind="blog" stamp={d.date} title={d.title} onChange={(title) => update({ title })} notes={notes} />
-      <BlockEditor blocks={d.blocks} onChange={(blocks) => update({ blocks })} day={d.date} nameHint={d.title} />
+      <BlockEditor
+        blocks={d.blocks}
+        onChange={(blocks) => update({ blocks })}
+        day={d.date}
+        nameHint={d.title}
+        title={d.title}
+      />
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
       <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} label="The card stays as it is" />

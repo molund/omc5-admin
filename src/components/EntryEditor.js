@@ -13,7 +13,7 @@ import { headerOf } from "../lib/statusFile.js";
 import { compareKeys, dayOf, stamp } from "../lib/time.js";
 import { TurnIntoLinks } from "./TurnIntoLinks.js";
 import { slugsOf } from "../lib/titles.js";
-import { BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "./BlockEditor.js";
+import { addendumAbove, BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
 import { StagePicker, stageToPost } from "./StagePicker.js";
@@ -224,6 +224,8 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           day={dayOf(target.key)}
           nameHint={d.title ?? d.blocks[0].text}
           followUp={target.type === "followup"}
+          title={d.title}
+          above={target.type === "followup" ? addendumAbove(note, target.key) : undefined}
         />
       )}
       {/* a blog post has no step, so its notes aren't in a step box */}

@@ -1,6 +1,6 @@
 // Entries: everything already saved, newest first. Tap one to change or delete it, on its own page (EntryScreen.js). Either
 // way it's an ordinary change, so nothing leaves the site until it's pushed, and it can be discarded until then. Home shows
-// the newest few with EntryRows.
+// the newest few with EntryRows. Positions are left out unless Show positions is ticked.
 import { useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -8,7 +8,7 @@ import { useDesk } from "../state/desk.js";
 import { listEntries, positionMemo, positionName, shorten, waitingAt } from "../lib/entries.js";
 import { clock, stamp } from "../lib/time.js";
 import { isDateTitle } from "../lib/titles.js";
-import { Body, Button, Label, Notice, Panel } from "../components/ui.js";
+import { Body, Button, Checkbox, Label, Notice, Panel } from "../components/ui.js";
 import { Icon } from "../components/Icon";
 
 const PAGE = 20;
@@ -121,7 +121,9 @@ export function EntriesScreen({ onOpen }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [shown, setShown] = useState(PAGE);
-  const entries = listEntries(desk.parsed, desk.deskEntries);
+  const [positions, setPositions] = useState(false);
+  const all = listEntries(desk.parsed, desk.deskEntries);
+  const entries = positions ? all : all.filter((e) => e.type !== "position");
 
   const intro = (
     <Body small mute>
@@ -130,7 +132,7 @@ export function EntriesScreen({ onOpen }) {
       still waiting to push can be changed here too.
     </Body>
   );
-  if (!entries.length)
+  if (!all.length)
     return (
       <View style={tw`gap-3`}>
         {intro}
@@ -141,7 +143,9 @@ export function EntriesScreen({ onOpen }) {
     <View style={tw`gap-3`}>
       {intro}
       <Panel>
-        <Label>{`Entries (${entries.length})`}</Label>
+        <Label right={<Checkbox label="Show positions" value={positions} onChange={setPositions} />}>
+          {`Entries (${entries.length})`}
+        </Label>
         <EntryRows entries={entries.slice(0, shown)} onOpen={onOpen} />
         {shown < entries.length && <Button title="Show more" onPress={() => setShown(shown + PAGE)} />}
       </Panel>

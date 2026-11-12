@@ -1,19 +1,18 @@
-// The prompt a field's sparkle icon copies, to paste into Claude or Copilot. The rules are the "Writing style" section of
-// molund/omc5's CLAUDE.md: change them here when they change there.
+// The prompt a field's sparkle icon copies, to paste into Claude or Copilot. The style rules started as the "Writing style"
+// section of molund/omc5's CLAUDE.md, but they're this prompt's own now.
 
 export const WRITES_INTRO = "a blog intro paragraph";
 export const WRITES_SECONDARY = "a blog secondary paragraph";
 export const WRITES_FOLLOW_UP = "an addendum to the attached blog post";
 
-const STYLE_GUIDE = `- Spans: lowercase, "span 50", like "page 5"; capitalised only at the start of a sentence.
-- Spans and girders: a span is the space between two supports, numbered along the route; a girder is a precast concrete or steel one connecting two supports, as opposed to the segmental spans the gantry builds from segments. Always call a precast concrete or steel one a "girder" and avoid "span" or "beam" for it; use the span's number only to say where it goes ("both precast concrete girders for span 34").
-- Avoid "complete" for a span. Nothing marks one as finished: after its segments are hung come gluing, post-tensioning and the hangers coming down (the nearest thing to done is all the hangers lowered), and girders can go in later still. Say which step happened instead: "all the segments for span 38 are hung", "span 38 is post-tensioned", "the hangers are down".
-- Titles: sentence case for everything, posts included ("The curious case of Clayton Clipper span 50").
-- Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Clipper", "the Sprinter" or "the gantry" after. If the text only says "the gantry", it means the Clayton Clipper.
-- Segments: always "segments", never "rocks".
-- Pillar, support, tulip, hammerhead: use the word as written in the note.
-- Supports by name: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles and short form.
-- Roads: Surrey's style, "176 St", "152 St" (no "th"); "Highway 15 (176 St)" on first mention; "Fraser Highway" in text.
+const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the start of a sentence.
+- Girders: a precast concrete or steel one connecting two supports is a "girder", never a "span" or "beam"; use the span's number only to say where it goes ("both precast concrete girders for span 34").
+- Don't call a span "complete": say what happened ("all the segments for span 38 are hung").
+- Titles: sentence case ("The curious case of Clayton Clipper span 50").
+- Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Clipper", "the Sprinter" or "the gantry" after. "The gantry" on its own means the Clayton Clipper.
+- Pillar, support, tulip, hammerhead, bent: use the word as written.
+- Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles.
+- Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".
 - Stations: the official names ("Green Timbers Station", "Hillcrest-184 Street Station").
 - Times: "a.m." and "p.m."; posts show the date only.`;
 
@@ -23,21 +22,21 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50", like "page 5"; capitalised o
  * @returns {string}
  */
 export function writingPrompt(writes, text) {
-  return `Turn this into ${writes}.
+  return `Tidy this up into ${writes} for my personal blog about the Clayton Clipper, the gantry building the SkyTrain extension along Fraser Highway.
 
-This is a factual news report based on an actual site visit. Don't invent any details: use only the facts you're given.
+Keep my voice: first person, casual, with whatever opinions and jokes are already there. It should sound like me on a good day, not a news report or a press release. Fix spelling and grammar, but keep my wording where it works.
 
-Follow this style guide:
+Don't add anything I didn't say: no new facts, numbers, reasons, feelings or opinions, and no wrap-up sentence. If something's unclear, leave it as I wrote it rather than guessing.
+
+Style:
 
 ${STYLE_GUIDE}
-
-Use good grammar.
 
 Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
 
 In the code block, write any links as [text](url) and bold as **text**, and no other markdown. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.
 
-Here's the text:
+Here's my text:
 
 ${text}`;
 }

@@ -105,6 +105,8 @@ function SitePhoto({ file, caption }) {
  * @param {boolean} [props.followUp] These blocks are a follow-up, for the fields' AI prompts
  * @param {string} [props.title] The post's title, for the fields' AI prompts
  * @param {string[]} [props.above] For a follow-up, its update and other addendums (addendumAbove), for the AI prompts
+ * @param {boolean} [props.walk] Walk notes (WalkNotes.js): the summary is the notes, a plain box with line breaks, and the rest
+ *   only photos and their captions, with no AI prompts of their own
  */
 export const BlockEditor = (props) => (
   <RichScope>
@@ -112,7 +114,7 @@ export const BlockEditor = (props) => (
   </RichScope>
 );
 
-function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
+function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -241,14 +243,17 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
             <Field
               key="summary"
               multiline
-              heading="Summary"
+              heading={walk ? "Walk notes" : "Summary"}
               value={b.text}
               onChangeText={(text) => set(i, { text })}
-              placeholder="What happened?"
-              rich
-              onEnter={() => newAfter(i)}
-              onSplit={(texts, at) => splitAt(i, "text", texts, at)}
-              label="Summary"
+              placeholder={walk ? "Everything you saw on the walk, and anything the AI should do" : "What happened?"}
+              // the walk notes are a plain box: a rich one keeps its text on one line, and notes want line breaks
+              rich={!walk}
+              onEnter={walk ? undefined : () => newAfter(i)}
+              onSplit={walk ? undefined : (texts, at) => splitAt(i, "text", texts, at)}
+              noAi={walk}
+              style={walk ? tw`min-h-48` : undefined}
+              label={walk ? "Walk notes" : "Summary"}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
               context={context(i)}
             />
@@ -327,8 +332,9 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
               onChangeText={(caption) => set(i, { caption })}
               placeholder="What it shows"
               rich
-              onEnter={() => newAfter(i)}
-              onSplit={(texts, at) => splitAt(i, "caption", texts, at)}
+              onEnter={walk ? undefined : () => newAfter(i)}
+              onSplit={walk ? undefined : (texts, at) => splitAt(i, "caption", texts, at)}
+              noPrompt={walk}
               label="Caption"
               context={context(i)}
               autoFocus={fresh === b.photoId}
@@ -366,12 +372,14 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
       })}
       {error && <Notice tone="problem">{error}</Notice>}
       <View style={tw`flex-row gap-2`}>
-        <Button
-          kind="dashed"
-          title="+ Paragraph"
-          style={tw`flex-1`}
-          onPress={() => onChange([...blocks, { type: "text", text: "", k: `t${Date.now().toString(36)}` }])}
-        />
+        {!walk && (
+          <Button
+            kind="dashed"
+            title="+ Paragraph"
+            style={tw`flex-1`}
+            onPress={() => onChange([...blocks, { type: "text", text: "", k: `t${Date.now().toString(36)}` }])}
+          />
+        )}
         <Button
           kind="dashed"
           title={busy ? "Resizing…" : "+ Photo"}

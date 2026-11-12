@@ -18,6 +18,7 @@ import { StagePicker, stageToPost } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { Button, Confirm, Link, Notice } from "../components/ui.js";
+import { allPhotos, emptyWalk, FilledNotice, unusedPhotos, WalkNotes, WalkSwitch } from "../components/WalkNotes.js";
 
 /**
  * @param {object} props
@@ -67,8 +68,20 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     stage: stageToPost(d.stage, floor, blockTexts(d.blocks).join("\n"), undefined, d.span),
   };
   const preview = desk.preview(change);
+  // Walk notes (WalkNotes.js): the other way to write it, filling in the title and blocks from the AI's reply
+  const walk = d.walk ?? emptyWalk();
+  const [filled, setFilled] = useState(null); // the reply's problems, after filling in
+  const fill = ({ title: t, keepTitle, blocks, problems: issues }) => {
+    desk.dropPhotos(unusedPhotos(d.blocks, blocks, walk.blocks));
+    update({
+      blocks,
+      ...(t && !keepTitle ? { title: t, titleSet: true } : { title: "", titleSet: false }),
+      mode: undefined,
+    });
+    setFilled(issues);
+  };
   const discard = () => {
-    desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
+    desk.dropPhotos(allPhotos(d.blocks, d.walk));
     reset();
   };
   // Forget it, just post the position: the same time stamp, gantry, step and notes as a position, and the text and photos
@@ -84,7 +97,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
       stage: d.stage,
       memo,
     });
-    desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
+    desk.dropPhotos(allPhotos(d.blocks, d.walk));
     dropDraft(draftKey);
     onSwitch("move");
   };
@@ -122,23 +135,45 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
           )}
         </View>
       )}
-      <TitleField
-        kind="update"
-        stamp={d.time}
-        title={title}
-        onChange={(t) =>
-          update(t === dateTitle(d.time) ? { title: "", titleSet: false } : { title: t, titleSet: true })
-        }
-        notes={notes}
+      <WalkSwitch
+        value={d.mode ?? "write"}
+        onChange={(m) => {
+          setFilled(null);
+          update({ mode: m === "walk" ? "walk" : undefined });
+        }}
       />
-      <BlockEditor
-        blocks={d.blocks}
-        onChange={(blocks) => update({ blocks })}
-        day={dayOf(d.time)}
-        nameHint={d.titleSet ? title : d.blocks[0].text}
-        title={title}
-      />
-      <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
+      {d.mode === "walk" ? (
+        <WalkNotes
+          kind="update"
+          value={walk}
+          onChange={(w) => update({ walk: w })}
+          day={dayOf(d.time)}
+          standardTitle={dateTitle(d.time)}
+          hasText={d.titleSet || d.blocks.length > 1 || !!d.blocks[0].text.trim()}
+          onFill={fill}
+        />
+      ) : (
+        <>
+          {filled && <FilledNotice problems={filled} />}
+          <TitleField
+            kind="update"
+            stamp={d.time}
+            title={title}
+            onChange={(t) =>
+              update(t === dateTitle(d.time) ? { title: "", titleSet: false } : { title: t, titleSet: true })
+            }
+            notes={notes}
+          />
+          <BlockEditor
+            blocks={d.blocks}
+            onChange={(blocks) => update({ blocks })}
+            day={dayOf(d.time)}
+            nameHint={d.titleSet ? title : d.blocks[0].text}
+            title={title}
+          />
+          <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
+        </>
+      )}
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (
         <Notice key={p} tone="problem">

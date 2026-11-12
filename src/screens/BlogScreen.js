@@ -1,5 +1,6 @@
 // Blog: a dated piece for Trackside, saved as a note with `post: true`. No gantry controls; the card stays as it is.
 import { View } from "react-native";
+import { useState } from "react";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { cardFor } from "../lib/card.js";
@@ -11,6 +12,7 @@ import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
 import { Button, Notice } from "../components/ui.js";
+import { allPhotos, emptyWalk, FilledNotice, unusedPhotos, WalkNotes, WalkSwitch } from "../components/WalkNotes.js";
 
 export function BlogScreen({ onReview, draftKey = "blog", seed }) {
   const { tw } = useTw();
@@ -34,19 +36,54 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
     memo: { noteKey: d.date, text: d.memo ?? "" },
   };
   const preview = desk.preview(change);
+  // Walk notes (WalkNotes.js): the other way to write it, filling in the title and blocks from the AI's reply
+  const walk = d.walk ?? emptyWalk();
+  const [filled, setFilled] = useState(null); // the reply's problems, after filling in
+  const fill = ({ title, blocks, problems: issues }) => {
+    desk.dropPhotos(unusedPhotos(d.blocks, blocks, walk.blocks));
+    update({ blocks, ...(title && { title }), mode: undefined });
+    setFilled(title ? issues : ["The reply has no TITLE line, so the title is as it was.", ...issues]);
+  };
   return (
     <View style={tw`gap-3`}>
       <TimeStampField label="Date" value={d.date} onChange={(date) => update({ date })} />
-      <TitleField kind="blog" stamp={d.date} title={d.title} onChange={(title) => update({ title })} notes={notes} />
-      <BlockEditor
-        blocks={d.blocks}
-        onChange={(blocks) => update({ blocks })}
-        day={d.date}
-        nameHint={d.title}
-        title={d.title}
+      <WalkSwitch
+        value={d.mode ?? "write"}
+        onChange={(m) => {
+          setFilled(null);
+          update({ mode: m === "walk" ? "walk" : undefined });
+        }}
       />
+      {d.mode === "walk" ? (
+        <WalkNotes
+          kind="blog"
+          value={walk}
+          onChange={(w) => update({ walk: w })}
+          day={d.date}
+          hasText={!!d.title.trim() || d.blocks.length > 1 || !!d.blocks[0].text.trim()}
+          onFill={fill}
+        />
+      ) : (
+        <>
+          {filled && <FilledNotice problems={filled} />}
+          <TitleField
+            kind="blog"
+            stamp={d.date}
+            title={d.title}
+            onChange={(title) => update({ title })}
+            notes={notes}
+          />
+          <BlockEditor
+            blocks={d.blocks}
+            onChange={(blocks) => update({ blocks })}
+            day={d.date}
+            nameHint={d.title}
+            title={d.title}
+          />
+        </>
+      )}
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
-      <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />
+      {d.mode !== "walk" && <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} label="The card stays as it is" />
       {problems.map((p) => (
         <Notice key={p} tone="problem">
@@ -57,7 +94,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
         <Button
           title="Clear"
           onPress={() => {
-            desk.dropPhotos(d.blocks.map((b) => b.photoId).filter(Boolean));
+            desk.dropPhotos(allPhotos(d.blocks, d.walk));
             reset();
           }}
         />

@@ -1,6 +1,6 @@
 // Picking and preparing a photo in the browser: at most 1024 pixels wide, JPEG at quality 85. Drawing it onto a canvas and
 // saving that drops the original's metadata (location, camera, time), and the saved JPEG's own extra segments are dropped
-// too, as CLAUDE.md asks.
+// too, as AGENTS.md asks.
 // (A native build would use expo-image-picker and expo-image-manipulator behind the same two functions.)
 
 import { fromBase64, stripJpegMetadata, toBase64 } from "../lib/jpeg.js";

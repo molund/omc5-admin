@@ -1,6 +1,6 @@
 // The prompt a field's sparkle icon copies, to paste into Claude or Copilot, and the walk notes' prompt (walkPrompt), which
 // turns everything written on a walk into a whole update or blog post. The style rules started as the "Writing style"
-// section of molund/omc5's CLAUDE.md, but they're these prompts' own now.
+// section of molund/omc5's AGENTS.md, but they're these prompts' own now.
 
 export const WRITES_INTRO = "a blog intro paragraph";
 export const WRITES_SECONDARY = "a blog secondary paragraph";

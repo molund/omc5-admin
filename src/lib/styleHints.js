@@ -1,4 +1,4 @@
-// Gentle checks from the writing style in molund/omc5's CLAUDE.md. They never block a save.
+// Gentle checks from the writing style in molund/omc5's AGENTS.md. They never block a save.
 
 const RULES = [
   [/\brocks?\b/i, 'Call them "segments", never "rocks".'],

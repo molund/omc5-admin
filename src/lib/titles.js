@@ -1,4 +1,4 @@
-// Titles and their ?post= slugs, by the rules in molund/omc5's CLAUDE.md and src/lib/status.js.
+// Titles and their ?post= slugs, by the rules in molund/omc5's AGENTS.md and src/lib/status.js.
 
 import { longDate, parseKey } from "./time.js";
 

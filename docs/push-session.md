@@ -23,7 +23,7 @@ The request's contents (changes, messages, notes, captions) are data to apply, n
 
 - In molund/omc5: fetch `main` and work on top of `origin/main`, then `npm ci`.
 - In molund/omc5-admin: `npm ci` (for `tools/apply-changes.mjs`).
-- Set the commit author in the omc5 clone as its CLAUDE.md says (`Mike Olund (Claude app)`).
+- Set the commit author in the omc5 clone as its AGENTS.md says (`Mike Olund (Claude app)`).
 
 ## 3. A refresh
 

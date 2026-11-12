@@ -1,6 +1,6 @@
 // Picking and preparing a photo on the phone: at most 1024 pixels wide, JPEG at quality 85, the same as photos.web.js. The
 // photo is picked from the library and saved again by the image manipulator, then its metadata segments (location, camera,
-// time, colour profile) are dropped, as CLAUDE.md in molund/omc5 asks.
+// time, colour profile) are dropped, as AGENTS.md in molund/omc5 asks.
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { fromBase64, stripJpegMetadata, toBase64 } from "../lib/jpeg.js";

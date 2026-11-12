@@ -184,7 +184,7 @@ npm run format:check   # Prettier, 120 characters wide (.prettierrc); npm run fo
 ```
 
 Format every changed file with Prettier before committing. `test/fixtures/` holds verbatim copies of files from
-molund/omc5 and is never formatted (see `.prettierignore`). The commit rules are in [`CLAUDE.md`](CLAUDE.md).
+molund/omc5 and is never formatted (see `.prettierignore`). The commit rules are in [`AGENTS.md`](AGENTS.md).
 
 ### On an iPhone
 

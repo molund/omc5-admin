@@ -1,18 +1,5 @@
-# Clayton Clipper Leash Log (omc5-admin)
+# Claude Code
 
-The admin app for the Clayton Clipper site (molund/omc5): a React Native editor for its `status.yaml`. See `README.md`.
+The rules for working on the Clayton Clipper Leash Log live in AGENTS.md:
 
-## Commits and changes
-
-- One change, one commit, pushed straight to `main`. Don't batch several requested changes into one commit.
-- Make small, exact edits. Change nothing that wasn't asked for, and mention other issues instead of fixing them.
-
-## Formatting
-
-- Format every changed file with Prettier before committing (`npx prettier --write <file>`, or `npm run format` for everything).
-  The options, including the 120-character width, are in `.prettierrc`. `npm run format:check` must pass.
-- `test/fixtures/` holds verbatim copies of files from molund/omc5 and is never formatted (see `.prettierignore`).
-
-## Artifacts
-
-- When listing artifacts, list only the Leash Log (`artifactUrl` in `desk.config.json`). Leave the others out.
+@AGENTS.md

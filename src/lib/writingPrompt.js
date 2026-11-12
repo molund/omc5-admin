@@ -41,19 +41,23 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Stations: the official names ("Green Timbers Station", "Hillcrest-184 Street Station").
 - Times: "a.m." and "p.m."; posts show the date only.`;
 
+// my bold kept but none added (that's the Bold button's job), and a link only to an address in my own text, so a model
+// can't make one up
+const MARKDOWN = `write links as [text](url) and bold as **text**, and no other markdown. Keep my bold as it is, but don't add any. Only link to web addresses that are in my text: you can turn one into a [text](url) link, but never add a link to anything else. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.`;
+
 const REPLY_TWICE = `Return it twice: first as readable text, then as a code block with no formatting. Each version must be one paragraph with no line breaks.
 
-In the code block, write any links as [text](url) and bold as **text**, and no other markdown. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.`;
+In the code block, ${MARKDOWN}`;
 
-const REPLY_ALONE = `Reply with the edited paragraph only, as plain text: one paragraph with no line breaks, and nothing before or after it.
+const REPLY_ALONE = `Reply with the edited paragraph only: one paragraph with no line breaks, and nothing before or after it.
 
-Write any links as [text](url) and bold as **text**, and no other markdown. Don't add escape characters: never put a backslash before _, *, [, ], ( or ), in a link's address or anywhere else.`;
+In it, ${MARKDOWN}`;
 
 /**
  * @param {string} writes What to turn the text into: "a blog intro paragraph", say.
  * @param {string} text The field's text.
  * @param {object} [context] The rest of the post, as postContext's inputs, when the text is part of one.
- * @param {boolean} [alone] Ask for the paragraph alone, as plain text, for the kept prompts (promptLog.js), instead of twice
+ * @param {boolean} [alone] Ask for the paragraph alone (links and bold allowed), for the kept prompts (promptLog.js), instead of twice
  *   with a code block, which is only there to make copying easy in the Gemini and Copilot iPhone apps.
  * @returns {string}
  */

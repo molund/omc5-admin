@@ -34,3 +34,12 @@ test("the prompt has the context only when there's more than the text itself", (
   assert.ok(p.includes(`marked ${HERE}):\n\nThe Clipper moved.`));
   assert.ok(p.indexOf("rest of the post") < p.indexOf("Return it twice"));
 });
+
+test("the kept prompt asks for the paragraph alone, not twice with a code block", () => {
+  const copied = writingPrompt("a paragraph", "Hi");
+  const kept = writingPrompt("a paragraph", "Hi", undefined, true);
+  assert.ok(copied.includes("Return it twice"));
+  assert.ok(!kept.includes("Return it twice") && !kept.includes("code block"));
+  assert.ok(kept.includes("Reply with the edited paragraph only, as plain text"));
+  assert.ok(kept.endsWith("Here's my text:\n\nHi"));
+});

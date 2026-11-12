@@ -340,8 +340,8 @@ export function Field({
     if (copied === false) return setCopied(null); // a second press closes the prompt shown below
     const i = inputs();
     const text = writingPrompt(i.writes, i.text, i.context);
-    // kept as test data for the AI writing feature (lib/promptLog.js)
-    logPrompt({ prompt: text, version: PROMPT_VERSION, ...i });
+    // kept as test data for the AI writing feature (lib/promptLog.js), asking for the paragraph alone
+    logPrompt({ prompt: writingPrompt(i.writes, i.text, i.context, true), version: PROMPT_VERSION, ...i });
     const ok = await copyText(text);
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(null), 1500);

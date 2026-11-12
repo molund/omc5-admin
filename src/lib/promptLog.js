@@ -1,6 +1,6 @@
 // Every prompt the sparkle icon copies, kept with the inputs it was built from, as test data for evaluating models and
-// prompts when enhancing the AI writing feature later. Settings shares them as a zip: for each, a .txt with the prompt as
-// copied and a .json with its inputs, both named by when it was copied. Each is kept under its own key, with a list of
+// prompts when enhancing the AI writing feature later. Settings shares them as a zip: for each, a .txt with the prompt (as
+// copied, but asking for the paragraph alone as plain text) and a .json with its inputs, both named by when it was copied. Each is kept under its own key, with a list of
 // their ids, so a new one doesn't rewrite them all.
 import { load, save } from "../platform/storage";
 

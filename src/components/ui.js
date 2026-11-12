@@ -4,6 +4,8 @@ import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from "rea
 import { useTw } from "../theme/tw.js";
 import { copyText } from "../platform/clipboard";
 import { writingPrompt } from "../lib/writingPrompt.js";
+import { logPrompt } from "../lib/promptLog.js";
+import { PROMPT_VERSION } from "../platform/promptVersion";
 import { Icon } from "./Icon";
 import { RichInput } from "./RichInput";
 import { useRich } from "./richContext.js";
@@ -273,7 +275,7 @@ export function ZoomScope({ children }) {
  * are on the toolbar over the keyboard instead (RichScope.js), with Bold and Link. Its Enter key calls `onEnter`, when
  * given, instead of starting a new line, and a paste with line breaks calls `onSplit(blocks, cursor)` (richText.js's
  * splitPaste). `cursorAt` is where the cursor goes when it opens with the focus. `context` gives the rest of the post the
- * text is part of (writingPrompt.js's postContext), for the prompt.
+ * text is part of (postContext's inputs, in writingPrompt.js), for the prompt. Each copied prompt is kept (promptLog.js).
  */
 export function Field({
   value,
@@ -324,10 +326,23 @@ export function Field({
   };
   const size = small ? tw`text-xs` : { fontSize: 17, lineHeight: 24 };
   const name = label ?? placeholder;
-  const prompt = () => writingPrompt(writes ?? `the text for the "${name}" field`, value, context?.());
+  const inputs = () => ({
+    field: name,
+    writes: writes ?? `the text for the "${name}" field`,
+    text: value,
+    context: context?.(),
+  });
+  const prompt = () => {
+    const i = inputs();
+    return writingPrompt(i.writes, i.text, i.context);
+  };
   async function copyPrompt() {
     if (copied === false) return setCopied(null); // a second press closes the prompt shown below
-    const ok = await copyText(prompt());
+    const i = inputs();
+    const text = writingPrompt(i.writes, i.text, i.context);
+    // kept as test data for the AI writing feature (lib/promptLog.js)
+    logPrompt({ prompt: text, version: PROMPT_VERSION, ...i });
+    const ok = await copyText(text);
     setCopied(ok);
     if (ok) setTimeout(() => setCopied(null), 1500);
   }

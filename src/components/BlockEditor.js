@@ -9,7 +9,7 @@ import { pickPhoto, preparePhoto } from "../platform/photos";
 import { slugify } from "../lib/titles.js";
 import { followUpsNewestFirst, parseStatus } from "../lib/statusFile.js";
 import { photosOf } from "../lib/changes.js";
-import { postContext, postLines, WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
+import { postLines, WRITES_FOLLOW_UP, WRITES_INTRO, WRITES_SECONDARY } from "../lib/writingPrompt.js";
 import { Body, Button, Confirm, Field, Label, Notice, Panel } from "./ui.js";
 import { RichScope } from "./RichScope.js";
 
@@ -128,9 +128,16 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above }) {
     return out;
   }, [desk.changes]);
 
-  // the rest of the post, for a field's AI prompt
-  const context = (i) => () =>
-    postContext({ title, blocks, at: i, above, heading: followUp ? "This addendum:" : undefined });
+  // the rest of the post, for a field's AI prompt: what writingPrompt builds it from, each block only what the prompt uses
+  const context = (i) => () => ({
+    title,
+    blocks: blocks.map((b) =>
+      b.type === "photo" ? { type: "photo", caption: b.caption } : { type: b.type, text: b.text },
+    ),
+    at: i,
+    above,
+    heading: followUp ? "This addendum:" : undefined,
+  });
   const set = (i, patch) => onChange(blocks.map((b, j) => (j === i ? { ...b, ...patch } : b)));
   const move = (i, d) => {
     const j = i + d;

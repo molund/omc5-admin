@@ -44,13 +44,14 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 /**
  * @param {string} writes What to turn the text into: "a blog intro paragraph", say.
  * @param {string} text The field's text.
- * @param {string} [context] The rest of the post (postContext), when the text is part of one.
+ * @param {object} [context] The rest of the post, as postContext's inputs, when the text is part of one.
  * @returns {string}
  */
 export function writingPrompt(writes, text, context) {
+  const post = context && postContext(context);
   const around =
-    context && context !== HERE
-      ? `Here's the rest of the post, for context. Don't repeat it or rewrite it; just make my text fit where it goes (marked ${HERE}):\n\n${context}\n\n`
+    post && post !== HERE
+      ? `Here's the rest of the post, for context. Don't repeat it or rewrite it; just make my text fit where it goes (marked ${HERE}):\n\n${post}\n\n`
       : "";
   return `Tidy this up into ${writes} for my personal blog about the Clayton Clipper, the gantry building the SkyTrain extension along Fraser Highway.
 

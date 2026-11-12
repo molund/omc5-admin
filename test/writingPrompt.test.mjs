@@ -28,8 +28,9 @@ test("an addendum's context has its update above it", () => {
 
 test("the prompt has the context only when there's more than the text itself", () => {
   assert.ok(!writingPrompt("a paragraph", "Hi").includes("rest of the post"));
-  assert.ok(!writingPrompt("a paragraph", "Hi", HERE).includes("rest of the post"));
-  const p = writingPrompt("a paragraph", "Hi", postContext({ blocks, at: 3 }));
+  const alone = { blocks: [{ type: "summary", text: "Hi" }], at: 0 };
+  assert.ok(!writingPrompt("a paragraph", "Hi", alone).includes("rest of the post"));
+  const p = writingPrompt("a paragraph", "Hi", { blocks, at: 3 });
   assert.ok(p.includes(`marked ${HERE}):\n\nThe Clipper moved.`));
   assert.ok(p.indexOf("rest of the post") < p.indexOf("Return it twice"));
 });

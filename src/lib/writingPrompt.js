@@ -92,6 +92,11 @@ Here's my text:
 ${text}`;
 }
 
+// the walk notes are cut down, not tidied, so their prompt doesn't ask for my wording to be kept as the sparkle one does
+const WALK_VOICE = `Write it in my voice: first person, casual, with my opinions and jokes where they're good. It should sound like me on a good day, not a news report or a press release. You're the editor: rewrite freely, as long as it still sounds like me.`;
+
+const WALK_NO_INVENTION = `Don't add anything I didn't say: no new facts, numbers, reasons, feelings or opinions, and no wrap-up sentence. Cutting is fine; inventing isn't.`;
+
 /**
  * The walk notes' prompt: everything Mike wrote on a walk, and his captions for its photos, to be cut down into a whole update
  * or blog post. The reply comes back in a tagged format, one item per line (walkReply.js reads it).
@@ -110,7 +115,7 @@ export function walkPrompt({ kind, standardTitle, notes, captions }, alone = fal
     ? `- A title. The standard title is "${standardTitle}". Keep it unless something from this walk stands out enough for a title of its own, like "Clayton Clipper finishes hanging span 35; new girder arrives" or "Surrey Sprinter hangs its first span past Green Timbers".`
     : `- A title, like "The curious case of Clayton Clipper span 50" or "I found someone who posts Clayton Clipper videos on TikTok".`;
   const photos = captions.length
-    ? `\n- My photos, each with a caption. Rewrite my captions in the same voice, and put each photo after the paragraph it goes with.`
+    ? `\n- My photos, each with a caption. My captions are rough notes: rewrite each one from scratch as one short, clear sentence saying what the photo shows. Use what my notes say about it, and fix the grammar. Put each photo after the paragraph it goes with.`
     : "";
   const format = [
     update ? "TITLE: keep (or TITLE: the new title)" : "TITLE: the title",
@@ -123,13 +128,15 @@ export function walkPrompt({ kind, standardTitle, notes, captions }, alone = fal
     : "";
   return `Turn my walk notes into ${update ? "a construction update" : "a blog post"} for ${ABOUT}.
 
-My notes hold too much on purpose. Make it engaging and concise: keep only what someone following the build would find interesting, and leave the rest out without mentioning it. Lead with the most interesting thing, and use as few, tight paragraphs as it needs.
+My notes hold far too much on purpose. Keep the post to about 100 words, not counting the title or captions: the summary and one or two short paragraphs. Pick the one to three most interesting things and drop everything else without mentioning it. Lead with the most interesting thing.
+
+Interesting: something new or unusual, a first or a milestone, something people passing by would notice or wonder about, and my best jokes or opinions. Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle (segments hung, gluing, post-tensioning, hangers), which the site already tracks; where exactly I stood or walked; and things that look the same as last time.
 
 The notes mix what I saw with instructions to you, like "include a link to https://…" (usually an earlier post of mine) or "mention this in the summary". Follow the instructions, but never put them in the post.
 
-${VOICE}
+${WALK_VOICE}
 
-${NO_INVENTION}
+${WALK_NO_INVENTION}
 
 The post has:
 

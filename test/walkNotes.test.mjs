@@ -11,7 +11,11 @@ test("an update's prompt offers the standard title, the notes and the captions",
   assert.ok(p.startsWith("Turn my walk notes into a construction update"));
   assert.ok(p.includes(`The standard title is "${STANDARD}"`));
   assert.ok(p.includes("TITLE: keep (or TITLE: the new title)"));
-  assert.ok(p.includes("Make it engaging and concise"));
+  assert.ok(p.includes("Keep the post to about 100 words"));
+  assert.ok(p.includes("Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle"));
+  assert.ok(p.includes("rewrite each one from scratch as one short, clear sentence"));
+  assert.ok(p.includes("You're the editor: rewrite freely"));
+  assert.ok(!p.includes("keep my wording where it works") && !p.includes("leave it as I wrote it"));
   assert.ok(p.includes("A summary: one sentence"));
   assert.ok(p.includes("PHOTO 1: The tulip\nPHOTO 2: (no caption)"));
   assert.ok(p.includes("Put the whole reply in one code block"));

@@ -29,7 +29,7 @@ The admin app for the Clayton Clipper site (molund/omc5): a React Native editor 
   those before writing a new one.
 - Anything else visual (colours, type, padding, borders, radii, backgrounds) goes in a style map at the top of the
   component's file under a semantic name, built from the themed `tw` and used as `style={s.cardHeader}`:
-  `const looks = (tw) => ({ cardHeader: tw\`text-sm font-semibold text-ink\` })`, then
-`const s = useMemo(() => looks(tw), [tw])`.
+  ``const looks = (tw) => ({ cardHeader: tw`text-sm font-semibold text-ink` })``, then
+  `const s = useMemo(() => looks(tw), [tw])`.
 - Colours are the theme's names from `tw.js` (`text-ink`, `bg-panel`). A colour that isn't the theme's (the card's mirror
   of the site's, an icon's art) is a named constant with a comment saying where it comes from.

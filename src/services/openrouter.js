@@ -13,7 +13,6 @@ export const MODELS = [
   { id: "anthropic/claude-haiku-5.5", label: "Claude Haiku 5.5", price: "$0.10 / $0.50" },
   { id: "openai/gpt-6-luna", label: "GPT-6 Luna", price: "$0.10 / $0.50" },
   { id: "minimax/minimax-m3.1-flash", label: "MiniMax M3.1 Flash", price: "$0.07 / $0.30" },
-  { id: "xiaomi/mimo-v2.6-flash", label: "MiMo-V2.6-Flash", price: "$0.14 / $0.28" },
 ];
 export const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
 

@@ -1,6 +1,6 @@
-// OpenRouter, for asking a cheap model to write from the phone: the models the Leash Log allows, and checking a pasted key.
-// The key itself is kept in the iPhone's Keychain (platform/secrets) and only ever sent to openrouter.ai. Nothing asks a
-// model yet; Settings keeps the key and the chosen model ready for it.
+// OpenRouter, for asking a cheap model to write from the phone: the models the Leash Log allows, checking a pasted key, and
+// asking the model chosen in Settings (Write with AI, components/WalkNotes.js). The key itself is kept in the iPhone's
+// Keychain (platform/secrets) and only ever sent to openrouter.ai.
 
 const API = "https://openrouter.ai/api/v1";
 export const NEW_KEY_URL = "https://openrouter.ai/settings/keys";
@@ -23,6 +23,44 @@ export class OpenRouterError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+/** The model to write with: the one chosen in Settings, or the default when it's one that has since been dropped. */
+export const modelOf = (id) => MODELS.find((m) => m.id === id) ?? MODELS.find((m) => m.id === DEFAULT_MODEL);
+
+/**
+ * Asks a model to write: the prompt goes in as one message, and its reply comes back as text. The budget is generous
+ * because some models think for thousands of tokens before they write, and the thinking counts.
+ * @param {{ key: string, model: string, prompt: string }} args
+ * @returns {Promise<string>}
+ * @throws {OpenRouterError} When it can't be asked, or doesn't answer.
+ */
+export async function askModel({ key, model, prompt }) {
+  let res;
+  try {
+    res = await fetch(`${API}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], max_tokens: 8000 }),
+    });
+  } catch {
+    throw new OpenRouterError("offline", "Couldn't reach OpenRouter. Check the connection and try again.");
+  }
+  if (res.status === 401 || res.status === 403)
+    throw new OpenRouterError("rejected", "OpenRouter doesn't know the saved key. Replace it in Settings.");
+  if (res.status === 402)
+    throw new OpenRouterError("no_credit", "The key is out of credit. Add some, or raise its limit, on OpenRouter.");
+  if (!res.ok) throw new OpenRouterError("failed", `OpenRouter said ${res.status}. Try again in a minute.`);
+  const choice = (await res.json()).choices?.[0];
+  const text = choice?.message?.content?.trim();
+  if (!text)
+    throw new OpenRouterError(
+      "empty",
+      choice?.finish_reason === "length"
+        ? "The model ran out of room thinking and wrote nothing. Try again, or pick another model in Settings."
+        : "The model sent back nothing. Try again, or pick another model in Settings.",
+    );
+  return text;
 }
 
 /**

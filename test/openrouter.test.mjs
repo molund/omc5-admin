@@ -1,7 +1,7 @@
 // Checking a pasted OpenRouter key (src/services/openrouter.js), against a fake OpenRouter.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkKey, DEFAULT_MODEL, MODELS } from "../src/services/openrouter.js";
+import { askModel, checkKey, DEFAULT_MODEL, modelOf, MODELS } from "../src/services/openrouter.js";
 
 const KEY = "sk-or-v1-0000000000000000000000000000000000000000000000000000000000abcd";
 
@@ -53,4 +53,35 @@ test("a key with no credit limit says so with nulls", async () => {
 
 test("the default model is one of the allowed ones", () => {
   assert.ok(MODELS.some((m) => m.id === DEFAULT_MODEL));
+});
+
+test("a dropped model falls back to the default", () => {
+  assert.equal(modelOf("qwen/qwen3.8-flash").id, DEFAULT_MODEL);
+  assert.equal(modelOf("openai/gpt-6-luna").id, "openai/gpt-6-luna");
+});
+
+test("asking a model sends the prompt and returns its reply", async () => {
+  let sent;
+  globalThis.fetch = async (url, init) => {
+    sent = { url: String(url), auth: init.headers.Authorization, body: JSON.parse(init.body) };
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "  TITLE: keep\n" } }] }) };
+  };
+  const text = await askModel({ key: KEY, model: "openai/gpt-6-luna", prompt: "Write it" });
+  assert.equal(text, "TITLE: keep");
+  assert.equal(sent.url, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(sent.auth, `Bearer ${KEY}`);
+  assert.equal(sent.body.model, "openai/gpt-6-luna");
+  assert.deepEqual(sent.body.messages, [{ role: "user", content: "Write it" }]);
+});
+
+test("a model that thinks until it runs out of room says so", async () => {
+  fakeOpenRouter(200, { choices: [{ message: { content: "" }, finish_reason: "length" }] });
+  await assert.rejects(askModel({ key: KEY, model: "x", prompt: "p" }), { code: "empty", message: /ran out of room/ });
+});
+
+test("a key out of credit is told apart from a rejected one", async () => {
+  fakeOpenRouter(402);
+  await assert.rejects(askModel({ key: KEY, model: "x", prompt: "p" }), { code: "no_credit" });
+  fakeOpenRouter(401);
+  await assert.rejects(askModel({ key: KEY, model: "x", prompt: "p" }), { code: "rejected" });
 });

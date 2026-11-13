@@ -26,7 +26,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
   const problems = [
     ...titleProblems("blog", d.date, d.title),
     ...blockProblems(d.blocks),
-    ...(taken ? [`There's already a note dated ${shortDate(d.date)}. Pick another day.`] : []),
+    ...(taken ? [`There's already a blog post dated ${shortDate(d.date)}. Pick another day.`] : []),
   ];
   const change = {
     kind: "blog",

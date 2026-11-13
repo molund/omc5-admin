@@ -12,5 +12,7 @@ export async function shareFile(name, bytes) {
   if (file.exists) file.delete();
   file.create();
   await file.write(bytes);
-  await Share.share({ url: file.uri });
+  // Not waited for: iOS can close the sheet without ever answering (when you leave the Leash Log and come back, or while an
+  // AirDrop is still waiting), which would leave Share as zip busy for good. Settings only waits for the file.
+  Share.share({ url: file.uri }).catch(() => {});
 }

@@ -64,7 +64,7 @@ export function Body({ children, style, mute, small, numberOfLines }) {
 /**
  * A button: "green" for the main action, "grey" for the rest, "link" for a word in a row, "danger" for removing.
  */
-export function Button({ title, onPress, kind = "grey", disabled, small, style, label, icon }) {
+export function Button({ title, onPress, kind = "grey", disabled, small, style, label, icon, numberOfLines }) {
   const { tw, colors } = useTw();
   const look = {
     green: tw`border-green bg-green`,
@@ -103,7 +103,9 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
           color={{ green: "#ffffff", link: colors.accent, danger: colors["del-ink"] }[kind] ?? colors["button-ink"]}
         />
       )}
-      <Text style={[tw`${small ? "text-xs" : "text-sm"} font-semibold`, ink]}>{title}</Text>
+      <Text numberOfLines={numberOfLines} style={[tw`${small ? "text-xs" : "text-sm"} font-semibold`, ink]}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -112,6 +114,7 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
 /**
  * A button with a menu beside it: the main part does `onPress` with the `value` option, and the arrow opens a list of the
  * `options` ({ value, label, detail }) under it, in their order, with a check on `value`; picking one calls `onPick` with it.
+ * Its title and the options each keep to one line, ending in "…" when they don't fit.
  */
 export function SplitButton({ title, onPress, options, value, onPick, kind = "green", disabled, menuLabel }) {
   const { tw, colors } = useTw();
@@ -120,7 +123,14 @@ export function SplitButton({ title, onPress, options, value, onPick, kind = "gr
   return (
     <View style={tw`gap-1.5`}>
       <View style={tw`flex-row gap-px`}>
-        <Button kind={kind} title={title} disabled={disabled} onPress={onPress} style={[tw`flex-1`, s.splitMain]} />
+        <Button
+          kind={kind}
+          title={title}
+          numberOfLines={1}
+          disabled={disabled}
+          onPress={onPress}
+          style={[tw`flex-1`, s.splitMain]}
+        />
         <Button
           kind={kind}
           icon="chevronDown"
@@ -147,9 +157,11 @@ export function SplitButton({ title, onPress, options, value, onPick, kind = "gr
               <View style={tw`flex-row items-center gap-2`}>
                 <View style={tw`w-5`}>{o.value === value && <Icon name="check" color={colors.green} />}</View>
                 <View style={tw`flex-1`}>
-                  <Body style={o.value === value && s.splitOptionChosen}>{o.label}</Body>
+                  <Body numberOfLines={1} style={o.value === value && s.splitOptionChosen}>
+                    {o.label}
+                  </Body>
                   {o.detail && (
-                    <Body small mute>
+                    <Body small mute numberOfLines={1}>
                       {o.detail}
                     </Body>
                   )}

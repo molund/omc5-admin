@@ -187,11 +187,7 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
         </Confirm>
       ) : canKeepToken ? (
         <SplitButton
-          title={
-            writing
-              ? `Writing with ${writing.label}…`
-              : `Write the ${kind === "update" ? "update" : "blog post"} with ${model.label}`
-          }
+          title={writing ? `Writing with ${writing.label}…` : `Write with ${model.label}`}
           disabled={!notes.trim() || !desk.aiKeyInfo}
           busy={!!writing}
           onStop={() => stop.current?.abort()}

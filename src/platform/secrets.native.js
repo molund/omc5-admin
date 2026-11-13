@@ -31,3 +31,22 @@ export async function readToken(reason) {
 export async function removeToken() {
   await SecureStore.deleteItemAsync(KEY, OPTIONS);
 }
+
+// The OpenRouter key (services/openrouter.js), beside it in the Keychain, on this device only, but without Face ID: asking a
+// model to write isn't worth a Face ID prompt each time. A credit limit on the key, set on OpenRouter, caps what it can spend.
+const AI_KEY = "openrouter-key";
+const AI_OPTIONS = { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY };
+
+/** Saves the OpenRouter key, replacing any saved before. */
+export async function saveAIKey(key) {
+  await SecureStore.setItemAsync(AI_KEY, key, AI_OPTIONS);
+}
+
+/** @returns {Promise<string|null>} The OpenRouter key, or null if none is saved. */
+export async function readAIKey() {
+  return SecureStore.getItemAsync(AI_KEY, AI_OPTIONS);
+}
+
+export async function removeAIKey() {
+  await SecureStore.deleteItemAsync(AI_KEY, AI_OPTIONS);
+}

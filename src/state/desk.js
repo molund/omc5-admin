@@ -13,6 +13,7 @@ import { velocity } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
 import { ownFile } from "../platform/claude";
 import { startSession } from "../services/outbox.js";
+import { DEFAULT_MODEL } from "../services/openrouter.js";
 import { load, save } from "../platform/storage";
 
 const DeskContext = createContext(null);
@@ -62,6 +63,10 @@ export function DeskProvider({ children }) {
   const [push, setPush] = usePersisted("push", null); // { requestId, kind: "push"|"refresh", ids, requestedAt }; on the phone { via: "github", head, … }
   // on the phone, what the Leash Log shows about the GitHub token (the token itself is in the Keychain): { last4, expiresAt, checkedAt, rejected }
   const [tokenInfo, setTokenInfo] = usePersisted("token", null);
+  // on the phone, what the Leash Log shows about the OpenRouter key (the key itself is in the Keychain):
+  // { last4, limit, limitRemaining, checkedAt }; and the model chosen to write with
+  const [aiKeyInfo, setAIKeyInfo] = usePersisted("ai-key", null);
+  const [aiModel, setAIModel] = usePersisted("ai-model", DEFAULT_MODEL);
   // the request in the Leash Log's outbox that no session has answered yet, and the session started for it:
   // { id, state: "starting"|"started"|"failed"|"unsure", at?, error? }
   const [pending, setPending] = useState(null);
@@ -224,6 +229,10 @@ export function DeskProvider({ children }) {
       setPush,
       tokenInfo,
       setTokenInfo,
+      aiKeyInfo,
+      setAIKeyInfo,
+      aiModel,
+      setAIModel,
       /** Drops changes that are on main now (pushed from the phone). */
       dropChanges: (ids) => setChanges((cs) => cs.filter((c) => !ids.includes(c.id))),
     }),
@@ -237,6 +246,8 @@ export function DeskProvider({ children }) {
       pending,
       started,
       tokenInfo,
+      aiKeyInfo,
+      aiModel,
       changesKept,
       photosKept,
       draftsCleared,

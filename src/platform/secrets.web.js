@@ -7,3 +7,10 @@ const none = () => Promise.reject(new Error("The Claude app version of the Leash
 export const saveToken = none;
 export const readToken = none;
 export const removeToken = none;
+
+// No OpenRouter key either: the Claude app asks Claude itself (its `sample` capability).
+const noKey = () =>
+  Promise.reject(new Error("The Claude app version of the Leash Log doesn't keep an OpenRouter key."));
+export const saveAIKey = noKey;
+export const readAIKey = noKey;
+export const removeAIKey = noKey;

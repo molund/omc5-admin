@@ -31,19 +31,22 @@ export const modelOf = (id) => MODELS.find((m) => m.id === id) ?? MODELS.find((m
 /**
  * Asks a model to write: the prompt goes in as one message, and its reply comes back as text. The budget is generous
  * because some models think for thousands of tokens before they write, and the thinking counts.
- * @param {{ key: string, model: string, prompt: string }} args
+ * @param {{ key: string, model: string, prompt: string, signal?: AbortSignal }} args `signal` stops it (Stop).
  * @returns {Promise<string>}
- * @throws {OpenRouterError} When it can't be asked, or doesn't answer.
+ * @throws {OpenRouterError} When it can't be asked, doesn't answer, or is stopped (code "stopped").
  */
-export async function askModel({ key, model, prompt }) {
+export async function askModel({ key, model, prompt, signal }) {
+  const stopped = () => new OpenRouterError("stopped", "Stopped.");
   let res;
   try {
     res = await fetch(`${API}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], max_tokens: 8000 }),
+      signal,
     });
   } catch {
+    if (signal?.aborted) throw stopped();
     throw new OpenRouterError("offline", "Couldn't reach OpenRouter. Check the connection and try again.");
   }
   if (res.status === 401 || res.status === 403)
@@ -51,7 +54,14 @@ export async function askModel({ key, model, prompt }) {
   if (res.status === 402)
     throw new OpenRouterError("no_credit", "The key is out of credit. Add some, or raise its limit, on OpenRouter.");
   if (!res.ok) throw new OpenRouterError("failed", `OpenRouter said ${res.status}. Try again in a minute.`);
-  const choice = (await res.json()).choices?.[0];
+  let body;
+  try {
+    body = await res.json();
+  } catch (e) {
+    if (signal?.aborted) throw stopped();
+    throw e;
+  }
+  const choice = body.choices?.[0];
   const text = choice?.message?.content?.trim();
   if (!text)
     throw new OpenRouterError(

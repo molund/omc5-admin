@@ -114,9 +114,21 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
 /**
  * A button with a menu beside it: the main part does `onPress` with the `value` option, and the arrow opens a list of the
  * `options` ({ value, label, detail }) under it, in their order, with a check on `value`; picking one calls `onPick` with it.
- * Its title and the options each keep to one line, ending in "…" when they don't fit.
+ * Its title and the options each keep to one line, ending in "…" when they don't fit. While it's `busy`, the main part is
+ * off and the arrow becomes a stop button, calling `onStop`.
  */
-export function SplitButton({ title, onPress, options, value, onPick, kind = "green", disabled, menuLabel }) {
+export function SplitButton({
+  title,
+  onPress,
+  options,
+  value,
+  onPick,
+  kind = "green",
+  disabled,
+  menuLabel,
+  busy,
+  onStop,
+}) {
   const { tw, colors } = useTw();
   const s = useMemo(() => looks(tw), [tw]);
   const [open, setOpen] = useState(false);
@@ -127,21 +139,25 @@ export function SplitButton({ title, onPress, options, value, onPick, kind = "gr
           kind={kind}
           title={title}
           numberOfLines={1}
-          disabled={disabled}
+          disabled={disabled || busy}
           onPress={onPress}
           style={[tw`flex-1`, s.splitMain]}
         />
-        <Button
-          kind={kind}
-          icon="chevronDown"
-          title=""
-          label={menuLabel}
-          disabled={disabled}
-          onPress={() => setOpen((o) => !o)}
-          style={s.splitMenuButton}
-        />
+        {busy ? (
+          <Button kind={kind} icon="stop" title="" label="Stop" onPress={onStop} style={s.splitMenuButton} />
+        ) : (
+          <Button
+            kind={kind}
+            icon="chevronDown"
+            title=""
+            label={menuLabel}
+            disabled={disabled}
+            onPress={() => setOpen((o) => !o)}
+            style={s.splitMenuButton}
+          />
+        )}
       </View>
-      {open && !disabled && (
+      {open && !disabled && !busy && (
         <View style={s.splitMenu} accessibilityRole="menu">
           {options.map((o, i) => (
             <Pressable

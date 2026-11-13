@@ -3,7 +3,7 @@
 // paragraphs and captions, which fill in the normal editor (walkReply.js). On the phone, the model chosen in Settings is
 // asked through OpenRouter (services/openrouter.js). In the Claude app, which has no key, the prompt is copied, run in
 // Copilot or Gemini, and the whole reply pasted back. The notes and photos stay in the draft, so it can be run again.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -72,6 +72,9 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   const [problems, setProblems] = useState([]); // why the reply couldn't fill in
   const [confirming, setConfirming] = useState(false); // on the phone, the model to write with once it's confirmed
   const [writing, setWriting] = useState(null); // the model being asked
+  const stop = useRef(null); // the AbortController of the request running, for Stop
+  // leaving the screen stops a request still running
+  useEffect(() => () => stop.current?.abort(), []);
   const desk = useDesk();
   const model = modelOf(desk.aiModel);
   const { blocks, reply } = value;
@@ -103,14 +106,18 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
     setConfirming(false);
     setWriting(m);
     setProblems([]);
+    const controller = new AbortController();
+    stop.current = controller;
     try {
       keepPrompt();
       const key = await readAIKey();
       if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
-      fill(await askModel({ key, model: m.id, prompt: walkPrompt(inputs, true) }));
+      fill(await askModel({ key, model: m.id, prompt: walkPrompt(inputs, true), signal: controller.signal }));
     } catch (e) {
-      setProblems([e.message]);
+      // stopped on purpose: nothing to report
+      if (!controller.signal.aborted) setProblems([e.message]);
     } finally {
+      stop.current = null;
       setWriting(null);
     }
   }
@@ -185,7 +192,9 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
               ? `Writing with ${writing.label}…`
               : `Write the ${kind === "update" ? "update" : "blog post"} with ${model.label}`
           }
-          disabled={!!writing || !notes.trim() || !desk.aiKeyInfo}
+          disabled={!notes.trim() || !desk.aiKeyInfo}
+          busy={!!writing}
+          onStop={() => stop.current?.abort()}
           onPress={() => writeWith(model)}
           options={MODELS.map((m) => ({ value: m.id, label: m.label, detail: m.price }))}
           value={model.id}

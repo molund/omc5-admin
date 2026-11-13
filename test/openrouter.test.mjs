@@ -85,3 +85,14 @@ test("a key out of credit is told apart from a rejected one", async () => {
   fakeOpenRouter(401);
   await assert.rejects(askModel({ key: KEY, model: "x", prompt: "p" }), { code: "rejected" });
 });
+
+test("stopping a request says it was stopped, not that OpenRouter can't be reached", async () => {
+  globalThis.fetch = (url, init) =>
+    new Promise((_, reject) =>
+      init.signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" }))),
+    );
+  const controller = new AbortController();
+  const asked = askModel({ key: KEY, model: "x", prompt: "p", signal: controller.signal });
+  controller.abort();
+  await assert.rejects(asked, { code: "stopped" });
+});

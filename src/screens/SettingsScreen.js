@@ -1,5 +1,5 @@
 // Settings: the GitHub token the phone pushes with and the OpenRouter key and model it will write with (both kept in the
-// Keychain; see platform/secrets), the kept sparkle prompts (lib/promptLog.js), shared as a zip, and where commits go. The
+// Keychain; see platform/secrets), the kept AI prompts (lib/promptLog.js), shared as a zip, and where commits go. The
 // Claude app version has neither: it pushes through Claude Code and asks Claude itself.
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
@@ -278,8 +278,8 @@ function ModelPicker() {
   );
 }
 
-/** The kept sparkle prompts: how many, shared as a zip of a .txt (the prompt) and a .json (its inputs) for each, or cleared. */
-function SparklePrompts() {
+/** The kept AI prompts: how many, shared as a zip of a .txt (the prompt) and a .json (the rest) for each, or cleared. */
+function AIPrompts() {
   const { tw } = useTw();
   const [log, setLog] = useState(promptLog);
   const [busy, setBusy] = useState(false);
@@ -292,7 +292,7 @@ function SparklePrompts() {
     setError(null);
     try {
       const files = Object.entries(promptFiles(log)).map(([name, text]) => [name, strToU8(text)]);
-      await shareFile(`sparkle-prompts-${todayKey()}.zip`, zipSync(Object.fromEntries(files)));
+      await shareFile(`ai-prompts-${todayKey()}.zip`, zipSync(Object.fromEntries(files)));
     } catch (e) {
       setError(e.message);
     } finally {
@@ -302,10 +302,10 @@ function SparklePrompts() {
 
   return (
     <Panel>
-      <Label>Sparkle prompts</Label>
+      <Label>AI prompts</Label>
       <Body small mute>
-        Every prompt the sparkle icon copies is saved here with its inputs, as test data for evaluating models and
-        prompts when enhancing the AI writing feature later.
+        Every prompt the sparkle and Write with AI send or copy is saved here with its inputs and, when it went to a
+        model, the model, its reply and what it cost: test data for comparing models and prompts.
       </Body>
       {!n ? (
         <Body small mute>
@@ -365,7 +365,7 @@ export function SettingsScreen() {
           <ModelPicker />
         </Panel>
       )}
-      <SparklePrompts />
+      <AIPrompts />
       <Panel>
         <Label>Commits</Label>
         <Body small mute>

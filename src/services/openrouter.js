@@ -5,7 +5,10 @@
 const API = "https://openrouter.ai/api/v1";
 export const NEW_KEY_URL = "https://openrouter.ai/settings/keys";
 
-/** The models allowed, for writing only, in the order Settings lists them. Prices are OpenRouter's, per million tokens in / out (2026-11-12). */
+/**
+ * The models allowed, for writing only, in the order Settings lists them. Prices are OpenRouter's, per million tokens
+ * in / out, as of 2026-11-12: shown until the day's live ones are fetched (modelPrices.js).
+ */
 export const MODELS = [
   { id: "anthropic/claude-haiku-5.5", label: "Claude Haiku 5.5", price: "$0.10 / $0.50" },
   { id: "openai/gpt-6-luna", label: "GPT-6 Luna", price: "$0.10 / $0.50" },
@@ -23,6 +26,31 @@ export class OpenRouterError extends Error {
     super(message);
     this.code = code;
   }
+}
+
+/** Where OpenRouter lists every model with its price, public and with no key. */
+export const MODELS_URL = `${API}/models`;
+
+const perMillion = (perToken) => `$${(Number(perToken) * 1e6).toFixed(2)}`;
+
+/**
+ * The allowed models' prices from OpenRouter's list of models (MODELS_URL's reply), in MODELS' "$0.10 / $0.50" form.
+ * @returns {Record<string, string | null>} By model id; null for one OpenRouter no longer lists.
+ */
+export function pricesFrom(list) {
+  const byId = new Map((list?.data ?? []).map((m) => [m.id, m.pricing]));
+  return Object.fromEntries(
+    MODELS.map(({ id }) => {
+      const p = byId.get(id);
+      return [id, p ? `${perMillion(p.prompt)} / ${perMillion(p.completion)}` : null];
+    }),
+  );
+}
+
+/** What to show for a model's price: the day's from OpenRouter when there are some, or the one written in MODELS. */
+export function priceText(model, prices) {
+  if (!(model.id in prices)) return model.price;
+  return prices[model.id] ?? "No longer on OpenRouter";
 }
 
 /** The model to write with: the one chosen in Settings, or the default when it's one that has since been dropped. */

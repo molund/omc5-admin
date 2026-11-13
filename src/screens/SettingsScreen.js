@@ -1,13 +1,14 @@
 // Settings: the GitHub token the phone pushes with and the OpenRouter key and model it will write with (both kept in the
 // Keychain; see platform/secrets), the kept sparkle prompts (lib/promptLog.js), shared as a zip, and where commits go. The
 // Claude app version has neither: it pushes through Claude Code and asks Claude itself.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { canKeepToken, removeAIKey, removeToken, saveAIKey, saveToken } from "../platform/secrets";
 import { BRANCH, checkToken, NEW_TOKEN_URL, REPO_NAME, AUTHOR } from "../services/github.js";
-import { checkKey, MODELS, NEW_KEY_URL } from "../services/openrouter.js";
+import { checkKey, MODELS, NEW_KEY_URL, priceText } from "../services/openrouter.js";
+import { cachedPrices, refreshPrices } from "../services/modelPrices.js";
 import { zipSync, strToU8 } from "fflate";
 import { dateOf, todayKey } from "../lib/time.js";
 import { clearPromptLog, promptFiles, promptLog } from "../lib/promptLog.js";
@@ -240,6 +241,10 @@ function ModelPicker() {
   const { tw, colors } = useTw();
   const s = useMemo(() => looks(tw), [tw]);
   const desk = useDesk();
+  const [prices, setPrices] = useState(cachedPrices);
+  useEffect(() => {
+    refreshPrices().then((p) => p && setPrices(p));
+  }, []);
   return (
     <>
       <Body small mute>
@@ -261,7 +266,7 @@ function ModelPicker() {
                 <View style={tw`flex-1`}>
                   <Body style={chosen && s.modelChosen}>{m.label}</Body>
                   <Body small mute>
-                    {m.price}
+                    {priceText(m, prices)}
                   </Body>
                 </View>
               </View>

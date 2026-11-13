@@ -13,7 +13,8 @@ import { logPrompt } from "../lib/promptLog.js";
 import { copyText } from "../platform/clipboard";
 import { PROMPT_VERSION } from "../platform/promptVersion";
 import { canKeepToken, readAIKey } from "../platform/secrets";
-import { askModel, modelOf, MODELS } from "../services/openrouter.js";
+import { askModel, modelOf, MODELS, priceText } from "../services/openrouter.js";
+import { cachedPrices, refreshPrices } from "../services/modelPrices.js";
 import { BlockEditor, emptyBlocks } from "./BlockEditor.js";
 import { Button, Confirm, Field, Notice, Segmented, SplitButton } from "./ui.js";
 
@@ -77,6 +78,10 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   useEffect(() => () => stop.current?.abort(), []);
   const desk = useDesk();
   const model = modelOf(desk.aiModel);
+  const [prices, setPrices] = useState(cachedPrices);
+  useEffect(() => {
+    if (canKeepToken) refreshPrices().then((p) => p && setPrices(p));
+  }, []);
   const { blocks, reply } = value;
   const notes = blocks[0].text;
   const photos = blocks.filter((b) => b.type === "photo");
@@ -192,7 +197,7 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
           busy={!!writing}
           onStop={() => stop.current?.abort()}
           onPress={() => writeWith(model)}
-          options={MODELS.map((m) => ({ value: m.id, label: m.label, detail: m.price }))}
+          options={MODELS.map((m) => ({ value: m.id, label: m.label, detail: priceText(m, prices) }))}
           value={model.id}
           onPick={(id) => writeWith(modelOf(id))}
           menuLabel="Write with another model"

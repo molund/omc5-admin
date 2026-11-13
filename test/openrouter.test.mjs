@@ -1,7 +1,15 @@
 // Checking a pasted OpenRouter key (src/services/openrouter.js), against a fake OpenRouter.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { askModel, checkKey, DEFAULT_MODEL, modelOf, MODELS } from "../src/services/openrouter.js";
+import {
+  askModel,
+  checkKey,
+  DEFAULT_MODEL,
+  modelOf,
+  MODELS,
+  priceText,
+  pricesFrom,
+} from "../src/services/openrouter.js";
 
 const KEY = "sk-or-v1-0000000000000000000000000000000000000000000000000000000000abcd";
 
@@ -95,4 +103,24 @@ test("stopping a request says it was stopped, not that OpenRouter can't be reach
   const asked = askModel({ key: KEY, model: "x", prompt: "p", signal: controller.signal });
   controller.abort();
   await assert.rejects(asked, { code: "stopped" });
+});
+
+test("prices come from OpenRouter's list per million tokens, and a model it dropped says so", () => {
+  const list = {
+    data: [
+      { id: "anthropic/claude-haiku-5.5", pricing: { prompt: "0.0000001", completion: "0.0000005" } },
+      { id: "openai/gpt-6-luna", pricing: { prompt: "0.00000012", completion: "0.000000615" } },
+      { id: "someone/else", pricing: { prompt: "1", completion: "1" } },
+    ],
+  };
+  const prices = pricesFrom(list);
+  assert.deepEqual(
+    Object.keys(prices),
+    MODELS.map((m) => m.id),
+  );
+  assert.equal(prices["anthropic/claude-haiku-5.5"], "$0.10 / $0.50");
+  assert.equal(prices["openai/gpt-6-luna"], "$0.12 / $0.61");
+  const minimax = MODELS.find((m) => m.id === "minimax/minimax-m3.1-flash");
+  assert.equal(priceText(minimax, prices), "No longer on OpenRouter");
+  assert.equal(priceText(minimax, {}), minimax.price);
 });

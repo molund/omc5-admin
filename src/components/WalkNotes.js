@@ -26,13 +26,13 @@ export function unusedPhotos(old, next, walk) {
 /** Every photo of the post and its walk, for Clear. */
 export const allPhotos = (blocks, walk) => [...new Set([...photoIds(blocks), ...photoIds(walk?.blocks ?? [])])];
 
-/** Write it myself | Walk notes, over the editor. */
+/** Write it myself | Write with AI, over the editor. */
 export function WalkSwitch({ value, onChange }) {
   return (
     <Segmented
       options={[
         { value: "write", label: "Write it myself" },
-        { value: "walk", label: "Walk notes" },
+        { value: "walk", label: "Write with AI" },
       ]}
       value={value}
       onChange={onChange}
@@ -44,7 +44,7 @@ export function WalkSwitch({ value, onChange }) {
 export function FilledNotice({ problems }) {
   return (
     <>
-      <Notice>Filled in from the walk notes. Check it over before you review it.</Notice>
+      <Notice>Filled in by AI. Check it over before you review it.</Notice>
       {problems.map((p) => (
         <Notice key={p}>{p}</Notice>
       ))}

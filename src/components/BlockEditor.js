@@ -243,7 +243,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk 
             <Field
               key="summary"
               multiline
-              heading={walk ? "Walk notes" : "Summary"}
+              heading={walk ? "Your notes" : "Summary"}
               value={b.text}
               onChangeText={(text) => set(i, { text })}
               placeholder={walk ? "Everything you saw on the walk, and anything the AI should do" : "What happened?"}
@@ -253,7 +253,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk 
               onSplit={walk ? undefined : (texts, at) => splitAt(i, "text", texts, at)}
               noAi={walk}
               style={walk ? tw`min-h-48` : undefined}
-              label={walk ? "Walk notes" : "Summary"}
+              label={walk ? "Your notes" : "Summary"}
               writes={followUp ? WRITES_FOLLOW_UP : WRITES_INTRO}
               context={context(i)}
             />

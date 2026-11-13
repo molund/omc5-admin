@@ -6,6 +6,9 @@ import { copyText } from "../platform/clipboard";
 import { writingPrompt } from "../lib/writingPrompt.js";
 import { logPrompt } from "../lib/promptLog.js";
 import { PROMPT_VERSION } from "../platform/promptVersion";
+import { canKeepToken, readAIKey } from "../platform/secrets";
+import { askModel, modelOf } from "../services/openrouter.js";
+import { useDesk } from "../state/desk.js";
 import { Icon } from "./Icon";
 import { RichInput } from "./RichInput";
 import { useRich } from "./richContext.js";
@@ -276,6 +279,8 @@ export function ZoomScope({ children }) {
  * given, instead of starting a new line, and a paste with line breaks calls `onSplit(blocks, cursor)` (richText.js's
  * splitPaste). `cursorAt` is where the cursor goes when it opens with the focus. `context` gives the rest of the post the
  * text is part of (postContext's inputs, in writingPrompt.js), for the prompt. Each copied prompt is kept (promptLog.js).
+ * On the phone with an OpenRouter key, the sparkle asks the model chosen in Settings instead, and puts its reply in the
+ * field, with Undo under it until the text is changed again.
  */
 export function Field({
   value,
@@ -336,7 +341,34 @@ export function Field({
     const i = inputs();
     return writingPrompt(i.writes, i.text, i.context);
   };
+  const desk = useDesk();
+  // on the phone, asking the model: { writing: label } while it's asked, then { undo: the text before, label } or { error }
+  const [asked, setAsked] = useState(null);
+  const canAsk = canKeepToken && !!desk?.aiKeyInfo;
+  const aiLabel = canAsk ? `Rewrite ${name} with AI` : `Copy an AI prompt for ${name}`;
+  async function askAI() {
+    const i = inputs();
+    if (asked?.writing || !i.text.trim()) return;
+    const model = modelOf(desk.aiModel);
+    const prompt = writingPrompt(i.writes, i.text, i.context, true);
+    // kept as test data for the AI writing feature (lib/promptLog.js), as a copied prompt is
+    logPrompt({ prompt, version: PROMPT_VERSION, ...i });
+    setAsked({ writing: model.label });
+    try {
+      const key = await readAIKey();
+      if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
+      // one paragraph, as the prompt asks: a model's stray line breaks become spaces
+      const reply = (await askModel({ key, model: model.id, prompt })).replace(/\s*\n+\s*/g, " ");
+      onChangeText(reply);
+      setAsked({ undo: i.text, label: model.label });
+      setCopied(true);
+      setTimeout(() => setCopied(null), 1500);
+    } catch (e) {
+      setAsked({ error: e.message });
+    }
+  }
   async function copyPrompt() {
+    if (canAsk) return askAI();
     if (copied === false) return setCopied(null); // a second press closes the prompt shown below
     const i = inputs();
     const text = writingPrompt(i.writes, i.text, i.context);
@@ -351,9 +383,9 @@ export function Field({
     if (!rich || !richScope) return;
     richScope.report(
       id,
-      focused && { name, editor: inputRef, zoomed, toggleZoom, copied, copyPrompt, noPrompt, ...richState },
+      focused && { name, editor: inputRef, zoomed, toggleZoom, copied, copyPrompt, aiLabel, noPrompt, ...richState },
     );
-  }, [rich, focused, zoomed, copied, richState, value]);
+  }, [rich, focused, zoomed, copied, richState, value, canAsk]);
   useEffect(() => () => rich && richScope?.report(id, null), []);
   const icons = (
     <>
@@ -373,7 +405,7 @@ export function Field({
       {!noAi && (
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Copy an AI prompt for ${name}`}
+          accessibilityLabel={aiLabel}
           onPress={copyPrompt}
           style={({ hovered }) => [tw`h-8 w-8 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
         >
@@ -390,7 +422,30 @@ export function Field({
           {prompt()}
         </Text>
       </View>
+    ) : asked ? (
+      <View style={tw`gap-1.5 ${heading ? "px-3" : ""}`}>
+        {asked.writing && <Body small mute>{`Writing with ${asked.writing}…`}</Body>}
+        {asked.error && <Notice tone="problem">{asked.error}</Notice>}
+        {asked.undo != null && (
+          <Row>
+            <Body small mute>{`Rewritten by ${asked.label}.`}</Body>
+            <Button
+              small
+              title="Undo"
+              onPress={() => {
+                onChangeText(asked.undo);
+                setAsked(null);
+              }}
+            />
+          </Row>
+        )}
+      </View>
     ) : null;
+  // typing after a rewrite drops its Undo, which would throw the typing away
+  const changeText = (t) => {
+    if (asked && !asked.writing) setAsked(null);
+    onChangeText(t);
+  };
   const Input = rich ? RichInput : TextInput;
   const input = (
     <Input
@@ -401,7 +456,7 @@ export function Field({
       onBlur={() => setFocused(false)}
       accessibilityLabel={name}
       value={value}
-      onChangeText={onChangeText}
+      onChangeText={changeText}
       placeholder={placeholder}
       placeholderTextColor={colors.mute}
       multiline={multiline}

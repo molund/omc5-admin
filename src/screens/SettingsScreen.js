@@ -248,7 +248,7 @@ function ModelPicker() {
   return (
     <>
       <Body small mute>
-        The model to write with. Prices are per million tokens, in / out.
+        The model to write with, and what a Write with AI post usually costs with it.
       </Body>
       <View style={s.modelList} accessibilityRole="radiogroup">
         {MODELS.map((m, i) => {

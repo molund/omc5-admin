@@ -4,15 +4,16 @@
 import { load, save } from "../platform/storage";
 import { MODELS_URL, pricesFrom } from "./openrouter.js";
 
-const KEY = "model-prices";
+// "model-rates": the rates as numbers; "model-prices" held them as text, and is left alone
+const KEY = "model-rates";
 const STALE_MS = 24 * 60 * 60 * 1000;
 
-/** @returns {Record<string, string | null>} The kept prices, by model id; {} before the first fetch. */
+/** @returns {Record<string, [number, number] | null>} The kept rates, by model id; {} before the first fetch. */
 export const cachedPrices = () => load(KEY, null)?.prices ?? {};
 
 /**
  * Fetches the day's prices when the kept ones are a day old, and keeps them.
- * @returns {Promise<Record<string, string | null> | null>} The new prices, or null when nothing was fetched.
+ * @returns {Promise<Record<string, [number, number] | null> | null>} The new rates, or null when nothing was fetched.
  */
 export async function refreshPrices(now = Date.now()) {
   const cache = load(KEY, null);

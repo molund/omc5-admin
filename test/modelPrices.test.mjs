@@ -38,8 +38,8 @@ test("the prices are fetched and kept, then not fetched again until they're a da
   assert.deepEqual(cachedPrices(), {});
   const t0 = Date.UTC(2026, 10, 12, 18);
   const first = await refreshPrices(t0);
-  assert.equal(first["anthropic/claude-haiku-5.5"], "$0.10 / $0.50");
-  assert.equal(cachedPrices()["anthropic/claude-haiku-5.5"], "$0.10 / $0.50");
+  assert.deepEqual(first["anthropic/claude-haiku-5.5"], [0.1, 0.5]);
+  assert.deepEqual(cachedPrices()["anthropic/claude-haiku-5.5"], [0.1, 0.5]);
   assert.equal(calls, 1);
 
   haikuOut = "0.0000006";
@@ -47,7 +47,7 @@ test("the prices are fetched and kept, then not fetched again until they're a da
   assert.equal(calls, 1);
 
   const next = await refreshPrices(t0 + 24 * HOUR);
-  assert.equal(next["anthropic/claude-haiku-5.5"], "$0.10 / $0.60");
+  assert.deepEqual(next["anthropic/claude-haiku-5.5"], [0.1, 0.6]);
   assert.equal(calls, 2);
 });
 

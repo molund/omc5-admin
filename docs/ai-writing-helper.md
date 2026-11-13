@@ -97,9 +97,12 @@ the field drops Undo, so it can't throw away newer typing.
 - `modelOf(id)` falls back to the default when a saved choice is no longer in `MODELS`. Settings then shows none ticked.
 - Real costs per Walk notes post, from the tests: Luna ~$0.0006, Haiku ~$0.0013, MiniMax ~$0.0016, Sol ~$0.009, Sonnet
   ~$0.018. A tidy-up is about a quarter of that. Thinking is most of every bill.
-- The prices in `MODELS` are only a fallback (MiniMax's still says $0.07 / $0.30 from before it doubled on Nov. 12).
-  What shows is `modelPrices.js`'s: OpenRouter's public `/api/v1/models` list, fetched at most once a day when Settings
-  or Write with AI opens, kept on the phone. A model OpenRouter stops listing shows "No longer on OpenRouter".
+- Settings and the split button show each model as cents a Write with AI post, as a range ("0.1–0.2¢ a post",
+  `priceText`): its rates times `PROMPT_TOKENS` (1,000–1,700) in and its `tokens` (the 10th to 90th percentile of its reply
+  plus thinking in the tests) out. A model added later needs its own `tokens`, from a test run.
+- The rates come from `modelPrices.js`: OpenRouter's public `/api/v1/models` list, fetched at most once a day when
+  Settings or Write with AI opens, and kept on the phone (`model-rates`). The `rates` in `MODELS` show until then. A
+  model OpenRouter stops listing shows "No longer on OpenRouter".
 
 ### Tried and dropped
 

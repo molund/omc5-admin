@@ -6,16 +6,23 @@ const API = "https://openrouter.ai/api/v1";
 export const NEW_KEY_URL = "https://openrouter.ai/settings/keys";
 
 /**
- * The models allowed, for writing only, in the order Settings lists them. Prices are OpenRouter's, per million tokens
- * in / out, as of 2026-11-12: shown until the day's live ones are fetched (modelPrices.js).
+ * The models allowed, for writing only, in the order Settings lists them.
+ * - `rates`: OpenRouter's dollars per million tokens, [in, out], as of 2026-11-12, used until the day's live ones are
+ *   fetched (modelPrices.js).
+ * - `tokens`: what the model's reply to a Write with AI prompt usually comes to, thinking included, [low, high]: the
+ *   10th to 90th percentile of its runs in the Nov. 12 tests (docs/ai-writing-helper.md). With PROMPT_TOKENS, they give
+ *   the cost of a post that Settings and the split button show.
  */
 export const MODELS = [
-  { id: "anthropic/claude-haiku-5.5", label: "Claude Haiku 5.5", price: "$0.10 / $0.50" },
-  { id: "anthropic/claude-sonnet-5.5", label: "Claude Sonnet 5.5", price: "$2.00 / $10.00" },
-  { id: "openai/gpt-6-luna", label: "GPT-6 Luna", price: "$0.10 / $0.50" },
-  { id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", price: "$2.00 / $10.00" },
-  { id: "minimax/minimax-m3.1-flash", label: "MiniMax M3.1 Flash", price: "$0.07 / $0.30" },
+  { id: "anthropic/claude-haiku-5.5", label: "Claude Haiku 5.5", rates: [0.1, 0.5], tokens: [1800, 2800] },
+  { id: "anthropic/claude-sonnet-5.5", label: "Claude Sonnet 5.5", rates: [2, 10], tokens: [1200, 2000] },
+  { id: "openai/gpt-6-luna", label: "GPT-6 Luna", rates: [0.1, 0.5], tokens: [500, 1600] },
+  { id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", rates: [2, 10], tokens: [500, 900] },
+  { id: "minimax/minimax-m3.1-flash", label: "MiniMax M3.1 Flash", rates: [0.15, 0.6], tokens: [1400, 4900] },
 ];
+
+/** A Write with AI prompt's size in tokens, [low, high]: the style guide and instructions, plus the notes and captions. */
+export const PROMPT_TOKENS = [1000, 1700];
 export const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";
 
 export class OpenRouterError extends Error {
@@ -32,26 +39,39 @@ export class OpenRouterError extends Error {
 /** Where OpenRouter lists every model with its price, public and with no key. */
 export const MODELS_URL = `${API}/models`;
 
-const perMillion = (perToken) => `$${(Number(perToken) * 1e6).toFixed(2)}`;
+const perMillion = (perToken) => Math.round(Number(perToken) * 1e6 * 1e4) / 1e4;
 
 /**
- * The allowed models' prices from OpenRouter's list of models (MODELS_URL's reply), in MODELS' "$0.10 / $0.50" form.
- * @returns {Record<string, string | null>} By model id; null for one OpenRouter no longer lists.
+ * The allowed models' rates from OpenRouter's list of models (MODELS_URL's reply), as MODELS' `rates`.
+ * @returns {Record<string, [number, number] | null>} By model id, dollars per million tokens [in, out]; null for one
+ *   OpenRouter no longer lists.
  */
 export function pricesFrom(list) {
   const byId = new Map((list?.data ?? []).map((m) => [m.id, m.pricing]));
   return Object.fromEntries(
     MODELS.map(({ id }) => {
       const p = byId.get(id);
-      return [id, p ? `${perMillion(p.prompt)} / ${perMillion(p.completion)}` : null];
+      return [id, p ? [perMillion(p.prompt), perMillion(p.completion)] : null];
     }),
   );
 }
 
-/** What to show for a model's price: the day's from OpenRouter when there are some, or the one written in MODELS. */
+/** Cents, roughly: one significant figure under a cent, two from there (0.04, 0.2, 1.4), whole from 10. */
+function cents(n) {
+  if (n >= 10) return String(Math.round(n));
+  return String(Number(n.toPrecision(n < 1 ? 1 : 2)));
+}
+
+/**
+ * What a Write with AI post usually costs with a model, in cents, as a range: "0.1–0.2¢ a post". From the day's rates
+ * when there are some (`prices`, from modelPrices.js), or the ones written in MODELS.
+ */
 export function priceText(model, prices) {
-  if (!(model.id in prices)) return model.price;
-  return prices[model.id] ?? "No longer on OpenRouter";
+  const rates = model.id in prices ? prices[model.id] : model.rates;
+  if (!rates) return "No longer on OpenRouter";
+  const cost = (i) => ((PROMPT_TOKENS[i] * rates[0] + model.tokens[i] * rates[1]) / 1e6) * 100;
+  const [low, high] = [cents(cost(0)), cents(cost(1))];
+  return `${low === high ? low : `${low}–${high}`}¢ a post`;
 }
 
 /** The model to write with: the one chosen in Settings, or the default when it's one that has since been dropped. */

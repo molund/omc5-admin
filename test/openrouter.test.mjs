@@ -111,7 +111,7 @@ test("stopping a request says it was stopped, not that OpenRouter can't be reach
   await assert.rejects(asked, { code: "stopped" });
 });
 
-test("prices come from OpenRouter's list per million tokens, and a model it dropped says so", () => {
+test("rates come from OpenRouter's list per million tokens, and show as cents a post; a dropped model says so", () => {
   const list = {
     data: [
       { id: "anthropic/claude-haiku-5.5", pricing: { prompt: "0.0000001", completion: "0.0000005" } },
@@ -124,9 +124,14 @@ test("prices come from OpenRouter's list per million tokens, and a model it drop
     Object.keys(prices),
     MODELS.map((m) => m.id),
   );
-  assert.equal(prices["anthropic/claude-haiku-5.5"], "$0.10 / $0.50");
-  assert.equal(prices["openai/gpt-6-luna"], "$0.12 / $0.61");
+  assert.deepEqual(prices["anthropic/claude-haiku-5.5"], [0.1, 0.5]);
+  assert.deepEqual(prices["openai/gpt-6-luna"], [0.12, 0.615]);
+  const haiku = MODELS.find((m) => m.id === "anthropic/claude-haiku-5.5");
+  // 1000 × 0.1 + 1800 × 0.5 = 0.001 dollars; 1700 × 0.1 + 2800 × 0.5 = 0.00157
+  assert.equal(priceText(haiku, prices), "0.1–0.2¢ a post");
+  assert.equal(priceText(haiku, { [haiku.id]: [2, 10] }), "2–3.1¢ a post");
+  assert.equal(priceText(haiku, { [haiku.id]: [20, 100] }), "20–31¢ a post");
   const minimax = MODELS.find((m) => m.id === "minimax/minimax-m3.1-flash");
   assert.equal(priceText(minimax, prices), "No longer on OpenRouter");
-  assert.equal(priceText(minimax, {}), minimax.price);
+  assert.equal(priceText(minimax, {}), "0.1–0.3¢ a post");
 });

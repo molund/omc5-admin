@@ -13,6 +13,15 @@ import { Icon } from "./Icon";
 import { RichInput } from "./RichInput";
 import { useRich } from "./richContext.js";
 
+const looks = (tw) => ({
+  splitMain: tw`rounded-r-none`,
+  splitMenuButton: tw`rounded-l-none px-2.5`,
+  splitMenu: tw`rounded-md border border-line bg-panel`,
+  splitOption: tw`border-t border-line px-3 py-2`,
+  splitOptionFirst: tw`px-3 py-2`,
+  splitOptionChosen: tw`font-semibold`,
+});
+
 /** A white panel with a hairline border. */
 export function Panel({ children, style, tone }) {
   const { tw } = useTw();
@@ -100,6 +109,60 @@ export function Button({ title, onPress, kind = "grey", disabled, small, style, 
 }
 
 /** GitHub's segmented control, as on the site's pager. An option can have an `icon` before its label. */
+/**
+ * A button with a menu beside it: the main part does `onPress` with the `value` option, and the arrow opens a list of the
+ * `options` ({ value, label, detail }) under it, in their order, with a check on `value`; picking one calls `onPick` with it.
+ */
+export function SplitButton({ title, onPress, options, value, onPick, kind = "green", disabled, menuLabel }) {
+  const { tw, colors } = useTw();
+  const s = useMemo(() => looks(tw), [tw]);
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={tw`gap-1.5`}>
+      <View style={tw`flex-row gap-px`}>
+        <Button kind={kind} title={title} disabled={disabled} onPress={onPress} style={[tw`flex-1`, s.splitMain]} />
+        <Button
+          kind={kind}
+          icon="chevronDown"
+          title=""
+          label={menuLabel}
+          disabled={disabled}
+          onPress={() => setOpen((o) => !o)}
+          style={s.splitMenuButton}
+        />
+      </View>
+      {open && !disabled && (
+        <View style={s.splitMenu} accessibilityRole="menu">
+          {options.map((o, i) => (
+            <Pressable
+              key={o.value}
+              accessibilityRole="menuitem"
+              accessibilityState={{ checked: o.value === value }}
+              onPress={() => {
+                setOpen(false);
+                onPick(o.value);
+              }}
+              style={({ hovered }) => [i ? s.splitOption : s.splitOptionFirst, hovered && tw`opacity-80`]}
+            >
+              <View style={tw`flex-row items-center gap-2`}>
+                <View style={tw`w-5`}>{o.value === value && <Icon name="check" color={colors.green} />}</View>
+                <View style={tw`flex-1`}>
+                  <Body style={o.value === value && s.splitOptionChosen}>{o.label}</Body>
+                  {o.detail && (
+                    <Body small mute>
+                      {o.detail}
+                    </Body>
+                  )}
+                </View>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function Segmented({ options, value, onChange, small }) {
   const { tw, colors } = useTw();
   return (

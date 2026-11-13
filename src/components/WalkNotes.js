@@ -13,9 +13,9 @@ import { logPrompt } from "../lib/promptLog.js";
 import { copyText } from "../platform/clipboard";
 import { PROMPT_VERSION } from "../platform/promptVersion";
 import { canKeepToken, readAIKey } from "../platform/secrets";
-import { askModel, modelOf } from "../services/openrouter.js";
+import { askModel, modelOf, MODELS } from "../services/openrouter.js";
 import { BlockEditor, emptyBlocks } from "./BlockEditor.js";
-import { Button, Confirm, Field, Notice, Segmented } from "./ui.js";
+import { Button, Confirm, Field, Notice, Segmented, SplitButton } from "./ui.js";
 
 export const emptyWalk = () => ({ blocks: emptyBlocks(), reply: "" });
 
@@ -70,8 +70,8 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   const { tw } = useTw();
   const [copied, setCopied] = useState(null); // true for a moment after a copy; false when it was refused
   const [problems, setProblems] = useState([]); // why the reply couldn't fill in
-  const [confirming, setConfirming] = useState(false);
-  const [writing, setWriting] = useState(false);
+  const [confirming, setConfirming] = useState(false); // on the phone, the model to write with once it's confirmed
+  const [writing, setWriting] = useState(null); // the model being asked
   const desk = useDesk();
   const model = modelOf(desk.aiModel);
   const { blocks, reply } = value;
@@ -98,22 +98,24 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
     if (ok) setTimeout(() => setCopied(null), 1500);
   }
 
-  /** On the phone: asks the model chosen in Settings, and fills in the post from its reply. */
-  async function write() {
+  /** On the phone: asks a model (the one chosen in Settings, or one picked from the button's menu), and fills in the post. */
+  async function write(m) {
     setConfirming(false);
-    setWriting(true);
+    setWriting(m);
     setProblems([]);
     try {
       keepPrompt();
       const key = await readAIKey();
       if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
-      fill(await askModel({ key, model: model.id, prompt: walkPrompt(inputs, true) }));
+      fill(await askModel({ key, model: m.id, prompt: walkPrompt(inputs, true) }));
     } catch (e) {
       setProblems([e.message]);
     } finally {
-      setWriting(false);
+      setWriting(null);
     }
   }
+  // asks first when filling in would replace text already written
+  const writeWith = (m) => (hasText ? setConfirming(m) : write(m));
 
   function fill(text = reply) {
     setConfirming(false);
@@ -172,20 +174,23 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
         <Confirm
           action={canKeepToken ? "Write" : "Fill in"}
           onCancel={() => setConfirming(false)}
-          onConfirm={canKeepToken ? write : () => fill()}
+          onConfirm={canKeepToken ? () => write(confirming) : () => fill()}
         >
           {`Replace the ${kind === "update" ? "update's" : "post's"} title, summary, paragraphs and photos with the AI's?`}
         </Confirm>
       ) : canKeepToken ? (
-        <Button
-          kind="green"
+        <SplitButton
           title={
             writing
-              ? `Writing with ${model.label}…`
+              ? `Writing with ${writing.label}…`
               : `Write the ${kind === "update" ? "update" : "blog post"} with ${model.label}`
           }
-          disabled={writing || !notes.trim() || !desk.aiKeyInfo}
-          onPress={() => (hasText ? setConfirming(true) : write())}
+          disabled={!!writing || !notes.trim() || !desk.aiKeyInfo}
+          onPress={() => writeWith(model)}
+          options={MODELS.map((m) => ({ value: m.id, label: m.label, detail: m.price }))}
+          value={model.id}
+          onPick={(id) => writeWith(modelOf(id))}
+          menuLabel="Write with another model"
         />
       ) : (
         <Button

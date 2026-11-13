@@ -37,24 +37,26 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
   };
   const preview = desk.preview(change);
   // Walk notes (WalkNotes.js): the other way to write it, filling in the title and blocks from the AI's reply
+  // Write with AI is where a new one starts; filling in, or the switch, moves it to Write it myself
+  const mode = d.mode ?? "walk";
   const walk = d.walk ?? emptyWalk();
   const [filled, setFilled] = useState(null); // the reply's problems, after filling in
   const fill = ({ title, blocks, problems: issues }) => {
     desk.dropPhotos(unusedPhotos(d.blocks, blocks, walk.blocks));
-    update({ blocks, ...(title && { title }), mode: undefined });
+    update({ blocks, ...(title && { title }), mode: "write" });
     setFilled(title ? issues : ["The reply has no TITLE line, so the title is as it was.", ...issues]);
   };
   return (
     <View style={tw`gap-3`}>
       <TimeStampField label="Date" value={d.date} onChange={(date) => update({ date })} />
       <WalkSwitch
-        value={d.mode ?? "write"}
+        value={mode}
         onChange={(m) => {
           setFilled(null);
-          update({ mode: m === "walk" ? "walk" : undefined });
+          update({ mode: m });
         }}
       />
-      {d.mode === "walk" ? (
+      {mode === "walk" ? (
         <WalkNotes
           kind="blog"
           value={walk}
@@ -83,7 +85,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
         </>
       )}
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
-      {d.mode !== "walk" && <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />}
+      {mode !== "walk" && <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} label="The card stays as it is" />
       {problems.map((p) => (
         <Notice key={p} tone="problem">

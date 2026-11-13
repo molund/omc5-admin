@@ -69,6 +69,8 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
   };
   const preview = desk.preview(change);
   // Walk notes (WalkNotes.js): the other way to write it, filling in the title and blocks from the AI's reply
+  // Write with AI is where a new one starts; filling in, or the switch, moves it to Write it myself
+  const mode = d.mode ?? "walk";
   const walk = d.walk ?? emptyWalk();
   const [filled, setFilled] = useState(null); // the reply's problems, after filling in
   const fill = ({ title: t, keepTitle, blocks, problems: issues }) => {
@@ -76,7 +78,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     update({
       blocks,
       ...(t && !keepTitle ? { title: t, titleSet: true } : { title: "", titleSet: false }),
-      mode: undefined,
+      mode: "write",
     });
     setFilled(issues);
   };
@@ -136,13 +138,13 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
         </View>
       )}
       <WalkSwitch
-        value={d.mode ?? "write"}
+        value={mode}
         onChange={(m) => {
           setFilled(null);
-          update({ mode: m === "walk" ? "walk" : undefined });
+          update({ mode: m });
         }}
       />
-      {d.mode === "walk" ? (
+      {mode === "walk" ? (
         <WalkNotes
           kind="update"
           value={walk}

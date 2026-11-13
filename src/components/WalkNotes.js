@@ -30,13 +30,13 @@ export function unusedPhotos(old, next, walk) {
 /** Every photo of the post and its walk, for Clear. */
 export const allPhotos = (blocks, walk) => [...new Set([...photoIds(blocks), ...photoIds(walk?.blocks ?? [])])];
 
-/** Write it myself | Write with AI, over the editor. */
+/** Write with AI | Write it myself, over the editor. */
 export function WalkSwitch({ value, onChange }) {
   return (
     <Segmented
       options={[
-        { value: "write", label: "Write it myself" },
         { value: "walk", label: "Write with AI" },
+        { value: "write", label: "Write it myself" },
       ]}
       value={value}
       onChange={onChange}

@@ -70,7 +70,8 @@ commit, `scripts/promptVersion.cjs`), which each kept prompt records.
   `failed`, `empty` (no text; "ran out of room thinking" when `finish_reason` is `length`; carries its `cost`, since the
   thinking is still charged), `stopped`.
 - `signal` cancels it. Write with AI's split button turns its arrow into **Stop** while it runs, and leaving the screen
-  aborts too. A stopped request shows no error. The sparkle has no Stop yet.
+  aborts too. The sparkle itself becomes a stop icon while it runs (on the field and on the keyboard toolbar). A
+  stopped request shows no error and leaves the text as it was.
 
 Write with AI fills in from the reply with `parseWalkReply`. A reply it can't read leaves the post alone and lists why;
 one it can read but with gaps (no `TITLE`, a photo left out) fills in and lists the gaps in the "Filled in by AI" notice.
@@ -171,7 +172,6 @@ The model tests were throwaway Node scripts, not in the repo. To repeat one:
 
 ## Not done yet
 
-- The sparkle has no Stop.
 - Nothing has been checked on an iPhone: the split button and its inline menu, Stop, the sparkle's Undo, the price
   refresh.
 - The Claude app could ask Claude itself (its `sample` capability, as `services/stageAI.js` does) instead of copy and

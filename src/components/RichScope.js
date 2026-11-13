@@ -73,7 +73,11 @@ function Toolbar({ box, onLink }) {
       ))}
       {!box.noPrompt &&
         key(box.aiLabel, false, box.copyPrompt, (c) => (
-          <Icon name={box.copied ? "check" : "sparkle"} size={22} color={box.copied ? colors.green : c} />
+          <Icon
+            name={box.writing ? "stop" : box.copied ? "check" : "sparkle"}
+            size={22}
+            color={box.copied && !box.writing ? colors.green : c}
+          />
         ))}
     </View>
   );

@@ -436,19 +436,30 @@ export function Field({
   // on the phone, asking the model: { writing: label } while it's asked, then { undo: the text before, label } or { error }
   const [asked, setAsked] = useState(null);
   const canAsk = canKeepToken && !!desk?.aiKeyInfo;
-  const aiLabel = canAsk ? `Rewrite ${name} with AI` : `Copy an AI prompt for ${name}`;
+  // while the model is asked, the sparkle is a stop button
+  const writing = !!asked?.writing;
+  const stop = useRef(null); // the AbortController of the request running
+  // leaving the field (or its screen) stops a request still running
+  useEffect(() => () => stop.current?.abort(), []);
+  const aiLabel = writing
+    ? `Stop rewriting ${name}`
+    : canAsk
+      ? `Rewrite ${name} with AI`
+      : `Copy an AI prompt for ${name}`;
   async function askAI() {
     const i = inputs();
-    if (asked?.writing || !i.text.trim()) return;
+    if (writing || !i.text.trim()) return;
     const model = modelOf(desk.aiModel);
     const prompt = writingPrompt(i.writes, i.text, i.context, true);
     // kept as test data for the AI writing feature (lib/promptLog.js), with the model, its reply and the cost
     const kept = logPrompt({ prompt, version: PROMPT_VERSION, ...i, model: model.id });
     setAsked({ writing: model.label });
+    const controller = new AbortController();
+    stop.current = controller;
     try {
       const key = await readAIKey();
       if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
-      const { text, cost } = await askModel({ key, model: model.id, prompt });
+      const { text, cost } = await askModel({ key, model: model.id, prompt, signal: controller.signal });
       notePrompt(kept, { reply: text, cost });
       // one paragraph, as the prompt asks: a model's stray line breaks become spaces
       onChangeText(text.replace(/\s*\n+\s*/g, " "));
@@ -457,10 +468,14 @@ export function Field({
       setTimeout(() => setCopied(null), 1500);
     } catch (e) {
       notePrompt(kept, { error: e.message, cost: e.cost });
-      setAsked({ error: e.message });
+      // stopped on purpose: the text stays as it was, with nothing to report
+      setAsked(controller.signal.aborted ? null : { error: e.message });
+    } finally {
+      stop.current = null;
     }
   }
   async function copyPrompt() {
+    if (writing) return stop.current?.abort();
     if (canAsk) return askAI();
     if (copied === false) return setCopied(null); // a second press closes the prompt shown below
     const i = inputs();
@@ -476,9 +491,20 @@ export function Field({
     if (!rich || !richScope) return;
     richScope.report(
       id,
-      focused && { name, editor: inputRef, zoomed, toggleZoom, copied, copyPrompt, aiLabel, noPrompt, ...richState },
+      focused && {
+        name,
+        editor: inputRef,
+        zoomed,
+        toggleZoom,
+        copied,
+        copyPrompt,
+        aiLabel,
+        writing,
+        noPrompt,
+        ...richState,
+      },
     );
-  }, [rich, focused, zoomed, copied, richState, value, canAsk]);
+  }, [rich, focused, zoomed, copied, richState, value, canAsk, writing]);
   useEffect(() => () => rich && richScope?.report(id, null), []);
   const icons = (
     <>
@@ -502,7 +528,11 @@ export function Field({
           onPress={copyPrompt}
           style={({ hovered }) => [tw`h-8 w-8 items-center justify-center rounded-md`, hovered && tw`opacity-80`]}
         >
-          <Icon name={copied ? "check" : "sparkle"} size={20} color={copied ? colors.green : colors.mute} />
+          <Icon
+            name={writing ? "stop" : copied ? "check" : "sparkle"}
+            size={20}
+            color={writing ? colors.ink : copied ? colors.green : colors.mute}
+          />
         </Pressable>
       )}
     </>

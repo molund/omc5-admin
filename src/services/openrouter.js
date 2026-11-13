@@ -11,7 +11,9 @@ export const NEW_KEY_URL = "https://openrouter.ai/settings/keys";
  */
 export const MODELS = [
   { id: "anthropic/claude-haiku-5.5", label: "Claude Haiku 5.5", price: "$0.10 / $0.50" },
+  { id: "anthropic/claude-sonnet-5.5", label: "Claude Sonnet 5.5", price: "$2.00 / $10.00" },
   { id: "openai/gpt-6-luna", label: "GPT-6 Luna", price: "$0.10 / $0.50" },
+  { id: "openai/gpt-6.1-sol", label: "GPT-6.1 Sol", price: "$2.00 / $10.00" },
   { id: "minimax/minimax-m3.1-flash", label: "MiniMax M3.1 Flash", price: "$0.07 / $0.30" },
 ];
 export const DEFAULT_MODEL = "anthropic/claude-haiku-5.5";

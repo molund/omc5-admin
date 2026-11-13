@@ -1,7 +1,7 @@
 // The walk notes: the prompt (writingPrompt.js's walkPrompt) and reading the AI's reply (walkReply.js).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { walkPrompt } from "../src/lib/writingPrompt.js";
+import { SHORT_NOTES, walkPrompt, walkTarget } from "../src/lib/writingPrompt.js";
 import { parseWalkReply } from "../src/lib/walkReply.js";
 
 const STANDARD = "Clayton Clipper construction update for Thursday, Nov. 12, 2026";
@@ -11,8 +11,7 @@ test("an update's prompt offers the standard title, the notes and the captions",
   assert.ok(p.startsWith("Turn my walk notes into a construction update"));
   assert.ok(p.includes(`The standard title is "${STANDARD}"`));
   assert.ok(p.includes("TITLE: keep (or TITLE: the new title)"));
-  assert.ok(p.includes("Keep the post to about 100 words"));
-  assert.ok(p.includes("Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle"));
+  assert.ok(p.includes("My notes are short. Keep everything in them"));
   assert.ok(p.includes("rewrite each one from scratch as one short, clear sentence"));
   assert.ok(p.includes("You're the editor: rewrite freely"));
   assert.ok(!p.includes("keep my wording where it works") && !p.includes("leave it as I wrote it"));
@@ -72,4 +71,22 @@ test("a photo left out goes at the end; a repeat or an unknown one is reported",
 test("no summary is a problem", () => {
   const r = parseWalkReply("TITLE: keep\nPARAGRAPH: Only this.", 0);
   assert.deepEqual(r.problems, ["The reply has no SUMMARY line."]);
+});
+
+test("the post's length slides with the notes': more notes, more cut, at most 120 words", () => {
+  const targets = [80, 120, 160, 200, 300, 1000].map(walkTarget);
+  assert.deepEqual(targets, [60, 85, 100, 120, 120, 120]);
+  assert.equal(walkTarget(50), 40);
+  for (let w = 1; w < 400; w++) assert.ok(walkTarget(w + 1) >= walkTarget(w), `shorter at ${w + 1}`);
+});
+
+test("short notes are kept whole; longer ones get a word count and are cut to what's interesting", () => {
+  const words = (n) => Array.from({ length: n }, (_, i) => `w${i}`).join(" ");
+  const short = walkPrompt({ kind: "update", standardTitle: STANDARD, notes: words(SHORT_NOTES), captions: [] });
+  assert.ok(short.includes("My notes are short. Keep everything in them"));
+  assert.ok(!short.includes("Keep the post to about") && !short.includes("Boring, so leave it out"));
+  const long = walkPrompt({ kind: "update", standardTitle: STANDARD, notes: words(160), captions: [] });
+  assert.ok(long.includes("Keep the post to about 100 words, not counting the title or captions"));
+  assert.ok(long.includes("Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle"));
+  assert.ok(walkPrompt({ kind: "blog", notes: words(80), captions: [] }).includes("about 60 words"));
 });

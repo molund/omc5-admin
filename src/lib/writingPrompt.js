@@ -97,6 +97,31 @@ const WALK_VOICE = `Write it in my voice: first person, casual, with my opinions
 
 const WALK_NO_INVENTION = `Don't add anything I didn't say: no new facts, numbers, reasons, feelings or opinions, and no wrap-up sentence. Cutting is fine; inventing isn't.`;
 
+/** Notes this short are kept whole, only tidied: there's nothing to cut. */
+export const SHORT_NOTES = 30;
+
+const wordCount = (text) => text.split(/\s+/).filter(Boolean).length;
+
+/**
+ * How long the post should be, in words (summary and paragraphs), for notes of `words` words: a curve that cuts more the
+ * more there is, 200 × (1 − e^(−words / 225)), to the nearest 5 and at most 120. 80 words of notes make about 60, 120 about
+ * 85, 160 about 100, and 200 or more 120.
+ */
+export function walkTarget(words) {
+  const curve = 200 * (1 - Math.exp(-words / 225));
+  return Math.min(120, Math.max(5, Math.round(curve / 5) * 5));
+}
+
+// what to keep: short notes whole, longer ones cut to the most interesting things, to a length that slides with theirs
+function lengthRule(notes) {
+  const words = wordCount(notes);
+  if (words <= SHORT_NOTES)
+    return `My notes are short. Keep everything in them and just tidy it into the summary and, if it needs one, a short paragraph. Lead with the most interesting thing.`;
+  return `My notes hold more than the post needs. Keep the post to about ${walkTarget(words)} words, not counting the title or captions: the summary and one or two short paragraphs. Pick the one to three most interesting things and drop everything else without mentioning it. Lead with the most interesting thing.
+
+Interesting: something new or unusual, a first or a milestone, something people passing by would notice or wonder about, and my best jokes or opinions. Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle (segments hung, gluing, post-tensioning, hangers), which the site already tracks; where exactly I stood or walked; and things that look the same as last time.`;
+}
+
 /**
  * The walk notes' prompt: everything Mike wrote on a walk, and his captions for its photos, to be cut down into a whole update
  * or blog post. The reply comes back in a tagged format, one item per line (walkReply.js reads it).
@@ -128,9 +153,7 @@ export function walkPrompt({ kind, standardTitle, notes, captions }, alone = fal
     : "";
   return `Turn my walk notes into ${update ? "a construction update" : "a blog post"} for ${ABOUT}.
 
-My notes hold far too much on purpose. Keep the post to about 100 words, not counting the title or captions: the summary and one or two short paragraphs. Pick the one to three most interesting things and drop everything else without mentioning it. Lead with the most interesting thing.
-
-Interesting: something new or unusual, a first or a milestone, something people passing by would notice or wonder about, and my best jokes or opinions. Boring, so leave it out unless it's unusual: the routine steps of the gantry's cycle (segments hung, gluing, post-tensioning, hangers), which the site already tracks; where exactly I stood or walked; and things that look the same as last time.
+${lengthRule(notes)}
 
 The notes mix what I saw with instructions to you, like "include a link to https://…" (usually an earlier post of mine) or "mention this in the summary". Follow the instructions, but never put them in the post.
 

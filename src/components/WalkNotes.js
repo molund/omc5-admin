@@ -9,7 +9,7 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import { walkPrompt } from "../lib/writingPrompt.js";
 import { parseWalkReply } from "../lib/walkReply.js";
-import { logPrompt } from "../lib/promptLog.js";
+import { logPrompt, notePrompt } from "../lib/promptLog.js";
 import { copyText } from "../platform/clipboard";
 import { PROMPT_VERSION } from "../platform/promptVersion";
 import { canKeepToken, readAIKey } from "../platform/secrets";
@@ -87,8 +87,9 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   const photos = blocks.filter((b) => b.type === "photo");
   const inputs = { kind, standardTitle, notes, captions: photos.map((p) => p.caption) };
 
-  // kept as test data for the AI writing feature (lib/promptLog.js), asking for the reply with nothing around it
-  function keepPrompt() {
+  // kept as test data for the AI writing feature (lib/promptLog.js), asking for the reply with nothing around it, with the
+  // model when it's sent to one
+  const keepPrompt = (model) =>
     logPrompt({
       prompt: walkPrompt(inputs, true),
       version: PROMPT_VERSION,
@@ -96,8 +97,8 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
       writes: kind === "update" ? "an update" : "a blog post",
       text: notes,
       context: { standardTitle, captions: inputs.captions },
+      model,
     });
-  }
 
   async function copyPrompt() {
     keepPrompt();
@@ -113,12 +114,20 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
     setProblems([]);
     const controller = new AbortController();
     stop.current = controller;
+    const kept = keepPrompt(m.id);
     try {
-      keepPrompt();
       const key = await readAIKey();
       if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
-      fill(await askModel({ key, model: m.id, prompt: walkPrompt(inputs, true), signal: controller.signal }));
+      const { text, cost } = await askModel({
+        key,
+        model: m.id,
+        prompt: walkPrompt(inputs, true),
+        signal: controller.signal,
+      });
+      notePrompt(kept, { reply: text, cost });
+      fill(text);
     } catch (e) {
+      notePrompt(kept, { error: e.message, cost: e.cost });
       // stopped on purpose: nothing to report
       if (!controller.signal.aborted) setProblems([e.message]);
     } finally {

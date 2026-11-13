@@ -25,7 +25,9 @@ globalThis.window = {
     removeItem: (k) => void data.delete(k),
   },
 };
-const { logPrompt, promptLog, clearPromptLog, promptFiles, stampOf } = await import(here("./.out/promptLog.mjs"));
+const { logPrompt, notePrompt, promptLog, clearPromptLog, promptFiles, stampOf } = await import(
+  here("./.out/promptLog.mjs")
+);
 
 const entry = (text, context) => ({
   prompt: `Tidy this up: ${text}`,
@@ -101,4 +103,29 @@ test("the files: the prompt as .txt, its inputs as readable .json, the same seco
   // zipped as Settings does, and back
   const zip = zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, strToU8(v)])));
   assert.equal(strFromU8(unzipSync(zip)["2026-11-12 08.15.32.json"]), files["2026-11-12 08.15.32.json"]);
+});
+
+test("a prompt sent to a model is kept every time, with the model, its reply and the cost in its .json", () => {
+  clearPromptLog();
+  const a = logPrompt({ ...entry("One"), model: "anthropic/claude-haiku-5.5" }, at("09:00:00"));
+  const b = logPrompt({ ...entry("One"), model: "openai/gpt-6-luna" }, at("09:00:10"));
+  notePrompt(a, { reply: "One, tidied.", cost: 0.00026 });
+  notePrompt(b, { error: "The model sent back nothing.", cost: 0.0001 });
+  const log = promptLog();
+  assert.deepEqual(
+    log.map((e) => [e.model, e.reply, e.error, e.cost]),
+    [
+      ["anthropic/claude-haiku-5.5", "One, tidied.", undefined, 0.00026],
+      ["openai/gpt-6-luna", undefined, "The model sent back nothing.", 0.0001],
+    ],
+  );
+  const json = JSON.parse(promptFiles(log)["2026-11-12 09.00.00.json"]);
+  assert.equal(json.model, "anthropic/claude-haiku-5.5");
+  assert.equal(json.reply, "One, tidied.");
+  assert.equal(json.cost, 0.00026);
+  // copying the same prompt again adds nothing, and is still skipped
+  assert.equal(logPrompt(entry("One"), at("09:01:00")), null);
+  assert.ok(logPrompt(entry("Two"), at("09:01:05")));
+  assert.equal(logPrompt(entry("Two"), at("09:01:10")), null);
+  clearPromptLog();
 });

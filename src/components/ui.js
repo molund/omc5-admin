@@ -4,7 +4,7 @@ import { Linking, Platform, Pressable, Switch, Text, TextInput, View } from "rea
 import { useTw } from "../theme/tw.js";
 import { copyText } from "../platform/clipboard";
 import { writingPrompt } from "../lib/writingPrompt.js";
-import { logPrompt } from "../lib/promptLog.js";
+import { logPrompt, notePrompt } from "../lib/promptLog.js";
 import { PROMPT_VERSION } from "../platform/promptVersion";
 import { canKeepToken, readAIKey } from "../platform/secrets";
 import { askModel, modelOf } from "../services/openrouter.js";
@@ -442,19 +442,21 @@ export function Field({
     if (asked?.writing || !i.text.trim()) return;
     const model = modelOf(desk.aiModel);
     const prompt = writingPrompt(i.writes, i.text, i.context, true);
-    // kept as test data for the AI writing feature (lib/promptLog.js), as a copied prompt is
-    logPrompt({ prompt, version: PROMPT_VERSION, ...i });
+    // kept as test data for the AI writing feature (lib/promptLog.js), with the model, its reply and the cost
+    const kept = logPrompt({ prompt, version: PROMPT_VERSION, ...i, model: model.id });
     setAsked({ writing: model.label });
     try {
       const key = await readAIKey();
       if (!key) throw new Error("There's no OpenRouter key on this iPhone. Add one in Settings.");
+      const { text, cost } = await askModel({ key, model: model.id, prompt });
+      notePrompt(kept, { reply: text, cost });
       // one paragraph, as the prompt asks: a model's stray line breaks become spaces
-      const reply = (await askModel({ key, model: model.id, prompt })).replace(/\s*\n+\s*/g, " ");
-      onChangeText(reply);
+      onChangeText(text.replace(/\s*\n+\s*/g, " "));
       setAsked({ undo: i.text, label: model.label });
       setCopied(true);
       setTimeout(() => setCopied(null), 1500);
     } catch (e) {
+      notePrompt(kept, { error: e.message, cost: e.cost });
       setAsked({ error: e.message });
     }
   }

@@ -56,11 +56,11 @@ export function priceText(model, prices) {
 export const modelOf = (id) => MODELS.find((m) => m.id === id) ?? MODELS.find((m) => m.id === DEFAULT_MODEL);
 
 /**
- * Asks a model to write: the prompt goes in as one message, and its reply comes back as text. The budget is generous
- * because some models think for thousands of tokens before they write, and the thinking counts.
+ * Asks a model to write: the prompt goes in as one message, and its reply comes back as text, with what it cost. The
+ * budget is generous because some models think for thousands of tokens before they write, and the thinking counts.
  * @param {{ key: string, model: string, prompt: string, signal?: AbortSignal }} args `signal` stops it (Stop).
- * @returns {Promise<string>}
- * @throws {OpenRouterError} When it can't be asked, doesn't answer, or is stopped (code "stopped").
+ * @returns {Promise<{ text: string, cost: number | null }>} `cost` in dollars, as OpenRouter charged it.
+ * @throws {OpenRouterError} When it can't be asked, doesn't answer (with its `cost`), or is stopped (code "stopped").
  */
 export async function askModel({ key, model, prompt, signal }) {
   const stopped = () => new OpenRouterError("stopped", "Stopped.");
@@ -69,7 +69,12 @@ export async function askModel({ key, model, prompt, signal }) {
     res = await fetch(`${API}/chat/completions`, {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages: [{ role: "user", content: prompt }], max_tokens: 8000 }),
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 8000,
+        usage: { include: true },
+      }),
       signal,
     });
   } catch {
@@ -90,14 +95,19 @@ export async function askModel({ key, model, prompt, signal }) {
   }
   const choice = body.choices?.[0];
   const text = choice?.message?.content?.trim();
-  if (!text)
-    throw new OpenRouterError(
+  const cost = body.usage?.cost ?? null;
+  if (!text) {
+    const e = new OpenRouterError(
       "empty",
       choice?.finish_reason === "length"
         ? "The model ran out of room thinking and wrote nothing. Try again, or pick another model in Settings."
         : "The model sent back nothing. Try again, or pick another model in Settings.",
     );
-  return text;
+    // an empty reply is still charged for its thinking
+    e.cost = cost;
+    throw e;
+  }
+  return { text, cost };
 }
 
 /**

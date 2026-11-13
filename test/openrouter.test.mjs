@@ -72,10 +72,16 @@ test("asking a model sends the prompt and returns its reply", async () => {
   let sent;
   globalThis.fetch = async (url, init) => {
     sent = { url: String(url), auth: init.headers.Authorization, body: JSON.parse(init.body) };
-    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "  TITLE: keep\n" } }] }) };
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ choices: [{ message: { content: "  TITLE: keep\n" } }], usage: { cost: 0.0003 } }),
+    };
   };
-  const text = await askModel({ key: KEY, model: "openai/gpt-6-luna", prompt: "Write it" });
+  const { text, cost } = await askModel({ key: KEY, model: "openai/gpt-6-luna", prompt: "Write it" });
   assert.equal(text, "TITLE: keep");
+  assert.equal(cost, 0.0003);
+  assert.deepEqual(sent.body.usage, { include: true });
   assert.equal(sent.url, "https://openrouter.ai/api/v1/chat/completions");
   assert.equal(sent.auth, `Bearer ${KEY}`);
   assert.equal(sent.body.model, "openai/gpt-6-luna");

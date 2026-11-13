@@ -1,7 +1,8 @@
-// Every prompt the sparkle icon copies, kept with the inputs it was built from, as test data for evaluating models and
-// prompts when enhancing the AI writing feature later. Settings shares them as a zip: for each, a .txt with the prompt (as
-// copied, but asking for the paragraph alone) and a .json with its inputs, both named by when it was copied. Each is kept under its own key, with a list of
-// their ids, so a new one doesn't rewrite them all.
+// Every AI prompt the Leash Log copies or sends (the sparkle, and Write with AI), kept with the inputs it was built from, as
+// test data for evaluating models and prompts. One sent to a model also keeps the model, its reply and what it cost.
+// Settings shares them as a zip: for each, a .txt with the prompt (asking for the reply alone) and a .json with the rest,
+// both named by when it was made. Each is kept under its own key, with a list of their ids, so a new one doesn't rewrite
+// them all.
 import { load, save } from "../platform/storage";
 
 const LIST = "promptLog";
@@ -11,16 +12,25 @@ const one = (id) => `promptLog.${id}`;
 export const stampOf = (date) => new Date(date.getTime() - 7 * 3600 * 1000).toISOString().slice(0, 19) + "-07:00";
 
 /**
- * Keeps a copied prompt, unless it's the same as the last one kept.
- * @param {{ prompt: string, version: string, field: string, writes: string, text: string, context?: object }} entry
+ * Keeps a prompt. A copied one is skipped when it's the same as the last one kept; one sent to a model (with `model`) is
+ * always kept, since each model's reply is its own data.
+ * @param {{ prompt: string, version: string, field: string, writes: string, text: string, context?: object, model?: string }} entry
+ * @returns {string | null} Its id, for notePrompt; null when it wasn't kept.
  */
 export function logPrompt(entry, now = new Date()) {
   const ids = load(LIST, []);
   const last = ids.length ? load(one(ids[ids.length - 1]), null) : null;
-  if (last && last.prompt === entry.prompt && last.field === entry.field) return;
+  if (!entry.model && last && last.prompt === entry.prompt && last.field === entry.field) return null;
   const id = `${now.getTime()}`;
-  if (!save(one(id), { at: stampOf(now), ...entry })) return;
+  if (!save(one(id), { at: stampOf(now), ...entry })) return null;
   save(LIST, [...ids, id]);
+  return id;
+}
+
+/** Adds to a kept prompt what came of it: the model's `reply` and its `cost` in dollars, or the `error`. */
+export function notePrompt(id, outcome) {
+  const entry = id && load(one(id), null);
+  if (entry) save(one(id), { ...entry, ...outcome });
 }
 
 /** The kept prompts, oldest first. */

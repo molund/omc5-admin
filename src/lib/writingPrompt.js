@@ -43,7 +43,7 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Titles: sentence case ("The curious case of Clayton Clipper span 50").
 - Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Clipper", "the Sprinter" or "the gantry" after. "The gantry" on its own means the Clayton Clipper.
 - Pillar, support, tulip, hammerhead, bent: use the word as written.
-- Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles.
+- Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles. Two numbers with a slash are a support only when they're consecutive, like 70/71. When the second number is 105 or more, it's how far along the route the gantry is, not a support: "span 39/105" means span 39 of 105.
 - Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".
 - SkyTrain: always "SkyTrain", never "Skytrain".
 - Stations: the official names ("Green Timbers Station", "Hillcrest-184 Street Station").

@@ -199,7 +199,7 @@ export const stepsBySpan = scoped(function stepsBySpan(entries) {
  */
 export const spanDays = scoped(function spanDays(entries) {
   const by = stepsBySpan(entries);
-  const logged = loggedTimes(allSteps(entries));
+  const logged = loggedTimes(entries);
   const out = {};
   for (const [span, steps] of Object.entries(by)) {
     const start = steps[STAGES[0]];
@@ -222,8 +222,10 @@ function allSteps(entries) {
   return out.sort((a, b) => a.at - b.at || a.span - b.span || a.index - b.index);
 }
 
-// the times of the steps logged (ms), for workingHours' overtime
-const loggedTimes = (steps) => steps.map((t) => t.at.getTime());
+// the times of everything logged (ms), for workingHours' overtime: each step, and each check-in repeating one, since the
+// gantry was seen working then all the same
+const loggedTimes = (entries) =>
+  entries.filter((e) => e.span && e.stage).map((e) => parseKey(countedAt(e.key)).getTime());
 
 /**
  * How the cycle divides up: [{ stage, position, share }] in cycle order, `position` how far through the cycle the stage
@@ -353,7 +355,7 @@ export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, sh
   const by = stepsBySpan(entries);
   const at = estimator(steps, shares);
   const arrived = arrivals(entries, shares);
-  const logged = loggedTimes(steps);
+  const logged = loggedTimes(entries);
   const out = [];
   for (const [span, arrival] of Object.entries(arrived)) {
     for (const [index, stage] of STAGES.entries()) {
@@ -381,21 +383,20 @@ export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, sh
       stepHours,
       weeklyGap,
       reported: t.estimated ? null : reportedAt(entries, t),
-      offHours: t.estimated ? null : offHours(steps, shares, t),
+      offHours: t.estimated ? null : offHours(steps, shares, t, logged),
     };
   });
 });
 
 // how far a logged step is from when it was expected: estimated as if it hadn't been logged, from the other steps, in working hours,
 // negative when it came earlier than expected
-function offHours(steps, shares, t) {
+function offHours(steps, shares, t, logged) {
   const index = STAGES.indexOf(t.stage);
   const others = steps.filter((s) => s.span !== t.span || s.index !== index);
   if (!others.length) return null;
   const expected = estimator(others, shares)(t.span + shares[index].position);
   if (!expected) return null;
   const [a, b] = [parseKey(t.key), parseKey(expected)];
-  const logged = loggedTimes(steps);
   return a < b ? -workingHours(a, b, logged) : workingHours(b, a, logged);
 }
 
@@ -428,7 +429,7 @@ function stageTimes(entries, shares, stage) {
  */
 export const cycles = scoped(function cycles(entries, shares = stageShares(entries), stage = STAGES[0]) {
   const times = stageTimes(entries, shares, stage);
-  const logged = loggedTimes(allSteps(entries));
+  const logged = loggedTimes(entries);
   const out = [];
   for (const n of Object.keys(times)
     .map(Number)
@@ -455,7 +456,7 @@ export const cycles = scoped(function cycles(entries, shares = stageShares(entri
  * has none.
  */
 export const sinceArrival = scoped(function sinceArrival(entries) {
-  const logged = loggedTimes(allSteps(entries));
+  const logged = loggedTimes(entries);
   const out = [];
   for (const [span, steps] of Object.entries(stepsBySpan(entries))) {
     const arrival = steps[STAGES[0]];
@@ -558,7 +559,7 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   // the newest span's arrival, estimated (arrivals) when only a later step on it was logged
   const since = top ? (arrivals(entries, shares)[top]?.key ?? null) : null;
   const current = since
-    ? { span: top, since, days: workingHours(parseKey(since), now, loggedTimes(steps)) / 24 }
+    ? { span: top, since, days: workingHours(parseKey(since), now, loggedTimes(entries)) / 24 }
     : null;
   // A holiday in the week extends it: the week reaches back 168 hours that aren't one, so a day off isn't a slow week. What
   // extends it is the holidays' excused hours (up to 24 each) outside the weekly shutdown, which a week already leaves out.

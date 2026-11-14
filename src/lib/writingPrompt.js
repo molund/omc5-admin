@@ -41,7 +41,7 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Girders: a precast concrete or steel one connecting two supports is a "girder", never a "span" or "beam"; use the span's number only to say where it goes ("both precast concrete girders for span 34").
 - Don't call a span "complete": say what happened ("all the segments for span 38 are hung").
 - Titles: sentence case ("The curious case of Clayton Clipper span 50").
-- Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Clipper", "the Sprinter" or "the gantry" after. "The gantry" on its own means the Clayton Clipper.
+- Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Sprinter" or "the gantry" after. Never "the Clipper": to shorten "Clayton Clipper", say "the gantry". "The gantry" on its own means the Clayton Clipper.
 - Pillar, support, tulip, hammerhead, bent: use the word as written.
 - Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles. Two numbers with a slash are a support only when they're consecutive, like 70/71. When the second number is 105 or more, it's how far along the route the gantry is, not a support: "span 39/105" means span 39 of 105.
 - Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".

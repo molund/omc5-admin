@@ -4,7 +4,7 @@
 // weren't, estimated the way a missing arrival is, with a bar naming the weekday at each new calendar day and each span's
 // steps added up.
 // Home shows only the velocity itself, with a way to the Velocity page, which shows it all (`full`).
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
@@ -62,6 +62,13 @@ const gapHours = (h) => (Math.abs(h - Math.round(h)) < 0.01 ? `${Math.round(h)}h
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 
+// the look of the latest check-in's row: its time and its duration column, set like the steps' above it
+const looks = (tw) => ({
+  checkinRow: tw`pl-3`,
+  checkinTime: tw`text-right`,
+  checkinDuration: tw`w-16 text-right`,
+});
+
 /** What an irregular shutdown does to the week, in a sentence or two. */
 function shutdownNote(e, window) {
   const { shutdown, info } = e;
@@ -94,6 +101,7 @@ function shutdownNote(e, window) {
  */
 export function VelocityPanel({ full, onOpen }) {
   const { tw, colors } = useTw();
+  const s = useMemo(() => looks(tw), [tw]);
   const desk = useDesk();
   // each day's rain or snow, for its day bar: what's kept on the phone at once, then the latest when it's due
   const [weather, setWeather] = useState(cachedWeather);
@@ -155,6 +163,19 @@ export function VelocityPanel({ full, onOpen }) {
       .steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime, irregular: boxesBefore.get(t) ?? [] });
     lastDay = day;
   }
+  // The steps list ends with the latest check-in. Each step is listed once, at the earliest time it was reported, so a
+  // check-in repeating the last step (or an earlier one) is left out of the list above; it gets a row of its own at the
+  // end, unless the last step is that check-in itself.
+  const latest = desk.deskEntries
+    .filter((e) => e.span && e.stage)
+    .reduce((a, b) => (!a || parseKey(b.key) > parseKey(a.key) ? b : a), null);
+  const lastStep = bySpan.at(-1)?.steps.at(-1);
+  const checkin =
+    latest &&
+    lastStep &&
+    !(lastStep.span === latest.span && lastStep.stage === latest.stage && !lastStep.estimated && !lastStep.reported)
+      ? latest
+      : null;
   const num = { fontVariant: ["tabular-nums"] };
   // the two column headings, small enough that "Observed" and "Estimated" fit their columns at large text sizes
   const header = { fontSize: 9, lineHeight: 12 };
@@ -403,6 +424,19 @@ export function VelocityPanel({ full, onOpen }) {
                 </Fragment>
               ))}
               {g === bySpan.at(-1) && boxesAfter.map((e, k) => shutdownBox(e, k))}
+              {g === bySpan.at(-1) && checkin && (
+                <View style={[tw`flex-row items-baseline gap-2`, s.checkinRow]}>
+                  <Body small mute style={tw`flex-1`}>
+                    {`${SHORT_LABELS[checkin.stage] ?? STAGE_LABELS[checkin.stage]} (latest check-in)`}
+                  </Body>
+                  <Body small mute numberOfLines={1} style={[s.checkinTime, { minWidth: 56, flexShrink: 0 }, num]}>
+                    {clock(checkin.key)}
+                  </Body>
+                  <Body small mute style={[s.checkinDuration, num]}>
+                    –
+                  </Body>
+                </View>
+              )}
               <View style={tw`flex-row items-baseline gap-2 border-t border-line pl-3 pt-0.5`}>
                 <Body small style={tw`flex-1 font-semibold`}>
                   {g.steps.at(-1).stepHours == null ? "Total so far" : "Total"}

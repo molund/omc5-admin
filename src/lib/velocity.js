@@ -555,7 +555,8 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   const stage = last ? STAGES[last.index] : STAGES[0];
   const by = stepsBySpan(entries);
   const top = Math.max(0, ...Object.keys(by).map(Number));
-  const since = top ? by[top]["arrived at span"] : null;
+  // the newest span's arrival, estimated (arrivals) when only a later step on it was logged
+  const since = top ? (arrivals(entries, shares)[top]?.key ?? null) : null;
   const current = since
     ? { span: top, since, days: workingHours(parseKey(since), now, loggedTimes(steps)) / 24 }
     : null;

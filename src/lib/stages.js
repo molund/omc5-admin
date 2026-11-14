@@ -99,7 +99,7 @@ const NOT = /\b(not|isn't|aren't|hasn't|haven't|still (?:up|on|in))\b/;
  */
 export function stagesIn(text) {
   const found = new Set();
-  // only the Clayton Clipper's steps: a note about another gantry that doesn't name the Clipper has none
+  // only the Clayton Clipper's steps: a note about another gantry that doesn't name the Clayton Clipper has none
   const all = String(text ?? "").toLowerCase();
   if (/\b(sprinter|flyer)\b/.test(all) && !/\b(clipper|the gantry)\b/.test(all)) return [];
   // one sentence at a time, so "the cables are down" and "the hangers are still up" don't mix

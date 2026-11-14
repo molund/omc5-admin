@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { HERE, postContext, postLines, writingPrompt } from "../src/lib/writingPrompt.js";
 
 const blocks = [
-  { type: "summary", text: "The Clipper moved." },
+  { type: "summary", text: "The gantry moved." },
   { type: "photo", caption: "" },
   { type: "text", text: "  " },
   { type: "text", text: "It rained." },
@@ -14,7 +14,7 @@ const blocks = [
 test("the context marks the block being written and leaves out empty ones", () => {
   assert.equal(
     postContext({ title: "A day", blocks, at: 3 }),
-    "Title: A day\n\nThe Clipper moved.\n\n▶ HERE\n\n[Photo: Span 50]",
+    "Title: A day\n\nThe gantry moved.\n\n▶ HERE\n\n[Photo: Span 50]",
   );
 });
 
@@ -31,7 +31,7 @@ test("the prompt has the context only when there's more than the text itself", (
   const alone = { blocks: [{ type: "summary", text: "Hi" }], at: 0 };
   assert.ok(!writingPrompt("a paragraph", "Hi", alone).includes("rest of the post"));
   const p = writingPrompt("a paragraph", "Hi", { blocks, at: 3 });
-  assert.ok(p.includes(`marked ${HERE}):\n\nThe Clipper moved.`));
+  assert.ok(p.includes(`marked ${HERE}):\n\nThe gantry moved.`));
   assert.ok(p.indexOf("rest of the post") < p.indexOf("Return it twice"));
 });
 

@@ -94,7 +94,7 @@ to self. A change writes both files in the same commit.
   on the Velocity page. A mistake in the list (a typo'd type, a holiday over 24 hours, two that overlap) fails the site's
   deploy and a phone push's landing, so nothing bad goes out. The rules are in [`docs/velocity-calculation.md`](docs/velocity-calculation.md).
 - **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
-  reported most recently, part-spans included, with the weekly shutdown (Saturday 6 p.m. to Sunday 6 p.m.) allowed for.
+  reported most recently, part-spans included, with the weekly shutdown (Saturday 3 p.m. to Sunday 8 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the
   working time to the next, logged or estimated. Every push writes the figure and its values over the past 96 hours to
   `gantry-cycles.yaml`, and a copy of the figure to `status.yaml`. The calculation is in `src/lib/velocity.js`; every assumption

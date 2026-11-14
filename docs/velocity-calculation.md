@@ -70,7 +70,7 @@ enough that the simplification stops being fair.
 
 ## Shifts
 
-- **Day shift: 7 a.m. to 5 p.m.**
+- **Day shift: 7 a.m. to 5 p.m.** (Saturday: 7 a.m. to 3 p.m.)
 - **Night shift: 8 p.m. to 6 a.m.** the next morning.
 - **No work in the gaps**: 5 p.m. to 8 p.m. and 6 a.m. to 7 a.m.
 - Every day has both shifts, except Saturday (no night shift) and Sunday (no day shift). See the shutdown below.
@@ -79,7 +79,7 @@ enough that the simplification stops being fair.
 
 ## The weekly shutdown
 
-- **6 p.m. Saturday to 6 p.m. Sunday**, 24 hours, every week (`SHUTDOWN_START`, `SHUTDOWN_HOURS`). The site works 24/6.
+- **3 p.m. Saturday to 8 p.m. Sunday**, 29 hours, every week (`SHUTDOWN_START`, `SHUTDOWN_HOURS`). The site works 24/6.
 - On the shift clock this is Saturday's night shift and Sunday's day shift. The Sunday night shift (from 8 p.m.) runs.
 - Cycle lengths and the velocity use working time (`workingHours`): every hour counts except the shutdown, including
   the gaps between shifts.

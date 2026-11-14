@@ -170,7 +170,7 @@ test("a holiday in the week extends it by its hours", () => {
   // 182 hours less the weekly shutdown and the holiday is a normal week's working time, so the pace is the distance covered
   assert.equal(
     in_(entries, () => workingHours(D(v.window.start), D(v.window.end))),
-    127,
+    126,
   );
   assert.equal(v.spansPerWeek.toFixed(6), (v.window.to - v.window.from).toFixed(6));
 });

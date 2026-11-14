@@ -6,7 +6,7 @@
 // passes in a shift break or the shutdown), and that places every step along the gantry's progress, in spans: the place a
 // week before the last step is read off between the steps either side of it, and so is a stage or arrival that wasn't
 // logged. Working time leaves out only the weekly shutdown: Friday night, 6 p.m. Friday to 7 a.m. Saturday, and Saturday
-// night and Sunday's day shift, 4 p.m. Saturday (a shorter day) to 8 p.m. Sunday, BC time. A step logged in the evening at the start of
+// night and Sunday's day shift, 3 p.m. Saturday (a shorter day) to 8 p.m. Sunday, BC time. A step logged in the evening at the start of
 // either is overtime: that part of the shutdown starts at the step instead.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
@@ -43,10 +43,10 @@ export const HISTORY_HOURS = 96;
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 // the shutdown, as [start, hours], the start in hours from the start of a BC week (Sunday 00:00): Friday 18:00 to
-// Saturday 07:00, and Saturday 16:00 to Sunday 20:00
+// Saturday 07:00, and Saturday 15:00 to Sunday 20:00
 const SHUTDOWNS = [
   [5 * 24 + 18, 13], // Friday 18:00
-  [6 * 24 + 16, 28], // Saturday 16:00
+  [6 * 24 + 15, 29], // Saturday 15:00
 ];
 export const WORKING_DAYS_PER_WEEK = 7 - SHUTDOWNS.reduce((total, [, hours]) => total + hours, 0) / 24;
 // BC time is UTC−7 all year in status.yaml's time stamps
@@ -54,7 +54,7 @@ const bc = (d) => new Date(d.getTime() - 7 * HOUR);
 // the shifts, in hours from a BC midnight: Friday's and Saturday's night shifts and Sunday's day shift are the shutdown,
 // and Saturday's day shift is shorter
 const DAY_SHIFT = [7, 17];
-const SATURDAY_DAY_SHIFT = [7, 16];
+const SATURDAY_DAY_SHIFT = [7, 15];
 const NIGHT_SHIFT = [20, 30];
 // the stages' shares come from the steps since here: the ones before it were filled in from old posts, before the Leash Log tagged steps
 export const SHARES_SINCE = "2026-11-03";

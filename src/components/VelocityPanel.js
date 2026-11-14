@@ -170,12 +170,7 @@ export function VelocityPanel({ full, onOpen }) {
     .filter((e) => e.span && e.stage)
     .reduce((a, b) => (!a || parseKey(b.key) > parseKey(a.key) ? b : a), null);
   const lastStep = bySpan.at(-1)?.steps.at(-1);
-  const checkin =
-    latest &&
-    lastStep &&
-    !(lastStep.span === latest.span && lastStep.stage === latest.stage && !lastStep.estimated && !lastStep.reported)
-      ? latest
-      : null;
+  const checkin = latest && lastStep && latest.key !== lastStep.key ? latest : null;
   const num = { fontVariant: ["tabular-nums"] };
   // the two column headings, small enough that "Observed" and "Estimated" fit their columns at large text sizes
   const header = { fontSize: 9, lineHeight: 12 };

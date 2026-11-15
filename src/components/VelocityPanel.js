@@ -112,8 +112,8 @@ export function VelocityPanel({ full, onOpen }) {
   const v = desk.velocity;
   if (!v) return null;
   const all = v.current ? stepsWithEstimates(desk.deskEntries, v.shares) : [];
-  // from the span the 168 hours start in, so every span with a part in them is listed whole, and at least the usual WINDOW
-  const firstSpan = Math.min(v.current.span - WINDOW, v.window ? Math.floor(v.window.from) : Infinity);
+  // from the span the 168 hours start in, so every span with a part in them is listed whole (the usual WINDOW without a velocity)
+  const firstSpan = v.window ? Math.floor(v.window.from) : v.current.span - WINDOW;
   const recent = all.filter((t) => t.span >= firstSpan);
   // the steps under their span, in the same order, each marked if it's the first on its calendar day, with the shutdown
   // hours left out between it and the step before it (the clock time less the working time), for its day bar

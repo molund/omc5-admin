@@ -34,8 +34,18 @@ const scoped =
   (entries, ...rest) =>
     withCalendar(entries, () => fn(entries, ...rest));
 
-// the spans before the newest that the stage shares are fitted on, and the velocity panel lists steps for
+// The fewest spans before the newest that the stage shares are fitted on (and what the velocity panel lists steps for until
+// there's a velocity). It's a minimum on purpose: the fit has to tell nine stages' lengths apart from the gaps between steps,
+// and a slow week that rounded the window down to a span or two would leave too few gaps to do that, so the stages never
+// logged would fall back to the average. A bigger sample keeps the shares steady.
 export const WINDOW = 3;
+
+/**
+ * The spans before the newest that the stage shares are fitted on: the velocity the file last saved (spans per week), rounded
+ * up, so the fit reaches back across about the spans a week covers, but never fewer than WINDOW. With nothing saved yet it's
+ * WINDOW. The saved figure is used, not the one being worked out, because that one comes from these shares.
+ */
+export const spansFitted = (entries) => Math.max(WINDOW, Math.ceil(entries?.savedPace ?? 0));
 // the velocity's reach back from the latest step: a week, which always holds exactly one shutdown
 const WEEK_HOURS = 168;
 // how far back gantry-cycles.yaml keeps the velocity's earlier values (velocityHistory), from the latest step
@@ -240,7 +250,7 @@ export const stageShares = scoped(function stageShares(entries) {
   const steps = allSteps(entries);
   const top = Math.max(0, ...steps.map((t) => t.span));
   const since = parseKey(SHARES_SINCE);
-  const used = steps.filter((t) => t.at >= since && t.span >= top - WINDOW);
+  const used = steps.filter((t) => t.at >= since && t.span >= top - spansFitted(entries));
   const n = STAGES.length;
   const gaps = [];
   for (let i = 0; i + 1 < used.length; i++) {

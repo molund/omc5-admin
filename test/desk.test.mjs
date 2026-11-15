@@ -16,8 +16,6 @@ import {
   workingHours,
   shiftHours,
   stageShares,
-  spansFitted,
-  WINDOW,
   cycles,
   sinceArrival,
   stepsWithEstimates,
@@ -349,16 +347,6 @@ test("steps before SHARES_SINCE don't change the shares", () => {
   const entries = parseDesk(DESK);
   const older = { key: "2026-11-01T21:00-07:00", span: 36, stage: "glued" };
   assert.deepEqual(stageShares([...entries, older]), stageShares(entries));
-});
-
-test("the fit reaches back the saved spans per week, rounded up, but never fewer than WINDOW", () => {
-  const fitted = (pace) => spansFitted(parseDesk(pace == null ? DESK : `spans-per-week: ${pace}\n${DESK}`));
-  assert.equal(WINDOW, 3);
-  assert.equal(fitted(null), WINDOW, "nothing saved yet");
-  assert.equal(fitted(2.79), 3);
-  assert.equal(fitted(1.2), WINDOW, "a slow week keeps the minimum sample");
-  assert.equal(fitted(3.01), 4);
-  assert.equal(fitted(4.2), 5);
 });
 
 test("an arrival: as logged if it was, close to the real one if it's estimated, and none without a step either side", () => {

@@ -62,8 +62,7 @@ const q = (s) => JSON.stringify(String(s));
  * @typedef {{ key: string, span: number|null, stage: string|null, noteToSelf: string }} DeskEntry
  * stage: null only on an entry that is just a note to self (a blog post's).
  * @returns {DeskEntry[]} Newest first. It also carries the file's irregular shutdowns (lib/shutdowns.js) as a `shutdowns` property
- * and the velocity the file last saved (`spans-per-week`, or null before it has one) as `savedPace`, neither of which shows up
- * when it's copied or looped over, which the velocity's calculations read.
+ * that doesn't show up when it's copied or looped over, which the velocity's calculations read.
  */
 export function parseDesk(text) {
   const entries = [];
@@ -94,8 +93,6 @@ export function parseDesk(text) {
   }
   const sorted = sortEntries(entries);
   Object.defineProperty(sorted, "shutdowns", { value: parseShutdowns(text), enumerable: false });
-  const pace = String(text ?? "").match(/^spans-per-week:\s*(\d+(?:\.\d+)?)/m);
-  Object.defineProperty(sorted, "savedPace", { value: pace ? Number(pace[1]) : null, enumerable: false });
   return sorted;
 }
 

@@ -112,7 +112,9 @@ export function VelocityPanel({ full, onOpen }) {
   const v = desk.velocity;
   if (!v) return null;
   const all = v.current ? stepsWithEstimates(desk.deskEntries, v.shares) : [];
-  const recent = all.filter((t) => t.span >= v.current.span - WINDOW);
+  // the spans back the panel lists: a week's worth of spans, rounded up, and one more (the usual 3 until there's a velocity)
+  const spansBack = v.spansPerWeek != null ? Math.ceil(v.spansPerWeek) + 1 : WINDOW;
+  const recent = all.filter((t) => t.span >= v.current.span - spansBack);
   // the steps under their span, in the same order, each marked if it's the first on its calendar day, with the shutdown
   // hours left out between it and the step before it (the clock time less the working time), for its day bar
   const bySpan = [];

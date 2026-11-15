@@ -219,6 +219,9 @@ export function StagePicker({
             value={progress != null}
             onChange={(on) => onProgress(on ? lastMove : null)}
           />
+          <Body small mute>
+            Not used in the velocity calculation yet.
+          </Body>
           {progress != null && (
             <>
               <StepSlider

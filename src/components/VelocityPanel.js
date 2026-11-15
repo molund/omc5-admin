@@ -23,6 +23,7 @@ import { clock, dayOf, parseKey, stamp, toKey, weekdayShort } from "../lib/time.
 import { HOLIDAY_CAP_HOURS } from "../lib/shutdowns.js";
 import { cachedWeather, refreshWeather } from "../services/weather.js";
 import { Icon } from "./Icon";
+import { Donut } from "./Donut";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
 // the steps' names in this panel's rows (the log and the stage shares): each names the stage that starts at the step
@@ -402,10 +403,13 @@ export function VelocityPanel({ full, onOpen }) {
                   {t.irregular.map((e, k) => shutdownBox(e, k))}
                   {t.newDay && i > 0 && dayBar(t)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
-                    <Body small mute={t.estimated} style={[tw`flex-1`, offStyle(t)]}>
-                      {SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}
-                      {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
-                    </Body>
+                    <View style={tw`flex-1 flex-row items-center gap-2`}>
+                      <Body small mute={t.estimated} style={offStyle(t)}>
+                        {SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}
+                        {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
+                      </Body>
+                      {t.progress != null && <Donut percent={t.progress} />}
+                    </View>
                     <Body
                       small
                       mute={t.estimated}

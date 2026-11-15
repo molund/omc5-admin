@@ -4,8 +4,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
-import { formatDesk, parseDesk, memoAt, postedStage, EMPTY_DESK } from "../src/lib/deskFile.js";
+import { STAGES, atLeast, floorStage, furthest, stageFloor, stageOf, stagesIn } from "../src/lib/stages.js";
+import {
+  formatDesk,
+  parseDesk,
+  memoAt,
+  postedStage,
+  progressBefore,
+  setEntry,
+  EMPTY_DESK,
+} from "../src/lib/deskFile.js";
 import { applyBoth, applyDeskChange } from "../src/lib/deskChanges.js";
 import { setDeskVelocity, setVelocity } from "../src/lib/changes.js";
 import { velocityPoints } from "../src/lib/card.js";
@@ -13,6 +21,7 @@ import {
   afterShiftHours,
   arrivals,
   velocity,
+  canRecordProgress,
   workingHours,
   shiftHours,
   stageShares,
@@ -179,6 +188,7 @@ test("an entry has one stage, never earlier than hung once its span is, and a no
     key: t,
     span: 38,
     stage: "supports started",
+    progress: null,
     noteToSelf: "Ask about the girders",
   });
   assert.equal(r.deskHunks.length, 1);
@@ -218,7 +228,13 @@ test("update, follow-up and blog changes write their stage and notes to self to 
     },
   );
   e = parseDesk(fu.desk);
-  assert.deepEqual(e[0], { key: "2026-11-06T15:00-07:00", span: 38, stage: "hanging started", noteToSelf: "" });
+  assert.deepEqual(e[0], {
+    key: "2026-11-06T15:00-07:00",
+    span: 38,
+    stage: "hanging started",
+    progress: null,
+    noteToSelf: "",
+  });
   assert.equal(memoAt(e, T), "Updated");
   // editing a follow-up's time moves its entry with it
   const moved = applyDeskChange(
@@ -236,7 +252,9 @@ test("update, follow-up and blog changes write their stage and notes to self to 
     { kind: "blog", date: "2026-11-06", memo: { noteKey: "2026-11-06", text: "Draft" } },
     STATUS,
   );
-  assert.deepEqual(parseDesk(blog.text), [{ key: "2026-11-06", span: null, stage: null, noteToSelf: "Draft" }]);
+  assert.deepEqual(parseDesk(blog.text), [
+    { key: "2026-11-06", span: null, stage: null, progress: null, noteToSelf: "Draft" },
+  ]);
   assert.ok(head.notes.length > 0);
 });
 
@@ -347,6 +365,93 @@ test("steps before SHARES_SINCE don't change the shares", () => {
   const entries = parseDesk(DESK);
   const older = { key: "2026-11-01T21:00-07:00", span: 36, stage: "glued" };
   assert.deepEqual(stageShares([...entries, older]), stageShares(entries));
+});
+
+test("a completion: 0 to 99 per cent, written under its step, kept when read again, and nothing for anything else", () => {
+  const at = (key, extra) => ({ key, span: 38, stage: "gluing started", progress: null, noteToSelf: "", ...extra });
+  const text = formatDesk([
+    at("2026-11-06T09:00-07:00", { progress: 68 }),
+    at("2026-11-06T08:00-07:00", { progress: 0 }),
+    at("2026-11-06T07:00-07:00", { progress: 100 }),
+    at("2026-11-06T06:00-07:00"),
+  ]);
+  assert.match(text, /stage: gluing started\n {6}progress: 68\n/);
+  assert.match(text, /progress: 0\n/);
+  assert.equal((text.match(/^ {6}progress:/gm) ?? []).length, 2, "100 and none aren't written");
+  assert.deepEqual(
+    parseDesk(text).map((e) => e.progress),
+    [68, 0, null, null],
+  );
+  // no step, no completion
+  const none = formatDesk([{ key: "2026-11-06T09:00-07:00", span: 38, stage: null, progress: 50, noteToSelf: "m" }]);
+  assert.ok(!/^ {6}progress:/m.test(none));
+});
+
+test("a completion belongs to its step: it goes when the step moves on, unless a new one comes with it", () => {
+  const key = "2026-11-06T09:00-07:00";
+  let entries = setEntry([], key, { span: 38, stage: "gluing started", progress: 40 });
+  assert.equal(entries[0].progress, 40);
+  entries = setEntry(entries, key, { noteToSelf: "x" });
+  assert.equal(entries[0].progress, 40, "untouched");
+  entries = setEntry(entries, key, { stage: "glued" });
+  assert.equal(entries[0].progress, null);
+  entries = setEntry(entries, key, { stage: "post-tensioning started", progress: 12 });
+  assert.equal(entries[0].progress, 12);
+});
+
+test("the last move's completion is the least a new one can be: the newest earlier record of the same span and step", () => {
+  const entries = [
+    { key: "2026-11-06T12:00-07:00", span: 38, stage: "gluing started", progress: 70, noteToSelf: "" },
+    { key: "2026-11-06T10:00-07:00", span: 38, stage: "gluing started", progress: 40, noteToSelf: "" },
+    { key: "2026-11-06T09:00-07:00", span: 38, stage: "gluing started", progress: null, noteToSelf: "" },
+    { key: "2026-11-06T08:00-07:00", span: 37, stage: "gluing started", progress: 90, noteToSelf: "" },
+  ];
+  assert.equal(progressBefore(entries, 38, "gluing started", "2026-11-06T13:00-07:00"), 70);
+  assert.equal(progressBefore(entries, 38, "gluing started", "2026-11-06T12:00-07:00"), 40, "only earlier ones");
+  assert.equal(progressBefore(entries, 38, "gluing started", "2026-11-06T09:30-07:00"), 0, "none before it");
+  assert.equal(progressBefore(entries, 38, "glued", "2026-11-06T13:00-07:00"), 0, "another step");
+  assert.equal(progressBefore(entries, 39, "gluing started", "2026-11-06T13:00-07:00"), 0, "another span");
+});
+
+test("a change writes the completion with its step, and drops it when the rules moved the step on", () => {
+  const t = "2026-11-06T08:00-07:00";
+  const move = (extra) =>
+    parseDesk(
+      applyBoth(
+        { status: STATUS, desk: EMPTY_DESK },
+        { kind: "move", time: t, span: 38, complete: false, noteToSelf: "", stage: "gluing started", ...extra },
+      ).desk,
+    )[0];
+  assert.equal(move({ progress: 68 }).progress, 68);
+  assert.equal(move({}).progress, null);
+  assert.equal(move({ progress: null }).progress, null);
+  // a span that is hung can't be earlier than hung: the step was moved, so the completion isn't kept
+  const hung = parseDesk(
+    applyBoth(
+      { status: STATUS, desk: EMPTY_DESK },
+      { kind: "move", time: t, span: 38, complete: true, noteToSelf: "", stage: "arrived at span", progress: 30 },
+    ).desk,
+  )[0];
+  assert.equal(hung.stage, "hung");
+  assert.equal(hung.progress, null);
+});
+
+test("the four pauses, the steps with a set length, have no completion to record", () => {
+  assert.deepEqual(
+    STAGES.filter((st) => !canRecordProgress(st)),
+    ["arrived at span", "hung", "glued", "hangers down"],
+  );
+  assert.ok(canRecordProgress("hanging started") && canRecordProgress("post-tensioning started"));
+});
+
+test("the debug steps carry the newest completion recorded for each", () => {
+  const text = DESK.replace(/(\s+stage: hung\n)/, "$1      progress: 60\n");
+  const entries = parseDesk(text);
+  const steps = stepsWithEstimates(entries);
+  assert.ok(steps.some((t) => t.progress === 60));
+  assert.ok(steps.every((t) => t.progress == null || (t.progress >= 0 && t.progress <= 99)));
+  // plain record: the velocity is the same with or without it
+  assert.equal(velocity(entries).spansPerWeek, velocity(parseDesk(DESK)).spansPerWeek);
 });
 
 test("an arrival: as logged if it was, close to the real one if it's estimated, and none without a step either side", () => {

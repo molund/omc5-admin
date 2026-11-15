@@ -20,7 +20,7 @@ import {
 } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, stageToPost } from "../components/StagePicker.js";
+import { StagePicker, progressToPost, stageToPost } from "../components/StagePicker.js";
 import { memoAt, postedStage, stageBefore } from "../lib/deskFile.js";
 import { addendumProblems, recentUpdates } from "../lib/entries.js";
 import { floorStage, stageFloor } from "../lib/stages.js";
@@ -85,9 +85,14 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
   const floor = d.editing ? floorStage(false) : stageFloor(d.complete, postedStage(desk.deskEntries, d.span, d.time));
   // an addendum being edited with no step of its own starts from the one before it; a new one, from the span's
   const before = d.editing ? stageBefore(desk.deskEntries, d.editing) : undefined;
+  const stage = stageToPost(d.stage, floor, text, before, d.span);
+  // an addendum being edited is about its own record's span
+  const progressSpan = d.editing ? (desk.deskEntries.find((e) => e.key === d.editing)?.span ?? null) : d.span;
+  const progress = progressToPost(d.progress, desk.deskEntries, progressSpan, stage, d.time);
   const withMemo = {
     memo: { noteKey: note.key, text: memo },
-    stage: stageToPost(d.stage, floor, text, before, d.span),
+    stage,
+    progress,
   };
   const change = d.editing
     ? {
@@ -125,6 +130,7 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
       span: d.span,
       complete: d.complete,
       stage: d.stage,
+      progress: d.progress,
       ...(d.memo !== undefined && { memo: d.memo }),
     });
     drop();
@@ -148,6 +154,11 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
         text={text}
         value={d.stage}
         onChange={(stage) => update({ stage })}
+        progress={progress}
+        onProgress={(progress) => update({ progress })}
+        entries={desk.deskEntries}
+        time={d.time}
+        progressSpan={progressSpan}
         floor={floor}
         span={d.editing ? null : d.span}
         fallback={before}
@@ -241,8 +252,14 @@ export function FollowUpScreen({ onReview, onSwitch, draftKey = "followup", seed
                 small
                 title="Edit"
                 onPress={() => {
-                  const stage = desk.deskEntries.find((e) => e.key === f.key)?.stage ?? undefined;
-                  start({ editing: f.key, time: f.key, blocks: blocksOf(f.fields), stage });
+                  const record = desk.deskEntries.find((e) => e.key === f.key);
+                  start({
+                    editing: f.key,
+                    time: f.key,
+                    blocks: blocksOf(f.fields),
+                    stage: record?.stage ?? undefined,
+                    progress: record?.progress ?? null,
+                  });
                 }}
               />
             )}

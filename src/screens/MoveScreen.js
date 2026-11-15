@@ -13,7 +13,7 @@ import { compareKeys, nowKey, asOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, stageToPost } from "../components/StagePicker.js";
+import { StagePicker, progressToPost, stageToPost } from "../components/StagePicker.js";
 import { emptyBlocks } from "../components/BlockEditor.js";
 import { TurnIntoLinks } from "../components/TurnIntoLinks.js";
 import { Button, Notice } from "../components/ui.js";
@@ -35,13 +35,16 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   );
   const memo = d.memo ?? "";
   const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
+  const stage = stageToPost(d.stage, floor, memo, undefined, d.span);
+  const progress = progressToPost(d.progress, desk.deskEntries, d.span, stage, d.time);
   const change = {
     kind: "move",
     time: d.time,
     span: d.span,
     complete: d.complete,
     noteToSelf: memo,
-    stage: stageToPost(d.stage, floor, memo, undefined, d.span),
+    stage,
+    progress,
   };
   const preview = desk.preview(change);
   // an addendum goes under the newest update from today or yesterday (blog posts aren't updates, so they're left out)
@@ -50,12 +53,13 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   // already started keeps its text, and takes these values.
   const sayIt = () => {
     if (seed) {
-      const { time, span, complete, stage, memo } = d;
+      const { time, span, complete, stage, progress, memo } = d;
       return onSwitch("update", {
         time,
         span,
         complete,
         stage,
+        progress,
         memo,
         title: "",
         titleSet: false,
@@ -71,6 +75,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
       complete: d.complete,
       gantrySet: d.span !== head.span || d.complete !== head.complete,
       stage: d.stage,
+      progress: d.progress,
       memo: d.memo,
     });
     dropDraft(draftKey);
@@ -80,7 +85,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   // with its text still to write. An addendum draft already started keeps its text, and takes these values.
   const toAddendum = () => {
     if (seed) {
-      const { time, span, complete, stage, memo } = d;
+      const { time, span, complete, stage, progress, memo } = d;
       return onSwitch("followup", {
         noteKey: under.key,
         editing: null,
@@ -88,6 +93,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
         span,
         complete,
         stage,
+        progress,
         // an addendum's notes are its update's: an empty one would clear them, so it's left out
         memo: memo || undefined,
         blocks: emptyBlocks(),
@@ -103,6 +109,7 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
       span: d.span,
       complete: d.complete,
       stage: d.stage,
+      progress: d.progress,
       ...(d.memo !== undefined && { memo: d.memo }),
       blocks: addendum.blocks ?? emptyBlocks(),
     });
@@ -126,6 +133,10 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
         text={memo}
         value={d.stage}
         onChange={(stage) => update({ stage })}
+        progress={progress}
+        onProgress={(progress) => update({ progress })}
+        entries={desk.deskEntries}
+        time={d.time}
         floor={floor}
         span={d.span}
         notes={memo}

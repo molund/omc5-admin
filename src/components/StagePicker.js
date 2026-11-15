@@ -3,7 +3,8 @@
 // reads the text when the rules find nothing. Every position, update and addendum reports a step, with no way to leave it
 // out: the one already posted for the span (or, editing an entry with none, the one before it), unless the rules or he move
 // it on, so it does no harm. It can't go earlier than the furthest step already posted for the span, or than hung once the
-// span is hung.
+// span is hung. Under the step's slider, a second one records how far through the step it was (0 to 99 per cent), once its box
+// is ticked: a plain record that never goes below the last move's on the same step.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -20,14 +21,30 @@ import {
 } from "../lib/stages.js";
 
 export { stageToPost };
+
+/**
+ * The completion to post for the step: the one picked, never below the last move's on the same step, and none on a double
+ * girder span (only its arrival is logged), for one of the pauses (canRecordProgress) or when it's off (null).
+ * @param {number|null|undefined} value The completion picked, null or undefined when its box isn't ticked.
+ * @returns {number|null}
+ */
+export const progressToPost = (value, entries, span, stage, time) =>
+  value == null || isDoubleGirder(span) || !canRecordProgress(stage)
+    ? null
+    : Math.max(value, progressBefore(entries, span, stage, time));
+import { progressBefore } from "../lib/deskFile.js";
+import { canRecordProgress } from "../lib/velocity.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { Body, Button, Label, Panel, Row } from "./ui.js";
+import { Body, Button, Checkbox, Label, Panel, Row } from "./ui.js";
 
 const THUMB = 26;
 
-/** A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. */
-function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled, off = [] }) {
+/**
+ * A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. With
+ * `stops` off the track has no stop marks (for one with a position for every per cent).
+ */
+function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled, off = [], stops = true }) {
   const { tw } = useTw();
   const width = useRef(0);
   const startX = useRef(0);
@@ -85,7 +102,7 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
     >
       <View style={tw`h-1 justify-center rounded-full bg-line`}>
         <View style={[tw`absolute h-1 rounded-full bg-accent`, { left: 0, width: `${percent}%` }]} />
-        {Array.from({ length: count }, (_, i) => (
+        {Array.from({ length: stops ? count : 0 }, (_, i) => (
           <View
             key={i}
             style={[
@@ -116,8 +133,29 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
  * @param {(text: string) => void} [props.onNotes]
  * @param {string} [props.notesWhere] A line under the notes saying whose they are.
  * @param {string} [props.fallback] The step to start from when nothing is picked and the rules find none.
+ * @param {number|null} [props.progress] How far through the step, 0 to 99, or null when it isn't recorded. The second slider
+ *   is shown when `onProgress` is given.
+ * @param {(progress: number|null) => void} [props.onProgress]
+ * @param {object[]} [props.entries] gantry-cycles.yaml's entries, for the last move's value, the slider's minimum.
+ * @param {string} [props.time] The time stamp it's for: only the moves before it count as the last move.
+ * @param {number|null} [props.progressSpan] The span whose moves count as the last move, when it isn't `span`.
  */
-export function StagePicker({ text, value, onChange, floor = STAGES[0], span, notes, onNotes, notesWhere, fallback }) {
+export function StagePicker({
+  text,
+  value,
+  onChange,
+  floor = STAGES[0],
+  span,
+  notes,
+  onNotes,
+  notesWhere,
+  fallback,
+  progress,
+  onProgress,
+  entries,
+  time,
+  progressSpan = span,
+}) {
   const { tw } = useTw();
   const found = stagesIn(text);
   const suggested = furthest(found);
@@ -133,6 +171,8 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
   }, []);
 
   const name = STAGE_LABELS[stage];
+  // the last move's completion on this step: the new one can't be below it
+  const lastMove = entries && time ? progressBefore(entries, progressSpan, stage, time) : 0;
   async function ask() {
     setAsking(true);
     setProblem(null);
@@ -166,8 +206,45 @@ export function StagePicker({ text, value, onChange, floor = STAGES[0], span, no
         min={min}
         disabled={girder}
         off={STAGES.flatMap((st, i) => (isNotObserved(span, st) ? [i] : []))}
-        onChange={(p) => onChange(STAGES[p])}
+        onChange={(p) => {
+          // a completion is of the step it was recorded for
+          if (progress != null) onProgress?.(null);
+          onChange(STAGES[p]);
+        }}
       />
+      {onProgress && !girder && canRecordProgress(stage) && (
+        <View>
+          <Checkbox
+            label="Record stage completion"
+            value={progress != null}
+            onChange={(on) => onProgress(on ? lastMove : null)}
+          />
+          {progress != null && (
+            <>
+              <StepSlider
+                label="Stage completion"
+                valueText={`${progress}%`}
+                position={Math.max(progress, lastMove)}
+                count={100}
+                min={lastMove}
+                stops={false}
+                onChange={onProgress}
+              />
+              <Row style={tw`justify-between`}>
+                <Body small mute>
+                  {lastMove ? `${lastMove}% (last move)` : "0%"}
+                </Body>
+                <Body small style={tw`font-bold`}>
+                  {`${Math.max(progress, lastMove)}%`}
+                </Body>
+                <Body small mute>
+                  99%
+                </Body>
+              </Row>
+            </>
+          )}
+        </View>
+      )}
       {girder && (
         <Body small mute>
           Double girder span: only the arrival is logged.

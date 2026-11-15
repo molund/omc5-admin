@@ -16,7 +16,7 @@ import { slugsOf } from "../lib/titles.js";
 import { addendumAbove, BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { StagePicker, stageToPost } from "./StagePicker.js";
+import { StagePicker, progressToPost, stageToPost } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
@@ -35,7 +35,7 @@ export function findTarget(desk, target) {
 /** The fields an editor starts with, from what's saved. */
 export function seedFor(desk, target) {
   const { note, fu, record } = findTarget(desk, target);
-  const steps = { stage: record?.stage ?? undefined };
+  const steps = { stage: record?.stage ?? undefined, progress: record?.progress ?? null };
   if (target.type === "followup")
     return { ...steps, time: target.key, blocks: blocksOf(fu.fields), memo: memoAt(desk.deskEntries, note.key) };
   if (target.type === "position") return { ...steps, memo: record?.noteToSelf ?? "" };
@@ -106,6 +106,8 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   const before = stageBefore(desk.deskEntries, target.key);
   const stage = target.type === "position" && !record ? undefined : stageToPost(d.stage, STAGES[0], text, before);
   const memo = d.memo ?? "";
+  // the completion recorded for it: only with a step, and null when it's off
+  const progress = stage ? progressToPost(d.progress, desk.deskEntries, record?.span, stage, target.key) : null;
   let change, problems;
   if (target.type === "followup") {
     change = {
@@ -116,10 +118,11 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       blocks: d.blocks,
       memo: { noteKey: note.key, text: memo },
       stage,
+      progress,
     };
     problems = [...addendumProblems(note, d.time, target.key), ...blockProblems(d.blocks)];
   } else if (target.type === "position") {
-    change = { kind: "desk-edit", key: target.key, stage, noteToSelf: memo };
+    change = { kind: "desk-edit", key: target.key, stage, progress, noteToSelf: memo };
     problems = [];
   } else {
     const title = d.title.trim();
@@ -129,7 +132,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       title,
       blocks: d.blocks,
       memo: { noteKey: note.key, text: memo },
-      ...(isPost ? {} : { stage }),
+      ...(isPost ? {} : { stage, progress }),
     };
     problems = [
       // a title left as it was isn't a new problem, whatever the rules say about it now
@@ -144,6 +147,10 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       text={text}
       value={d.stage}
       onChange={(s) => update({ stage: s })}
+      progress={progress}
+      onProgress={(p) => update({ progress: p })}
+      entries={desk.deskEntries}
+      time={target.key}
       span={record?.span}
       fallback={before}
       notes={memo}
@@ -166,7 +173,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
     const span = latest ? head.span : (record.span ?? spanAt(desk.deskEntries, target.key) ?? head.span);
     const reached = furthest([postedStage(desk.deskEntries, span, target.key), record.stage]);
     const complete = latest ? head.complete : !!reached && STAGES.indexOf(reached) >= STAGES.indexOf("hung");
-    const shared = { time: target.key, span, complete, stage: d.stage, blocks: emptyBlocks() };
+    const shared = { time: target.key, span, complete, stage: d.stage, progress: d.progress, blocks: emptyBlocks() };
     onSwitch(
       page,
       page === "update"

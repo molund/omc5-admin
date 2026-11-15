@@ -3,6 +3,7 @@
 //
 // What a change can carry for gantry-cycles.yaml:
 //   stage: "glued"                the step it reports, tagged at its own time stamp
+//   progress: 68                  how far through that step it was, 0 to 99, when recorded (the step slider's second one)
 //   noteToSelf: "…"               (move) the note to self at its time stamp
 //   memo: { noteKey, text }       (update, blog, follow-up) the note to self of an entry; "" removes it
 // A move, update or follow-up has a stage only when one is picked (the picker is off until it is switched on), or when the
@@ -68,7 +69,10 @@ export function applyDeskChange(deskText, change, statusBefore) {
   const head = headerOf(parseStatus(statusBefore));
   const before = { span: head.span, complete: head.complete };
   const stage = stageOf(change);
-  const at = (key, span, stage, noteToSelf) => (entries = setEntry(entries, key, { span, stage, noteToSelf }));
+  // a completion goes with the step it was recorded for: with a step the rules pushed on instead, it isn't kept
+  const progress = (reportedStage) => (reportedStage && reportedStage === stage ? change.progress : undefined);
+  const at = (key, span, stage, noteToSelf) =>
+    (entries = setEntry(entries, key, { span, stage, progress: progress(stage), noteToSelf }));
   // never earlier than hung once the span is: the picker keeps to it, and this holds for a change made without it. With no
   // step picked, only what the change itself implies is logged: arriving at a new span, or marking the span hung.
   const reported = (after) =>
@@ -100,7 +104,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
     }
     case "followup-edit":
       entries = moveEntry(entries, change.fuKey, change.time);
-      if (stage) entries = replaceStage(entries, change.time, stage, head.span);
+      if (stage) entries = replaceStage(entries, change.time, stage, head.span, change.progress);
       break;
     case "followup-delete":
       entries = removeEntries(entries, [change.fuKey]);
@@ -111,7 +115,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
         throw new Conflict(`The record from ${change.key} isn't in gantry-cycles.yaml any more.`);
       if (change.kind === "desk-delete") entries = removeEntries(entries, [change.key]);
       else {
-        if (stage) entries = replaceStage(entries, change.key, stage, head.span);
+        if (stage) entries = replaceStage(entries, change.key, stage, head.span, change.progress);
         entries = setEntry(entries, change.key, { noteToSelf: change.noteToSelf });
       }
       break;
@@ -119,7 +123,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
     case "blog":
       break;
     case "note-edit":
-      if (stage) entries = replaceStage(entries, change.noteKey, stage, head.span);
+      if (stage) entries = replaceStage(entries, change.noteKey, stage, head.span, change.progress);
       break;
     case "note-delete": {
       const note = parseStatus(statusBefore).notes.find((n) => n.key === change.noteKey);

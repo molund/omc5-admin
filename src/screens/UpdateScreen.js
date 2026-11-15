@@ -14,7 +14,7 @@ import { TitleField, titleProblems } from "../components/TitleField.js";
 import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../components/BlockEditor.js";
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
-import { StagePicker, stageToPost } from "../components/StagePicker.js";
+import { StagePicker, progressToPost, stageToPost } from "../components/StagePicker.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { Button, Confirm, Link, Notice } from "../components/ui.js";
@@ -57,6 +57,8 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     ...(taken ? ["There's already an update at this time stamp. Move it a quarter hour."] : []),
   ];
   const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span, d.time));
+  const stage = stageToPost(d.stage, floor, blockTexts(d.blocks).join("\n"), undefined, d.span);
+  const progress = progressToPost(d.progress, desk.deskEntries, d.span, stage, d.time);
   const change = {
     kind: "update",
     time: d.time,
@@ -65,7 +67,8 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     title: title.trim(),
     blocks: d.blocks,
     memo: { noteKey: d.time, text: memo },
-    stage: stageToPost(d.stage, floor, blockTexts(d.blocks).join("\n"), undefined, d.span),
+    stage,
+    progress,
   };
   const preview = desk.preview(change);
   // Walk notes (WalkNotes.js): the other way to write it, filling in the title and blocks from the AI's reply
@@ -97,6 +100,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
       span: d.span,
       complete: d.complete,
       stage: d.stage,
+      progress: d.progress,
       memo,
     });
     desk.dropPhotos(allPhotos(d.blocks, d.walk));
@@ -121,6 +125,10 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
         text={blockTexts(d.blocks).join("\n")}
         value={d.stage}
         onChange={(stage) => update({ stage })}
+        progress={progress}
+        onProgress={(progress) => update({ progress })}
+        entries={desk.deskEntries}
+        time={d.time}
         floor={floor}
         span={d.span}
         notes={memo}

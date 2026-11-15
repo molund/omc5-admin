@@ -62,6 +62,8 @@ export const SHARES_SINCE = "2026-11-03";
 // (hanger removal isn't one of them: how long it takes varies, so it's fitted like the rest). The Velocity page marks these
 // stages with an hourglass.
 export const KNOWN_HOURS = { "arrived at span": 0.5, hung: 1, glued: 1, "hangers down": 1 };
+/** Whether a step's completion can be recorded: not for the pauses (KNOWN_HOURS), which are too short to see part way through. */
+export const canRecordProgress = (stage) => !(stage in KNOWN_HOURS);
 // how hard a segment's length is pulled toward that, or toward the average; the gaps logged are worth 1 each
 const FIRM = 10;
 const LIGHT = 0.05;
@@ -343,7 +345,8 @@ function reportedAt(entries, { span, stage, key }) {
 
 /**
  * Like sinceArrival, but lowest span first, with the steps that weren't logged estimated too, and spans whose arrival is an
- * estimate: [{ span, stage, key, hours, stepHours, estimated }]. `stepHours` is the working time from the step to the next one,
+ * estimate: [{ span, stage, key, hours, stepHours, estimated, progress }]. `progress` is the newest completion recorded for the
+ * step (0 to 99, a plain record the velocity doesn't use), or null with none. `stepHours` is the working time from the step to the next one,
  * a span's last running to the next span's arrival, and null with no next step to run to. A step is estimated the way an arrival is, between the nearest steps either side
  * of it, so a step still to come (nothing logged after it) isn't in it. A logged step also has `offHours`: the working time between
  * it and when it was expected, estimated the same way from the other steps, negative when it came earlier (null with no other
@@ -364,7 +367,15 @@ export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, sh
       if (!key) continue;
       const hours = workingHours(parseKey(arrival.key), parseKey(key), logged);
       if (hours > 0 || index === 0)
-        out.push({ span: Number(span), stage, key, hours, estimated: index === 0 ? arrival.estimated : !logged });
+        out.push({
+          span: Number(span),
+          stage,
+          key,
+          hours,
+          estimated: index === 0 ? arrival.estimated : !logged,
+          progress:
+            entries.find((e) => e.span === Number(span) && e.stage === stage && e.progress != null)?.progress ?? null,
+        });
     }
   }
   out.sort((a, b) => a.span - b.span || a.hours - b.hours);

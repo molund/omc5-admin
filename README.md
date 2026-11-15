@@ -87,6 +87,11 @@ to self. A change writes both files in the same commit.
   can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A move
   logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
   text for wording the rules don't know (the artifact's `sample` capability).
+- **Stage completion.** Under the step's slider, a "Record stage completion" box turns on a second slider, 0 to 99 per
+  cent, for how far through the step it was. Nothing is recorded unless it's ticked. It can only go forward from the last
+  move on the same step (that entry's `progress:` in `gantry-cycles.yaml`); to go lower, edit the last move first. It's a
+  plain record: the velocity doesn't use it, and the Velocity page's debug steps show it as a small donut with no number.
+  The four pauses (arrived, hung, glued, hangers down: the ones with an hourglass) don't have one.
 - **Irregular shutdowns.** Holidays, breakdowns and waits are added by hand under `irregular-shutdowns:` in
   `gantry-cycles.yaml` (the header there has examples): a label, a type (`holiday`, `mechanical` or `waiting`), a start,
   and an end or hours. A holiday extends the velocity's week by its hours, up to 24; the others count against the pace. A step

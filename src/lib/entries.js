@@ -99,6 +99,8 @@ export function addendumProblems(note, time, editing = null) {
 export function reopenAs(change, head) {
   const memo = change.memo?.text;
   const stage = stageOf(change);
+  // a completion recorded with it goes into the draft too (the draft has none when it wasn't)
+  const recorded = change.progress == null ? {} : { progress: change.progress };
   switch (change.kind) {
     case "move":
       return {
@@ -109,6 +111,7 @@ export function reopenAs(change, head) {
           complete: change.complete,
           memo: change.noteToSelf ?? "",
           stage,
+          ...recorded,
         },
       };
     case "update":
@@ -123,6 +126,7 @@ export function reopenAs(change, head) {
           blocks: change.blocks,
           memo: memo ?? "",
           stage,
+          ...recorded,
         },
       };
     case "followup":
@@ -137,6 +141,7 @@ export function reopenAs(change, head) {
           span: change.gantry?.span ?? head.span,
           complete: change.gantry?.complete ?? head.complete,
           stage,
+          ...recorded,
         },
       };
     case "blog":
@@ -148,20 +153,20 @@ export function reopenAs(change, head) {
       return {
         screen: "entry",
         target: { type: "followup", key: change.fuKey, noteKey: change.noteKey },
-        seed: { time: change.time, blocks: change.blocks, memo: memo ?? "", stage },
+        seed: { time: change.time, blocks: change.blocks, memo: memo ?? "", stage, ...recorded },
       };
     case "note-edit":
       return {
         screen: "entry",
         // "blog" or "update" is settled against the note itself when it opens
         target: { type: "note", key: change.noteKey },
-        seed: { title: change.title, blocks: change.blocks, memo: memo ?? "", stage },
+        seed: { title: change.title, blocks: change.blocks, memo: memo ?? "", stage, ...recorded },
       };
     case "desk-edit":
       return {
         screen: "entry",
         target: { type: "position", key: change.key },
-        seed: { memo: change.noteToSelf ?? "", stage },
+        seed: { memo: change.noteToSelf ?? "", stage, ...recorded },
       };
     default:
       return null;

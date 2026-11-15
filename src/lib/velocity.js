@@ -576,8 +576,9 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   const to = last && last.span + shares[last.index].position;
   if (from == null || !(to > from))
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
-  // without overtime: a week's working time is the same every week, so this is the distance covered in it
-  const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at);
+  // the distance over the hours worked in the window, overtime included (the same hours the span times count), scaled to a
+  // normal week's working time
+  const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at, loggedTimes(entries));
   const end = toKey(last.at);
   const window = {
     start: toKey(start),

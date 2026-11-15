@@ -82,7 +82,8 @@ enough that the simplification stops being fair.
 - **3 p.m. Saturday to 8 p.m. Sunday**, 29 hours, every week (`SHUTDOWN_START`, `SHUTDOWN_HOURS`). The site works 24/6.
 - On the shift clock this is Saturday's night shift and Sunday's day shift. The Sunday night shift (from 8 p.m.) runs.
 - Cycle lengths and the velocity use working time (`workingHours`): every hour counts except the shutdown, including
-  the gaps between shifts.
+  the gaps between shifts and any overtime (a step logged in a shutdown's evening moves its start to that step). The
+  velocity counts the same hours as the span times, so the two agree.
 - Days off that aren't weekly are irregular shutdowns (below). A breakdown or a wait counts as working time, because it
   slowed the gantry; a statutory holiday doesn't.
 - **Seen Nov. 7, 2026, not yet in the code:** the Friday night shift is pretty much nonexistent. There was a little

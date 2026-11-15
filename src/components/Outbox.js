@@ -167,13 +167,19 @@ function Landing({ p }) {
     },
     [p.head, p.landed],
   );
-  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one); none while the Leash Log is
-  // in the background, and one as soon as it's back, however long it was away
+  // every 5 seconds with the token, every 15 without (GitHub allows far fewer checks without one), for the first 10 minutes;
+  // none while the Leash Log is in the background, and one as soon as it's back, however long it was away. The first check
+  // always runs, even for an older push: when iOS has closed the Leash Log in the background, it comes back by starting
+  // again rather than by waking up, and without that check the panel would wait for "Check again"
   useEffect(() => {
     let on = true,
+      first = true,
       timer;
     const loop = async () => {
-      if (AppState.currentState === "active") await check();
+      if (AppState.currentState === "active") {
+        await check(first);
+        first = false;
+      }
       if (on) timer = setTimeout(loop, followingWithToken(p.head) ? 5 * 1000 : 15 * 1000);
     };
     loop();

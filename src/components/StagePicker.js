@@ -102,6 +102,15 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
     >
       <View style={tw`h-1 justify-center rounded-full bg-line`}>
         <View style={[tw`absolute h-1 rounded-full bg-accent`, { left: 0, width: `${percent}%` }]} />
+        {/* with no stop marks to dim, the part before `min` that can't be picked is dimmed the same way (30%) */}
+        {!stops && min > 0 && (
+          <View
+            style={[
+              tw`absolute h-1 rounded-full bg-line`,
+              { left: 0, width: `${(min / (count - 1)) * 100}%`, opacity: 0.7 },
+            ]}
+          />
+        )}
         {Array.from({ length: stops ? count : 0 }, (_, i) => (
           <View
             key={i}

@@ -199,8 +199,10 @@ These short pauses are held near a set length in shift hours (`KNOWN_HOURS`). Th
 
 - **Steps since Nov. 3, 2026** (`SHARES_SINCE`) for the shares. Older steps were filled in from old posts, before the Leash Log
   tagged steps.
-- **The newest span and the three before it** for the shares. Older spans drop out as the gantry moves on. A step tagged
-  with too high a span number moves this window.
+- **The newest span and the spans before it** for the shares: as many as the `spans-per-week` the file last saved, rounded
+  up, but never fewer than three (a slow week would otherwise leave too few gaps to tell the nine stages apart). With
+  nothing saved yet it's three. Older spans drop out as the gantry moves on. A step tagged with too high a span number
+  moves this window.
 - **The earliest time stamp** for each step on each span. A tag means "this had happened by then".
 - Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares, and don't take the
   gantry's progress backwards when the start of the velocity's week is read off.

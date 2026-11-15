@@ -94,9 +94,14 @@ test("move changes only the three header lines", async () => {
   assert.equal(s.span, 38);
   assert.equal(s.complete, false);
   assert.equal(+s.updated, +new Date("2026-11-04T11:15-07:00"));
-  const card = cardFor(text);
+  // the newest update is from the day before, so by now (the move's time) the card has no text
+  const card = cardFor(text, undefined, "2026-11-04T11:15-07:00");
   assert.equal(card.text, "");
   assert.equal(card.button, "trackside");
+  // a move on the update's own day leaves its text on the card until midnight
+  const sameDay = applyChange(BASE, { kind: "move", time: "2026-11-03T21:00-07:00", span: 38, complete: false }).text;
+  assert.equal(cardFor(sameDay, undefined, "2026-11-03T23:45-07:00").button, "comments");
+  assert.equal(cardFor(sameDay, undefined, "2026-11-04T00:00-07:00").button, "trackside");
   assert.equal(
     commitMessage({ kind: "move", span: 38, complete: false, time: T }, BASE),
     "Move the Clayton Clipper to span 38",
@@ -130,7 +135,7 @@ test("update adds a note the site reads, with its photo and blocks", async () =>
   // it sits first in the list, under notes:
   const lines = text.split("\n");
   assert.equal(lines[lines.indexOf("notes:") + 1], `  - ${T}: "${dateTitle(T)}"`);
-  const card = cardFor(text);
+  const card = cardFor(text, undefined, T);
   assert.equal(card.text, blocks[0].text);
   assert.equal(card.button, "comments");
 });
@@ -170,7 +175,7 @@ test("follow-ups: added to a note with a list, to one without, and edited", asyn
   assert.equal(s.followUps[0].summary, blocks[0].text);
   assert.equal(s.followUps[0].photo.src.endsWith("2026-11-04-span-38.jpg"), true);
   assert.equal(+s.updated, +new Date("2026-11-03T22:00-07:00"));
-  assert.equal(cardFor(applyChange(BASE, add).text).text, blocks[0].text);
+  assert.equal(cardFor(applyChange(BASE, add).text, undefined, "2026-11-03T22:00-07:00").text, blocks[0].text);
 
   // a new update has none yet
   const withNote = applyChange(BASE, {

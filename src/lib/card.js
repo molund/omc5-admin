@@ -1,9 +1,10 @@
-// What the map's progress card shows for a version of status.yaml, by the new rule: the newest status update's latest word
-// (its newest follow-up, else the update itself) shows only when its time stamp is `updated`. Otherwise the card has no
-// text, and a Trackside button in place of Comments.
+// What the map's progress card shows for a version of status.yaml: the newest status update's latest word (its newest
+// follow-up, else the update itself) shows until midnight BC time at the end of the day of its time stamp, by the
+// visitor's clock (a later position check-in doesn't hide it). After that the card has no text, and a Trackside button in
+// place of Comments.
 
 import { parseStatus, headerOf, newestFirst, followUpsNewestFirst } from "./statusFile.js";
-import { compareKeys, parseKey } from "./time.js";
+import { parseKey, dayOf } from "./time.js";
 import { parseDesk } from "./deskFile.js";
 
 /** The card's figures that aren't in status.yaml: the site works them out from its map (src/MapView/gantryProgress.js in
@@ -67,17 +68,18 @@ export function chartFor(points, width = 48, height = 16) {
 /**
  * @param {string} text status.yaml
  * @param {string} [deskText] gantry-cycles.yaml, for the velocity chart
+ * @param {Date|string} [now] When the card is seen (a Date or a key): the latest word shows only on its own BC day.
  * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
  *   ahead: number, total: number, percent: number, pace: string|null, chart: object|null }}
  *   `pace`: the spans per week, as written (status.yaml's copy); `chart`: chartFor's, from gantry-cycles.yaml's earlier values.
  */
-export function cardFor(text, deskText) {
+export function cardFor(text, deskText, now = new Date()) {
   const parsed = parseStatus(text);
   const head = headerOf(parsed);
   const latest = newestFirst(parsed.notes).find((n) => n.fields.summary && !n.fields.post);
   const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
   const word = fu ?? latest;
-  const current = !!word && !!head.updated && compareKeys(word.key, head.updated) === 0;
+  const current = !!word && dayOf(word.key) === dayOf(now);
   // (named with underscores on Nov. 7, 2026, as the site still reads too)
   const h = parsed.header;
   const pace = (h["spans-per-week"] ?? h.spans_per_week)?.value ?? null;

@@ -228,19 +228,17 @@ export function VelocityPanel({ full, onOpen }) {
       {weather[dayOf(key)] && <Icon name={weather[dayOf(key)]} size={14} color={colors.mute} />}
     </View>
   );
-  const dayBar = (t) => (
-    <>
-      {t.shutdown > 0.01 && (
-        <View style={tw`mt-1 flex-row items-center gap-1.5 rounded-sm border border-dashed border-mute px-2 py-0.5`}>
-          <Icon name="calendar" size={14} color={colors.mute} />
-          <Body small mute style={[tw`flex-1`, num]}>
-            {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} · ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
-          </Body>
-        </View>
-      )}
-      {dayLabel(t.key)}
-    </>
-  );
+  // the weekly shutdown's hours since the step before, when there are any: first in the gap, under the day of the step
+  // before it, since the weekly shutdown comes before any irregular one in the same gap
+  const gapBox = (t) =>
+    t.shutdown > 0.01 && (
+      <View style={tw`mt-1 flex-row items-center gap-1.5 rounded-sm border border-dashed border-mute px-2 py-0.5`}>
+        <Icon name="calendar" size={14} color={colors.mute} />
+        <Body small mute style={[tw`flex-1`, num]}>
+          {`${gapHours(t.shutdown)} gap${t.overtime > 0.01 ? ` (${gapHours(t.shutdown + t.overtime)} - ${gapHours(t.overtime)} OT)` : ""} · ${weekdayShort(t.key) === "Sat" ? "no Fri overnight work" : "shutdown not counted"}`}
+        </Body>
+      </View>
+    );
   // an irregular shutdown's box, under the day it started on when that's a new one
   const irregularBox = (b, k) => (
     <Fragment key={k}>
@@ -417,13 +415,15 @@ export function VelocityPanel({ full, onOpen }) {
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
               {/* a shutdown before the span's first step comes before its day and heading, so the days stay in order */}
+              {gapBox(g.steps[0])}
               {g.steps[0].irregular.map(irregularBox)}
-              {g.steps[0].newDay && dayBar(g.steps[0])}
+              {g.steps[0].newDay && dayLabel(g.steps[0].key)}
               <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
               {g.steps.map((t, i) => (
                 <Fragment key={t.stage}>
+                  {i > 0 && gapBox(t)}
                   {i > 0 && t.irregular.map(irregularBox)}
-                  {t.newDay && i > 0 && dayBar(t)}
+                  {t.newDay && i > 0 && dayLabel(t.key)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <View style={tw`flex-1 flex-row items-center gap-2`}>
                       <Body small mute={t.estimated} style={offStyle(t)}>

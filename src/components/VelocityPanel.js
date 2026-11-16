@@ -66,6 +66,8 @@ const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 
 // the look of the latest check-in's row: its time and its duration column, set like the steps' above it
 const looks = (tw) => ({
   checkinRow: tw`pl-3`,
+  // a calendar day's bar, between the steps
+  dayBar: tw`my-0.5 rounded-sm bg-line px-2`,
   checkinTime: tw`text-right`,
   checkinDuration: tw`w-16 text-right`,
 });
@@ -157,15 +159,22 @@ export function VelocityPanel({ full, onOpen }) {
       ].filter(Boolean)
     : [];
   let lastDay = null;
+  // an irregular shutdown's box, with a day bar of its own when it starts on a later day than the step or box above it
+  const boxed = (e) => {
+    const day = dayOf(e.shutdown.start);
+    const box = { e, newDay: day !== lastDay };
+    lastDay = day;
+    return box;
+  };
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
+    const irregular = (boxesBefore.get(t) ?? []).map(boxed);
     const day = dayOf(t.key);
     const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
-    bySpan
-      .at(-1)
-      .steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime, irregular: boxesBefore.get(t) ?? [] });
+    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime, irregular });
     lastDay = day;
   }
+  const after = boxesAfter.map(boxed);
   // The steps list ends with the latest check-in. Each step is listed once, at the earliest time it was reported, so a
   // check-in repeating the last step (or an earlier one) is left out of the list above; it gets a row of its own at the
   // end, unless the last step is that check-in itself.
@@ -210,6 +219,15 @@ export function VelocityPanel({ full, onOpen }) {
       </View>
     );
   };
+  // the bar naming a calendar day, with its rain or snow
+  const dayLabel = (key) => (
+    <View style={[tw`flex-row items-center gap-2`, s.dayBar]}>
+      <Body small style={tw`flex-1`}>
+        {`${weekdayShort(key)} ${Number(dayOf(key).slice(8))}`}
+      </Body>
+      {weather[dayOf(key)] && <Icon name={weather[dayOf(key)]} size={14} color={colors.mute} />}
+    </View>
+  );
   const dayBar = (t) => (
     <>
       {t.shutdown > 0.01 && (
@@ -220,13 +238,15 @@ export function VelocityPanel({ full, onOpen }) {
           </Body>
         </View>
       )}
-      <View style={tw`my-0.5 flex-row items-center gap-2 rounded-sm bg-line px-2`}>
-        <Body small style={tw`flex-1`}>
-          {`${weekdayShort(t.key)} ${Number(dayOf(t.key).slice(8))}`}
-        </Body>
-        {weather[dayOf(t.key)] && <Icon name={weather[dayOf(t.key)]} size={14} color={colors.mute} />}
-      </View>
+      {dayLabel(t.key)}
     </>
+  );
+  // an irregular shutdown's box, under the day it started on when that's a new one
+  const irregularBox = (b, k) => (
+    <Fragment key={k}>
+      {b.newDay && dayLabel(b.e.shutdown.start)}
+      {shutdownBox(b.e, k)}
+    </Fragment>
   );
   return (
     <Panel>
@@ -396,11 +416,13 @@ export function VelocityPanel({ full, onOpen }) {
           </View>
           {bySpan.map((g) => (
             <View key={g.span} style={tw`gap-0.5 pt-1`}>
+              {/* a shutdown before the span's first step comes before its day and heading, so the days stay in order */}
+              {g.steps[0].irregular.map(irregularBox)}
               {g.steps[0].newDay && dayBar(g.steps[0])}
               <Body style={tw`text-lg font-semibold leading-snug`}>{`Span ${g.span}`}</Body>
               {g.steps.map((t, i) => (
                 <Fragment key={t.stage}>
-                  {t.irregular.map((e, k) => shutdownBox(e, k))}
+                  {i > 0 && t.irregular.map(irregularBox)}
                   {t.newDay && i > 0 && dayBar(t)}
                   <View style={tw`flex-row items-baseline gap-2 pl-3`}>
                     <View style={tw`flex-1 flex-row items-center gap-2`}>
@@ -424,7 +446,7 @@ export function VelocityPanel({ full, onOpen }) {
                   </View>
                 </Fragment>
               ))}
-              {g === bySpan.at(-1) && boxesAfter.map((e, k) => shutdownBox(e, k))}
+              {g === bySpan.at(-1) && after.map(irregularBox)}
               {g === bySpan.at(-1) && checkin && (
                 <View style={[tw`flex-row items-baseline gap-2`, s.checkinRow]}>
                   <Body small mute style={tw`flex-1`}>

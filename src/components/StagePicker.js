@@ -4,7 +4,8 @@
 // out: the one already posted for the span (or, editing an entry with none, the one before it), unless the rules or he move
 // it on, so it does no harm. It can't go earlier than the furthest step already posted for the span, or than hung once the
 // span is hung. Under the step's slider, a second one records how far through the step it was (0 to 99 per cent), once its box
-// is ticked: a plain record that never goes below the last move's on the same step.
+// is ticked: a plain record that never goes below the last move's on the same step. Its − and + move it a per cent at a time,
+// finer than a drag can.
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
@@ -36,7 +37,7 @@ import { progressBefore } from "../lib/deskFile.js";
 import { canRecordProgress } from "../lib/velocity.js";
 import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { NoteToSelf } from "./NoteToSelf.js";
-import { Body, Button, Checkbox, Label, Panel, Row } from "./ui.js";
+import { Body, Button, Checkbox, Label, Panel, Row, Stepper } from "./ui.js";
 
 const THUMB = 26;
 
@@ -246,9 +247,12 @@ export function StagePicker({
                 <Body small mute>
                   {lastMove ? `${lastMove}% (last move)` : "0%"}
                 </Body>
-                <Body small style={tw`font-bold`}>
-                  {`${Math.max(progress, lastMove)}%`}
-                </Body>
+                <Stepper
+                  label="Stage completion"
+                  value={`${Math.max(progress, lastMove)}%`}
+                  onMinus={() => onProgress(Math.max(lastMove, Math.max(progress, lastMove) - 1))}
+                  onPlus={() => onProgress(Math.min(99, Math.max(progress, lastMove) + 1))}
+                />
                 <Body small mute>
                   99%
                 </Body>

@@ -551,8 +551,8 @@ function progressAt(steps, shares, when) {
 /**
  * The velocity now: how far the gantry got in the 168 hours (a week) up to the step reported most recently, so it moves
  * with every step logged. That step's own place is logged; the place a week before it is read off between the steps
- * either side. Spans per week is that distance over the week's working time (a week always holds one shutdown, so about 5.29
- * working days).
+ * either side. Spans per week is that distance, as it is: the week (with any holiday extending it) already holds a week's
+ * work, so nothing is scaled.
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
  *   to: number, span: number, extended: number, reported: string|null }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
  *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span;
@@ -587,9 +587,8 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   const to = last && last.span + shares[last.index].position;
   if (from == null || !(to > from))
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
-  // the distance over the hours worked in the window, overtime included (the same hours the span times count), scaled to a
-  // normal week's working time
-  const spansPerWeek = ((to - from) * WORKING_DAYS_PER_WEEK * 24) / workingHours(start, last.at, loggedTimes(entries));
+  // the distance itself: how far the gantry got between the window's ends, with nothing scaled, so the steps in it add up to it
+  const spansPerWeek = to - from;
   const end = toKey(last.at);
   const window = {
     start: toKey(start),

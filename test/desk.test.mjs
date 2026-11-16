@@ -490,10 +490,9 @@ test("the velocity: how far the gantry got in the week up to the step reported l
   assert.equal(v.window.span, 38);
   assert.equal(v.window.from.toFixed(2), "35.53");
   assert.equal(v.window.to.toFixed(2), "38.15");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.56");
-  // a week holds one shutdown, so spans per week is the distance covered in it, less where overtime was worked: those hours
-  // count too
-  assert.ok(v.spansPerWeek <= v.window.to - v.window.from + 1e-9);
+  // spans per week is the distance covered in the week, with nothing scaled
+  assert.equal(v.spansPerWeek, v.window.to - v.window.from);
+  assert.equal(v.spansPerWeek.toFixed(2), "2.61");
   assert.equal(v.shares.length, 9);
   assert.deepEqual(v.current, { span: 38, since: "2026-11-05T10:00-07:00", days: 3 / 24 });
   // the cycles by arrival are still there: with no arrival at 35, it's estimated from the steps around it (span 35's hung

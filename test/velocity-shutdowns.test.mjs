@@ -131,11 +131,11 @@ test("the calendar is in force only during a calculation", () => {
 test("on the real log: the velocity's week now ends at 6:00 a.m., when the holiday began", () => {
   const without = velocity(plain);
   assert.equal(without.window.end, "2026-11-11T08:45-07:00");
-  assert.equal(without.spansPerWeek.toFixed(2), "2.64");
+  assert.equal(without.spansPerWeek.toFixed(2), "2.78");
   const v = velocity(holiday);
   assert.equal(v.window.end, "2026-11-11T06:00-07:00");
   assert.equal(v.window.start, "2026-11-04T06:00-07:00");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.67");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.82");
 });
 
 test("the steps list: the step shows at 6:00 a.m., and the stage before it runs to then", () => {
@@ -295,7 +295,7 @@ test("an open shutdown: the velocity and the steps are worked out, as with it cl
   const open = parseDesk(withList(OPEN));
   const v = velocity(open);
   assert.equal(v.window.end, "2026-11-11T06:00-07:00");
-  assert.equal(v.spansPerWeek.toFixed(2), "2.67", "the same as with the 14 hours written in");
+  assert.equal(v.spansPerWeek.toFixed(2), "2.82", "the same as with the 14 hours written in");
   assert.ok(stepsWithEstimates(open).length > 0);
   const [e] = shutdownEffects(open, v, new Date("2026-11-11T09:00:00-07:00"));
   assert.deepEqual([e.shutdown.open, e.state, e.extends], [true, "on", 0]);

@@ -75,7 +75,11 @@ const looks = (tw) => ({
   // a marker of the velocity's week (its start, or a day before its end), outlined like the shutdown boxes
   marker: tw`mt-1 rounded-sm border border-dashed border-mute px-2 py-0.5`,
   checkinTime: tw`text-right`,
-  checkinDuration: tw`w-16 text-right`,
+  // the durations' column: every cell the same width, those of the steps in the velocity's remainder outlined
+  duration: tw`w-16 border px-0.5 text-right`,
+  durationIn: tw`border-ink`,
+  durationOut: tw`border-transparent`,
+  durationTotal: tw`font-semibold`,
 });
 
 /** What an irregular shutdown does to the week, in a sentence or two. */
@@ -173,11 +177,29 @@ export function VelocityPanel({ full, onOpen }) {
     firstIn > 0 && ms(recent[firstIn].key) > cutoffMs && recent[firstIn - 1].stepHours != null
       ? recent[firstIn - 1]
       : null;
+  // its working time up to the cutoff, as stepHours counts it (holidays left out); the rest of it is in the week
+  const splitBefore =
+    straddle &&
+    withCalendar(desk.deskEntries, () =>
+      workingHours(parseKey(straddle.key), parseKey(v.window.start), loggedTimes(desk.deskEntries)),
+    );
+  // The remainder: the part of the velocity after its whole spans (0.24 of 2.24), from the cutoff to where the whole spans
+  // start, at the latest step's stage that many spans back. Its steps' durations are outlined and added up in the cutoff's
+  // box.
+  const whole = v.spansPerWeek != null ? Math.floor(v.spansPerWeek) : null;
+  const wholeFrom = whole == null ? null : recent.find((t) => t.span === v.window.span - whole && t.stage === v.stage);
+  const hasRemainder = !!wholeFrom && ms(wholeFrom.key) > cutoffMs;
+  const inRemainder = (t) => hasRemainder && ms(t.key) >= cutoffMs && ms(t.key) < ms(wholeFrom.key);
+  const remainderHours = hasRemainder
+    ? (straddle ? straddle.stepHours - splitBefore : 0) +
+      recent.filter(inRemainder).reduce((total, t) => total + (t.stepHours ?? 0), 0)
+    : 0;
   const cutoffMark = v.window && {
     key: v.window.start,
     text: `${clock(v.window.start)}: ${wholeHours(168 + v.window.extended)} hours before the most recent report${
       v.window.extended > 0 ? ` (168 + ${wholeHours(v.window.extended)})` : ""
     }.`,
+    note: hasRemainder && `${hours(remainderHours)} counted toward the velocity (${(v.spansPerWeek % 1).toFixed(2)})`,
   };
   const marks = v.window
     ? [
@@ -216,14 +238,15 @@ export function VelocityPanel({ full, onOpen }) {
       .sort((a, b) => a.at - b.at)
       .map(between);
     const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
-    const step = { ...t, newDay: day !== lastDay, shutdown, overtime, irregular, above };
+    const step = { ...t, newDay: day !== lastDay, shutdown, overtime, irregular, above, boxed: inRemainder(t) };
     lastDay = day;
     if (t === straddle) {
-      // its working time up to the cutoff, and from there on, as stepHours counts it (holidays left out)
-      const before = withCalendar(desk.deskEntries, () =>
-        workingHours(parseKey(t.key), parseKey(v.window.start), loggedTimes(desk.deskEntries)),
-      );
-      step.split = { before, after: t.stepHours - before, newDay: dayOf(v.window.start) !== lastDay };
+      step.split = {
+        before: splitBefore,
+        after: t.stepHours - splitBefore,
+        newDay: dayOf(v.window.start) !== lastDay,
+        boxed: hasRemainder,
+      };
       lastDay = dayOf(v.window.start);
     }
     bySpan.at(-1).steps.push(step);
@@ -299,6 +322,11 @@ export function VelocityPanel({ full, onOpen }) {
       <Body small mute style={num}>
         {m.text}
       </Body>
+      {m.note && (
+        <Body small mute style={num}>
+          {m.note}
+        </Body>
+      )}
     </View>
   );
   // an irregular shutdown's box or a marker, under the day it's on when that's a new one
@@ -309,7 +337,7 @@ export function VelocityPanel({ full, onOpen }) {
     </Fragment>
   );
   // a step's row: its name, when it started and how long it ran
-  const stepRow = (t, { label, time, duration, off }) => (
+  const stepRow = (t, { label, time, duration, off, boxed }) => (
     <View style={tw`flex-row items-baseline gap-2 pl-3`}>
       <View style={tw`flex-1 flex-row items-center gap-2`}>
         <Body small mute={t.estimated} style={off}>
@@ -321,7 +349,7 @@ export function VelocityPanel({ full, onOpen }) {
       <Body small mute={t.estimated} numberOfLines={1} style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}>
         {time}
       </Body>
-      <Body small mute={t.estimated} style={[tw`w-16 text-right`, num, off]}>
+      <Body small mute={t.estimated} style={[s.duration, boxed ? s.durationIn : s.durationOut, num, off]}>
         {duration}
       </Body>
     </View>
@@ -488,7 +516,7 @@ export function VelocityPanel({ full, onOpen }) {
             <Body small mute style={[tw`text-right`, { width: 56, flexShrink: 0 }, header]}>
               Observed Time
             </Body>
-            <Body small mute style={[tw`w-16 text-right`, header]}>
+            <Body small mute style={[s.duration, s.durationOut, header]}>
               Estimated Duration
             </Body>
           </View>
@@ -516,6 +544,7 @@ export function VelocityPanel({ full, onOpen }) {
                         time: t.estimated ? "–" : clock(t.key),
                         duration: t.stepHours == null ? "–" : hours(t.stepHours),
                         off: offStyle(t),
+                        boxed: t.boxed,
                       })}
                   {/* the step the velocity's week starts in: the cutoff, then the part of it in the week */}
                   {t.split && (
@@ -528,6 +557,7 @@ export function VelocityPanel({ full, onOpen }) {
                           label: `${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]} (${hours(t.stepHours)})`,
                           time: clock(v.window.start),
                           duration: hours(t.split.after),
+                          boxed: t.split.boxed,
                         },
                       )}
                     </>
@@ -543,7 +573,7 @@ export function VelocityPanel({ full, onOpen }) {
                   <Body small mute numberOfLines={1} style={[s.checkinTime, { minWidth: 56, flexShrink: 0 }, num]}>
                     {clock(checkin.key)}
                   </Body>
-                  <Body small mute style={[s.checkinDuration, num]}>
+                  <Body small mute style={[s.duration, s.durationOut, num]}>
                     –
                   </Body>
                 </View>
@@ -555,7 +585,7 @@ export function VelocityPanel({ full, onOpen }) {
                 <Body small numberOfLines={1} style={[tw`text-right font-semibold`, { flexShrink: 0 }, num]}>
                   {days(spanTotal(g.steps) / 24)}
                 </Body>
-                <Body small style={[tw`w-16 text-right font-semibold`, num]}>
+                <Body small style={[s.duration, s.durationOut, s.durationTotal, num]}>
                   {hours(spanTotal(g.steps))}
                 </Body>
               </View>

@@ -345,8 +345,8 @@ function reportedAt(entries, { span, stage, key }) {
 
 /**
  * Like sinceArrival, but lowest span first, with the steps that weren't logged estimated too, and spans whose arrival is an
- * estimate: [{ span, stage, key, hours, stepHours, estimated, progress }]. `progress` is the newest completion recorded for the
- * step (0 to 99, a plain record the velocity doesn't use), or null with none. `stepHours` is the working time from the step to the next one,
+ * estimate: [{ span, stage, key, hours, stepHours, estimated, progress }]. `progress` is the completion recorded with the
+ * step's first report (0 to 99, a plain record the velocity doesn't use), or null with none. `stepHours` is the working time from the step to the next one,
  * a span's last running to the next span's arrival, and null with no next step to run to. A step is estimated the way an arrival is, between the nearest steps either side
  * of it, so a step still to come (nothing logged after it) isn't in it. A logged step also has `offHours`: the working time between
  * it and when it was expected, estimated the same way from the other steps, negative when it came earlier (null with no other
@@ -373,8 +373,11 @@ export const stepsWithEstimates = scoped(function stepsWithEstimates(entries, sh
           key,
           hours,
           estimated: index === 0 ? arrival.estimated : !logged,
+          // the completion recorded with the step's first report, the one it's listed at
           progress:
-            entries.find((e) => e.span === Number(span) && e.stage === stage && e.progress != null)?.progress ?? null,
+            entries
+              .filter((e) => e.span === Number(span) && e.stage === stage)
+              .reduce((a, b) => (!a || parseKey(b.key) < parseKey(a.key) ? b : a), null)?.progress ?? null,
         });
     }
   }

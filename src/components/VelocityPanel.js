@@ -263,7 +263,8 @@ export function VelocityPanel({ full, onOpen }) {
   const after = boxesAfter.map((e) => between({ e }));
   // The steps list ends with the latest check-in. Each step is listed once, at the earliest time it was reported, so a
   // check-in repeating the last step (or an earlier one) is left out of the list above; it gets a row of its own at the
-  // end, unless the last step is that check-in itself.
+  // end, unless the last step is that check-in itself. A row's completion donut is its own report's: a step's is the one
+  // recorded with its first report, the check-in's its own.
   const latest = desk.deskEntries
     .filter((e) => e.span && e.stage)
     .reduce((a, b) => (!a || parseKey(b.key) > parseKey(a.key) ? b : a), null);
@@ -576,9 +577,12 @@ export function VelocityPanel({ full, onOpen }) {
               {g === bySpan.at(-1) && after.map(irregularBox)}
               {g === bySpan.at(-1) && checkin && (
                 <View style={[tw`flex-row items-baseline gap-2`, s.checkinRow]}>
-                  <Body small mute style={tw`flex-1`}>
-                    {`${SHORT_LABELS[checkin.stage] ?? STAGE_LABELS[checkin.stage]} (latest check-in)`}
-                  </Body>
+                  <View style={tw`flex-1 flex-row items-center gap-2`}>
+                    <Body small mute>
+                      {`${SHORT_LABELS[checkin.stage] ?? STAGE_LABELS[checkin.stage]} (latest check-in)`}
+                    </Body>
+                    {checkin.progress != null && <Donut percent={checkin.progress} />}
+                  </View>
                   <Body small mute numberOfLines={1} style={[s.checkinTime, { minWidth: 56, flexShrink: 0 }, num]}>
                     {clock(checkin.key)}
                   </Body>

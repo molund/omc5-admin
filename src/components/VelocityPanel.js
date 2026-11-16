@@ -10,10 +10,12 @@ import { useTw } from "../theme/tw.js";
 import { useDesk } from "../state/desk.js";
 import {
   KNOWN_HOURS,
+  loggedTimes,
   shutdownEffects,
   stepsWithEstimates,
   trendOf,
   WINDOW,
+  withCalendar,
   WORKING_DAYS_PER_WEEK,
   workingHours,
 } from "../lib/velocity.js";
@@ -58,8 +60,10 @@ const hm = (h) => {
   const [hh, mm] = [Math.floor(m / 60), m % 60];
   return hh && mm ? `${hh}h ${mm}m` : hh ? `${hh}h` : `${mm}m`;
 };
+// a number of hours, whole ones without the decimals
+const wholeHours = (h) => (Math.abs(h - Math.round(h)) < 0.01 ? `${Math.round(h)}` : h.toFixed(2));
 // shutdown hours: whole ones without the decimals
-const gapHours = (h) => (Math.abs(h - Math.round(h)) < 0.01 ? `${Math.round(h)}h` : hours(h));
+const gapHours = (h) => `${wholeHours(h)}h`;
 // a span's steps added up: each runs to the next, the last to the next span's arrival, or nowhere yet on the newest span
 const spanTotal = (steps) => steps.reduce((total, t) => total + (t.stepHours ?? 0), 0);
 
@@ -68,6 +72,8 @@ const looks = (tw) => ({
   checkinRow: tw`pl-3`,
   // a calendar day's bar, between the steps
   dayBar: tw`my-0.5 rounded-sm bg-line px-2`,
+  // a marker of the velocity's week (its start, or a day before its end), outlined like the shutdown boxes
+  marker: tw`mt-1 rounded-sm border border-dashed border-mute px-2 py-0.5`,
   checkinTime: tw`text-right`,
   checkinDuration: tw`w-16 text-right`,
 });
@@ -158,23 +164,71 @@ export function VelocityPanel({ full, onOpen }) {
           } began`,
       ].filter(Boolean)
     : [];
+  // The velocity's week, marked in the steps: its start (the cutoff), and each day before its end, reached back the way the
+  // week is (a holiday's day has none). The step the cutoff falls inside is split there, its two parts either side of it.
+  const ms = (key) => parseKey(key).getTime();
+  const cutoffMs = v.window ? ms(v.window.start) : null;
+  const firstIn = cutoffMs == null ? -1 : recent.findIndex((t) => ms(t.key) >= cutoffMs);
+  const straddle =
+    firstIn > 0 && ms(recent[firstIn].key) > cutoffMs && recent[firstIn - 1].stepHours != null
+      ? recent[firstIn - 1]
+      : null;
+  const cutoffMark = v.window && {
+    key: v.window.start,
+    text: `${clock(v.window.start)}: ${wholeHours(168 + v.window.extended)} hours before the most recent report${
+      v.window.extended > 0 ? ` (168 + ${wholeHours(v.window.extended)})` : ""
+    }.`,
+  };
+  const marks = v.window
+    ? [
+        ...(straddle ? [] : [cutoffMark]),
+        ...v.window.days.map((key, i) => ({
+          key,
+          text: `${clock(key)}: ${i + 1} day${i ? "s" : ""} before the most recent report`,
+        })),
+      ]
+    : [];
+  // each marker in the gap before the first step at or after it
+  const marksBefore = new Map();
+  for (const m of marks) {
+    const t = recent.find((t) => ms(t.key) >= ms(m.key));
+    if (t) marksBefore.set(t, [...(marksBefore.get(t) ?? []), m]);
+  }
   let lastDay = null;
-  // an irregular shutdown's box, with a day bar of its own when it starts on a later day than the step or box above it
-  const boxed = (e) => {
-    const day = dayOf(e.shutdown.start);
-    const box = { e, newDay: day !== lastDay };
+  // an irregular shutdown's box or a marker, with a day bar of its own when it's on a later day than what's above it
+  const between = (item) => {
+    const day = dayOf(item.e ? item.e.shutdown.start : item.mark.key);
+    const out = { ...item, newDay: day !== lastDay };
     lastDay = day;
-    return box;
+    return out;
   };
   for (const t of recent) {
     if (bySpan.at(-1)?.span !== t.span) bySpan.push({ span: t.span, steps: [] });
-    const irregular = (boxesBefore.get(t) ?? []).map(boxed);
     const day = dayOf(t.key);
+    const boxes = boxesBefore.get(t) ?? [];
+    const mine = (marksBefore.get(t) ?? []).sort((a, b) => ms(a.key) - ms(b.key));
+    // a marker on the step's own day, after any shutdown in the gap, goes under its day bar (and span heading), above it
+    const above = mine.filter((m) => dayOf(m.key) === day && boxes.every((e) => e.shutdown.startMs <= ms(m.key)));
+    const irregular = [
+      ...boxes.map((e) => ({ at: e.shutdown.startMs, e })),
+      ...mine.filter((m) => !above.includes(m)).map((mark) => ({ at: ms(mark.key), mark })),
+    ]
+      .sort((a, b) => a.at - b.at)
+      .map(between);
     const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
-    bySpan.at(-1).steps.push({ ...t, newDay: day !== lastDay, shutdown, overtime, irregular });
+    const step = { ...t, newDay: day !== lastDay, shutdown, overtime, irregular, above };
     lastDay = day;
+    if (t === straddle) {
+      // its working time up to the cutoff, and from there on, as stepHours counts it (holidays left out)
+      const before = withCalendar(desk.deskEntries, () =>
+        workingHours(parseKey(t.key), parseKey(v.window.start), loggedTimes(desk.deskEntries)),
+      );
+      step.split = { before, after: t.stepHours - before, newDay: dayOf(v.window.start) !== lastDay };
+      lastDay = dayOf(v.window.start);
+    }
+    bySpan.at(-1).steps.push(step);
   }
-  const after = boxesAfter.map(boxed);
+  const after = boxesAfter.map((e) => between({ e }));
   // The steps list ends with the latest check-in. Each step is listed once, at the earliest time it was reported, so a
   // check-in repeating the last step (or an earlier one) is left out of the list above; it gets a row of its own at the
   // end, unless the last step is that check-in itself.
@@ -239,12 +293,38 @@ export function VelocityPanel({ full, onOpen }) {
         </Body>
       </View>
     );
-  // an irregular shutdown's box, under the day it started on when that's a new one
+  // a marker of the velocity's week
+  const markerBox = (m, key) => (
+    <View key={key} style={s.marker}>
+      <Body small mute style={num}>
+        {m.text}
+      </Body>
+    </View>
+  );
+  // an irregular shutdown's box or a marker, under the day it's on when that's a new one
   const irregularBox = (b, k) => (
     <Fragment key={k}>
-      {b.newDay && dayLabel(b.e.shutdown.start)}
-      {shutdownBox(b.e, k)}
+      {b.newDay && dayLabel(b.e ? b.e.shutdown.start : b.mark.key)}
+      {b.e ? shutdownBox(b.e, k) : markerBox(b.mark, k)}
     </Fragment>
+  );
+  // a step's row: its name, when it started and how long it ran
+  const stepRow = (t, { label, time, duration, off }) => (
+    <View style={tw`flex-row items-baseline gap-2 pl-3`}>
+      <View style={tw`flex-1 flex-row items-center gap-2`}>
+        <Body small mute={t.estimated} style={off}>
+          {label}
+          {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
+        </Body>
+        {t.progress != null && <Donut percent={t.progress} />}
+      </View>
+      <Body small mute={t.estimated} numberOfLines={1} style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}>
+        {time}
+      </Body>
+      <Body small mute={t.estimated} style={[tw`w-16 text-right`, num, off]}>
+        {duration}
+      </Body>
+    </View>
   );
   return (
     <Panel>
@@ -424,26 +504,34 @@ export function VelocityPanel({ full, onOpen }) {
                   {i > 0 && gapBox(t)}
                   {i > 0 && t.irregular.map(irregularBox)}
                   {t.newDay && i > 0 && dayLabel(t.key)}
-                  <View style={tw`flex-row items-baseline gap-2 pl-3`}>
-                    <View style={tw`flex-1 flex-row items-center gap-2`}>
-                      <Body small mute={t.estimated} style={offStyle(t)}>
-                        {SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]}
-                        {t.reported ? <Body small mute>{` (reported ${clock(t.reported)})`}</Body> : null}
-                      </Body>
-                      {t.progress != null && <Donut percent={t.progress} />}
-                    </View>
-                    <Body
-                      small
-                      mute={t.estimated}
-                      numberOfLines={1}
-                      style={[tw`text-right`, { minWidth: 56, flexShrink: 0 }, num]}
-                    >
-                      {t.estimated ? "–" : clock(t.key)}
-                    </Body>
-                    <Body small mute={t.estimated} style={[tw`w-16 text-right`, num, offStyle(t)]}>
-                      {t.stepHours == null ? "–" : hours(t.stepHours)}
-                    </Body>
-                  </View>
+                  {t.above.map((m, k) => markerBox(m, `above${k}`))}
+                  {t.split
+                    ? stepRow(t, {
+                        label: `${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]} (${hours(t.stepHours)})`,
+                        time: t.estimated ? "–" : clock(t.key),
+                        duration: hours(t.split.before),
+                      })
+                    : stepRow(t, {
+                        label: SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage],
+                        time: t.estimated ? "–" : clock(t.key),
+                        duration: t.stepHours == null ? "–" : hours(t.stepHours),
+                        off: offStyle(t),
+                      })}
+                  {/* the step the velocity's week starts in: the cutoff, then the part of it in the week */}
+                  {t.split && (
+                    <>
+                      {t.split.newDay && dayLabel(v.window.start)}
+                      {markerBox(cutoffMark)}
+                      {stepRow(
+                        { ...t, reported: null, progress: null },
+                        {
+                          label: `${SHORT_LABELS[t.stage] ?? STAGE_LABELS[t.stage]} (${hours(t.stepHours)})`,
+                          time: clock(v.window.start),
+                          duration: hours(t.split.after),
+                        },
+                      )}
+                    </>
+                  )}
                 </Fragment>
               ))}
               {g === bySpan.at(-1) && after.map(irregularBox)}

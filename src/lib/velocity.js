@@ -226,7 +226,7 @@ function allSteps(entries) {
 
 // the times of everything logged (ms), for workingHours' overtime: each step, and each check-in repeating one, since the
 // gantry was seen working then all the same
-const loggedTimes = (entries) =>
+export const loggedTimes = (entries) =>
   entries.filter((e) => e.span && e.stage).map((e) => parseKey(countedAt(e.key)).getTime());
 
 /**
@@ -554,10 +554,11 @@ function progressAt(steps, shares, when) {
  * either side. Spans per week is that distance, as it is: the week (with any holiday extending it) already holds a week's
  * work, so nothing is scaled.
  * @returns {{ spansPerWeek: number|null, stage: string, window: { start: string, end: string, from: number,
- *   to: number, span: number, extended: number, reported: string|null }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
+ *   to: number, span: number, extended: number, reported: string|null, days: string[] }|null, shares: object[], current: { span: number, since: string, days: number }|null }|null}
  *   `window`: its start and end (keys), and how far along the gantry was at each, in spans; `span`, the last step's span;
  *   `extended`, the hours a holiday in it extended the week by (0 with none); `reported`, when its last step was reported if
- *   it was counted earlier, at the start of a shutdown (else null).
+ *   it was counted earlier, at the start of a shutdown (else null); `days`, the moments 1, 2, … days before the last step,
+ *   later than the start, reached back the way the week is, holidays skipped (keys).
  */
 export const velocity = scoped(function velocity(entries, now = new Date()) {
   const shares = stageShares(entries);
@@ -574,15 +575,19 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
     : null;
   // A holiday in the week extends it: the week reaches back 168 hours that aren't one, so a day off isn't a slow week. What
   // extends it is the holidays' excused hours (up to 24 each) outside the weekly shutdown, which a week already leaves out.
-  // Reaching back by them can bring more of a holiday into the week, so it goes on until it stops.
+  // Reaching back by them can bring more of a holiday into the week, so it goes on until it stops. The days before the last
+  // step (the Velocity page's markers) reach back the same way, 24 hours at a time.
   const excusedIn = (a, b) => workingHours(a, b, [], []) - workingHours(a, b, []);
-  let extended = 0;
-  for (let i = 0; last && i < 100; i++) {
-    const hours = excusedIn(new Date(last.at.getTime() - (WEEK_HOURS + extended) * HOUR), last.at);
-    if (Math.abs(hours - extended) < 1e-9) break;
-    extended = hours;
-  }
-  const start = last && new Date(last.at.getTime() - (WEEK_HOURS + extended) * HOUR);
+  const reachBack = (hours) => {
+    let extended = 0;
+    for (let i = 0; i < 100; i++) {
+      const more = excusedIn(new Date(last.at.getTime() - (hours + extended) * HOUR), last.at);
+      if (Math.abs(more - extended) < 1e-9) break;
+      extended = more;
+    }
+    return { at: new Date(last.at.getTime() - (hours + extended) * HOUR), extended };
+  };
+  const { at: start, extended } = last ? reachBack(WEEK_HOURS) : { at: null, extended: 0 };
   const from = last && progressAt(steps, shares, start);
   const to = last && last.span + shares[last.index].position;
   if (from == null || !(to > from))
@@ -598,7 +603,9 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
     span: last.span,
     extended,
     reported: reportedAt(entries, { span: last.span, stage: STAGES[last.index], key: end }),
+    days: [],
   };
+  for (let d = 1, at; (at = reachBack(d * 24).at) > start; d++) window.days.push(toKey(at));
   return { spansPerWeek, stage, window, shares, current };
 });
 

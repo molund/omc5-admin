@@ -194,11 +194,13 @@ export function VelocityPanel({ full, onOpen }) {
     ? (straddle ? straddle.stepHours - splitBefore : 0) +
       recent.filter(inRemainder).reduce((total, t) => total + (t.stepHours ?? 0), 0)
     : 0;
+  // what the week ends at: the latest stage, when it was first reported ("gluing started on span 41")
+  const weekEnd = v.window && `${stageName(v.stage).toLowerCase()} on span ${v.window.span}`;
   const cutoffMark = v.window && {
     key: v.window.start,
-    text: `${clock(v.window.start)}: ${wholeHours(168 + v.window.extended)} hours before the most recent report${
+    text: `${clock(v.window.start)}: ${wholeHours(168 + v.window.extended)} hours before ${weekEnd}${
       v.window.extended > 0 ? ` (168 + ${wholeHours(v.window.extended)})` : ""
-    }.`,
+    }`,
     note: hasRemainder && `${hours(remainderHours)} counted toward the velocity (${(v.spansPerWeek % 1).toFixed(2)})`,
   };
   const marks = v.window
@@ -206,7 +208,7 @@ export function VelocityPanel({ full, onOpen }) {
         ...(straddle ? [] : [cutoffMark]),
         ...v.window.days.map((key, i) => ({
           key,
-          text: `${clock(key)}: ${i + 1} day${i ? "s" : ""} before the most recent report`,
+          text: `${clock(key)}: ${i + 1} day${i ? "s" : ""} before ${weekEnd}`,
         })),
       ]
     : [];

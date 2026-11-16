@@ -12,6 +12,7 @@
 //   holiday     excused: the week is extended by its hours, up to HOLIDAY_CAP_HOURS each, and they leave working time
 //   mechanical  counts against the pace
 //   waiting     counts against the pace (waiting on work ahead to finish)
+//   weather     counts against the pace
 // Any other type, or a typo, counts against the pace and has no icon, so it can never quietly change the velocity.
 //
 // Whatever the type, there's no gantry work during a shutdown, so a step reported during one is counted at its start.
@@ -29,6 +30,7 @@ export const TYPES = {
   holiday: { name: "Statutory holiday", icon: "palm", excused: true },
   mechanical: { name: "Mechanical failure", icon: "wrench", excused: false },
   waiting: { name: "Waiting on work ahead", icon: "hourglass", excused: false },
+  weather: { name: "Weather", icon: "weather", excused: false },
 };
 
 /** @returns {{ name: string, icon: string|null, excused: boolean, known: boolean }} */

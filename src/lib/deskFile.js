@@ -26,8 +26,8 @@ const HEADER = `# The Leash Log's own records (molund/omc5-admin). The site read
 // above the irregular shutdowns list: how to write one, with examples to uncomment (take out the "# ")
 const SHUTDOWNS_COMMENT = `# irregular-shutdowns: stretches with no gantry work that the weekly shutdown doesn't cover, added by hand. Each one has:
 #   label: what to call it
-#   type: holiday (excused: it extends the week by its hours, up to 24 each), or mechanical, or waiting (on work ahead):
-#     those two count against the pace. Any other type does too, and has no icon
+#   type: holiday (excused: it extends the week by its hours, up to 24 each), or mechanical, or waiting (on work ahead), or weather:
+#     those three count against the pace. Any other type does too, and has no icon
 #   start: a BC time stamp, like the entries below
 #   end: a BC time stamp, or hours: how long it lasted (14, 5.5): either one, whichever saves the arithmetic
 #   with neither, it's still going: add one when work starts again
@@ -45,7 +45,11 @@ const SHUTDOWNS_COMMENT = `# irregular-shutdowns: stretches with no gantry work 
 #     end: 2026-11-14T15:15-07:00
 #   - label: Waiting for the caps at span 31
 #     type: waiting
-#     start: 2026-09-14T07:00-07:00`;
+#     start: 2026-09-14T07:00-07:00
+#   - label: Thunderstorm
+#     type: weather
+#     start: 2026-11-15T13:00-07:00
+#     hours: 3`;
 
 const unquote = (v) => {
   v = v.trim();

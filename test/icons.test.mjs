@@ -14,7 +14,7 @@ test("every icon uses only shapes the phone can draw", () => {
 });
 
 test("colour icons exist, and each of their shapes carries its own fill", () => {
-  assert.deepEqual([...COLOUR_ICONS].sort(), ["calendar", "hourglass", "palm", "wrench"]);
+  assert.deepEqual([...COLOUR_ICONS].sort(), ["calendar", "hourglass", "palm", "weather", "wrench"]);
   for (const name of COLOUR_ICONS)
     for (const [tag, attrs] of ICONS[name]) {
       assert.ok(attrs.fill, `${name}'s ${tag} has no fill`);

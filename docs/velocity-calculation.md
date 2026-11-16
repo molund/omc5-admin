@@ -112,12 +112,13 @@ irregular-shutdowns:
   happened.
 - **The type decides what it means** (`TYPES` in `shutdowns.js`):
 
-  | Type         | Icon      | Meaning                                                                          |
-  | ------------ | --------- | -------------------------------------------------------------------------------- |
-  | `holiday`    | palm tree | Excused: the week is extended by its hours, up to 24 each (`HOLIDAY_CAP_HOURS`). |
-  | `mechanical` | wrench    | Counts against the pace.                                                         |
-  | `waiting`    | hourglass | Counts against the pace (waiting on work ahead to finish).                       |
-  | any other    | none      | Counts against the pace, so a typo can't quietly change the velocity.            |
+  | Type         | Icon        | Meaning                                                                          |
+  | ------------ | ----------- | -------------------------------------------------------------------------------- |
+  | `holiday`    | palm tree   | Excused: the week is extended by its hours, up to 24 each (`HOLIDAY_CAP_HOURS`). |
+  | `mechanical` | wrench      | Counts against the pace.                                                         |
+  | `waiting`    | hourglass   | Counts against the pace (waiting on work ahead to finish).                       |
+  | `weather`    | storm cloud | Counts against the pace.                                                         |
+  | any other    | none        | Counts against the pace, so a typo can't quietly change the velocity.            |
 
   A holiday is excused for 24 hours at most. Christmas and Boxing Day are the only consecutive holidays in Canada: list them
   as two entries, one for each day, not one of 48 hours.

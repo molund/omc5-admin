@@ -78,7 +78,7 @@ export const ICONS = {
 
   // full colour, for the shutdowns on the Velocity page: each shape has its own fill and stroke, so these ignore the colour an
   // icon is given (see COLOUR_ICONS). A palm tree for a holiday, a calendar for the weekly shutdown, a wrench for a mechanical
-  // failure and an hourglass for waiting on work ahead
+  // failure, an hourglass for waiting on work ahead and a stormy cloud for weather
   palm: [
     ["path", { d: "M3.5 22c2.2-2.4 5.3-3 8.5-3s6.3.6 8.5 3z", fill: "#ecd29a", stroke: "none" }],
     [
@@ -130,6 +130,32 @@ export const ICONS = {
     ["rect", { x: 5, y: 2.4, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
     ["rect", { x: 5, y: 19.2, width: 14, height: 2.4, rx: 1.1, fill: "#8a5a2b", stroke: "none" }],
   ],
+  // stormy weather (a weather shutdown): a grey cloud with a yellow lightning bolt and blue rain
+  weather: [
+    [
+      "path",
+      {
+        d: "M7 14a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 6.5a3.75 3.75 0 0 1 0 7.5z",
+        fill: "#c3ccd6",
+        stroke: "#8794a3",
+        strokeWidth: 1,
+      },
+    ],
+    [
+      "path",
+      { d: "M6.8 16.5l-1 3M17.2 16.5l-1 3", fill: "none", stroke: "#4a9fe0", strokeWidth: 1.8, strokeLinecap: "round" },
+    ],
+    [
+      "path",
+      {
+        d: "M12.9 9.5L9.5 15.6h2.5l-1 5 3.7-6.4h-2.5z",
+        fill: "#f5c518",
+        stroke: "#d99a00",
+        strokeWidth: 0.8,
+        strokeLinejoin: "round",
+      },
+    ],
+  ],
   // the weather on a day bar in Velocity: a cloud with two drops for rain, four longer ones for heavy rain, and flakes for snow
   rain: [
     ["path", { d: "M7 14a4 4 0 0 1-.6-7.95A5.5 5.5 0 0 1 17 6.5a3.75 3.75 0 0 1 0 7.5z", fill: "none" }],
@@ -151,4 +177,4 @@ export const ICONS = {
 export const WIDTHS = { glasses: 43 };
 
 // Icons in full colour: each shape carries its own fill and stroke, so they're drawn without the colour an icon is given.
-export const COLOUR_ICONS = new Set(["palm", "calendar", "wrench", "hourglass"]);
+export const COLOUR_ICONS = new Set(["palm", "calendar", "wrench", "hourglass", "weather"]);

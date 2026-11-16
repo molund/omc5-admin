@@ -93,7 +93,7 @@ to self. A change writes both files in the same commit.
   plain record: the velocity doesn't use it, and the Velocity page's debug steps show it as a small donut with no number.
   The four pauses (arrived, hung, glued, hangers down: the ones with an hourglass) don't have one.
 - **Irregular shutdowns.** Holidays, breakdowns and waits are added by hand under `irregular-shutdowns:` in
-  `gantry-cycles.yaml` (the header there has examples): a label, a type (`holiday`, `mechanical` or `waiting`), a start,
+  `gantry-cycles.yaml` (the header there has examples): a label, a type (`holiday`, `mechanical`, `waiting` or `weather`), a start,
   and an end or hours. A holiday extends the velocity's week by its hours, up to 24; the others count against the pace. A step
   reported during one is counted at its start. The Leash Log writes the list back untouched on every push, and lists it
   on the Velocity page. A mistake in the list (a typo'd type, a holiday over 24 hours, two that overlap) fails the site's

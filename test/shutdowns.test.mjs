@@ -136,14 +136,15 @@ test("ranges: every valid shutdown is off, only a holiday is excused, and a holi
 
 test("the types: names, icons and which are excused", () => {
   assert.deepEqual(
-    ["holiday", "mechanical", "waiting"].map((t) => [typeInfo(t).icon, typeInfo(t).excused]),
+    ["holiday", "mechanical", "waiting", "weather"].map((t) => [typeInfo(t).icon, typeInfo(t).excused]),
     [
       ["palm", true],
       ["wrench", false],
       ["hourglass", false],
+      ["weather", false],
     ],
   );
-  assert.deepEqual(typeInfo("weather"), { name: "weather", icon: null, excused: false, known: false });
+  assert.deepEqual(typeInfo("storm"), { name: "storm", icon: null, excused: false, known: false });
 });
 
 test("parseDesk carries the shutdowns without changing the entries", () => {

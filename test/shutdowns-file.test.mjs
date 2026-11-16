@@ -80,6 +80,7 @@ test("the examples work: take out the '# ' and they're read", () => {
       ["Remembrance Day", "holiday", 0],
       ["Hydraulic pump failure", "mechanical", 0],
       ["Waiting for the caps at span 31", "waiting", 0],
+      ["Thunderstorm", "weather", 0],
     ],
   );
 });

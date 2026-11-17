@@ -13,7 +13,8 @@ import { parseKey } from "../src/lib/time.js";
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const DAY = 24 * 3600 * 1000;
 const ms = (key) => parseKey(key).getTime();
-const withNights = (list) => EMPTY_DESK.replace("\nnight-shift-off:\n", `\nnight-shift-off:\n${list}\n`);
+// a shift-schedule.yaml with this night-shift-off list
+const withNights = (list) => `night-shift-off:\n${list}\n`;
 
 test("the list is read: an open stretch and a closed one, the end inclusive", () => {
   const list = parseNightsOff(`night-shift-off:
@@ -36,12 +37,12 @@ entries:
   ]);
 });
 
-test("a file without the list has none, and parseDesk carries it without changing the entries", () => {
+test("a schedule without the list has none, and parseDesk carries it without changing the entries", () => {
   assert.deepEqual(parseNightsOff("entries:\n"), []);
-  const desk = parseDesk(withNights("  - start: 2026-11-16"));
+  const desk = parseDesk(EMPTY_DESK, withNights("  - start: 2026-11-16"));
   assert.equal(desk.nightsOff.length, 1);
   assert.ok(!Object.keys(desk).includes("nightsOff"), "not enumerable");
-  assert.deepEqual(parseDesk(EMPTY_DESK).nightsOff, [], "the example is a comment");
+  assert.deepEqual(parseDesk(EMPTY_DESK).nightsOff, [], "no schedule, no nights off");
 });
 
 test("what's wrong is said, and a stretch with an error is left out of the ranges", () => {

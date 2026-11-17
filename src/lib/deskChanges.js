@@ -10,7 +10,7 @@
 // change implies one: "arrived at span" for a new span, "hung" for marking the span hung. A stage picked is never earlier than
 // "hung" with the span hung (floorStage). Changes waiting on a device from before may have `stages: [...]` instead, read as the furthest.
 import { parseStatus, headerOf } from "./statusFile.js";
-import { formatDesk, moveEntry, parseDesk, rawBlock, removeEntries, replaceStage, setEntry } from "./deskFile.js";
+import { formatDesk, moveEntry, parseDesk, removeEntries, replaceStage, setEntry } from "./deskFile.js";
 import { applyChange, Conflict, setDeskVelocity, setVelocity } from "./changes.js";
 import { velocity, velocityHistory } from "./velocity.js";
 import { atLeast, floorStage, stageOf } from "./stages.js";
@@ -134,18 +134,14 @@ export function applyDeskChange(deskText, change, statusBefore) {
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
   if (change.memo) at(change.memo.noteKey, undefined, undefined, change.memo.text);
-  // the irregular shutdowns and night-shift-off lists are written by hand: they go back as they were
-  const text = formatDesk(entries, {
-    shutdowns: rawBlock(deskText, "irregular-shutdowns"),
-    nightsOff: rawBlock(deskText, "night-shift-off"),
-  });
+  const text = formatDesk(entries);
   return { text, hunks: diff(deskText, text) };
 }
 
 /**
  * Applies a change to both files, and writes the velocity it leaves: into gantry-cycles.yaml with its earlier values, and a copy of
  * the figure into status.yaml.
- * @param {{ status: string, desk: string }} files
+ * @param {{ status: string, desk: string, schedule?: string }} files `schedule` is shift-schedule.yaml, read for the velocity
  * @returns {{ status: string, desk: string, hunks: object[], deskHunks: object[] }}
  * @throws {Conflict} when the change no longer fits status.yaml.
  */
@@ -154,7 +150,7 @@ export function applyBoth(files, change) {
   const d = applyDeskChange(files.desk, change, files.status);
   // the velocity with this change's steps in it, and its values at the earlier steps of the past 96 hours, at the top of
   // gantry-cycles.yaml (applyDeskChange writes the entries alone, so it's put back), and its copy near the top of status.yaml
-  const entries = parseDesk(d.text);
+  const entries = parseDesk(d.text, files.schedule);
   const v = velocity(entries);
   const desk = setDeskVelocity(d.text, v, velocityHistory(entries)).text;
   const status = setVelocity(s.text, v);
@@ -163,15 +159,17 @@ export function applyBoth(files, change) {
 }
 
 /**
- * Applies a list of changes in order to both files, skipping (and reporting) any that no longer fit.
- * @returns {{ status: string, desk: string, results: Map<string, object> }}
+ * Applies a list of changes in order to both files, skipping (and reporting) any that no longer fit. The schedule
+ * (shift-schedule.yaml) is read, never written: it comes back as it went in.
+ * @returns {{ status: string, desk: string, schedule: string, results: Map<string, object> }}
  */
 export function applyAllBoth(files, changes) {
   const results = new Map();
+  const { schedule } = files;
   let { status, desk } = files;
   for (const c of changes) {
     try {
-      const r = applyBoth({ status, desk }, c);
+      const r = applyBoth({ status, desk, schedule }, c);
       status = r.status;
       desk = r.desk;
       results.set(c.id, { ok: true, hunks: r.hunks, deskHunks: r.deskHunks });
@@ -180,7 +178,7 @@ export function applyAllBoth(files, changes) {
       results.set(c.id, { ok: false, error: e.message });
     }
   }
-  return { status, desk, results };
+  return { status, desk, schedule, results };
 }
 
 /**
@@ -190,11 +188,12 @@ export function applyAllBoth(files, changes) {
  * fine: it's already counted there.
  * @param {string} deskBefore gantry-cycles.yaml as it is.
  * @param {string} deskAfter gantry-cycles.yaml with the change in it.
+ * @param {string} schedule shift-schedule.yaml, where the shutdowns are.
  * @returns {{ key: string, stage: string, shutdown: object }[]} `shutdown` as lib/shutdowns.js reads it.
  */
-export function shutdownsHit(deskBefore, deskAfter) {
+export function shutdownsHit(deskBefore, deskAfter, schedule) {
   const was = new Map(parseDesk(deskBefore).map((e) => [e.key, e.stage]));
-  const after = parseDesk(deskAfter);
+  const after = parseDesk(deskAfter, schedule);
   const hits = [];
   for (const e of after) {
     if (!e.stage || was.get(e.key) === e.stage) continue;

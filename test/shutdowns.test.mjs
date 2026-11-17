@@ -147,11 +147,11 @@ test("the types: names, icons and which are excused", () => {
   assert.deepEqual(typeInfo("storm"), { name: "storm", icon: null, excused: false, known: false });
 });
 
-test("parseDesk carries the shutdowns without changing the entries", () => {
-  const entries = parseDesk(FILE);
+test("parseDesk carries the schedule's shutdowns without changing the entries", () => {
+  const entries = parseDesk(FILE, FILE);
   assert.equal(entries.length, 1);
   assert.equal(entries.shutdowns.length, 4);
   assert.deepEqual(Object.keys(entries), ["0"], "not an enumerable property");
   assert.equal([...entries].length, 1);
-  assert.equal(parseDesk("entries:\n").shutdowns.length, 0);
+  assert.equal(parseDesk(FILE).shutdowns.length, 0, "no schedule, no shutdowns");
 });

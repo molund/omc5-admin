@@ -1,4 +1,4 @@
-// Nights off: stretches of nights with no night shift, while the day shift still works, listed by hand in gantry-cycles.yaml
+// Nights off: stretches of nights with no night shift, while the day shift still works, listed by hand in shift-schedule.yaml
 // under `night-shift-off:`. Each has a start and maybe an end, both dates: the first and the last night off, the night shift
 // from 8 p.m. on each (an open one, with no end, is still going).
 //
@@ -29,7 +29,7 @@ const FIELDS = new Set(["start", "end"]);
  */
 
 /**
- * What's in the `night-shift-off:` list of a gantry-cycles.yaml, and what can't be read, like scanShutdowns.
+ * What's in the `night-shift-off:` list of shift-schedule.yaml, and what can't be read, like scanShutdowns.
  * @returns {{ nightsOff: NightsOff[], keys: number[], unreadable: { line: number, text: string }[] }}
  */
 export function scanNightsOff(text) {
@@ -47,11 +47,11 @@ export function scanNightsOff(text) {
   return { nightsOff, keys, unreadable };
 }
 
-/** The `night-shift-off:` list of a gantry-cycles.yaml, in the order written. No list gives []. */
+/** The `night-shift-off:` list of shift-schedule.yaml, in the order written. No list gives []. */
 export const parseNightsOff = (text) => scanNightsOff(text).nightsOff;
 
 /**
- * Everything wrong with a gantry-cycles.yaml's night-shift-off list, as checkShutdowns gives it for the irregular shutdowns.
+ * Everything wrong with shift-schedule.yaml's night-shift-off list, as checkShutdowns gives it for the irregular shutdowns.
  * @returns {{ line: number, level: "error"|"warning", message: string }[]} In file order.
  */
 export function checkNightsOff(text) {

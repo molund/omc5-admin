@@ -2,9 +2,10 @@
 // the same code the Leash Log uses (src/lib/changes.js and src/lib/deskChanges.js), so the result is what the Leash Log showed, on
 // top of anything committed since.
 //
-//   node apply-changes.mjs changes.json status.yaml [gantry-cycles.yaml] [--only <id>]
+//   node apply-changes.mjs changes.json status.yaml [gantry-cycles.yaml] [shift-schedule.yaml] [--only <id>]
 //
-// gantry-cycles.yaml is created if it doesn't exist yet. Prints "APPLIED <id>: <message>" or "CONFLICT <id>: <why>" per change, and
+// gantry-cycles.yaml is created if it doesn't exist yet. shift-schedule.yaml (beside status.yaml unless given) is read for the
+// velocity, never written; without one there are no shutdowns or nights off. Prints "APPLIED <id>: <message>" or "CONFLICT <id>: <why>" per change, and
 // exits 2 if any conflicted.
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { Conflict } from "../src/lib/changes.js";
@@ -13,16 +14,22 @@ import { EMPTY_DESK } from "../src/lib/deskFile.js";
 
 const args = process.argv.slice(2);
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
-const [json, file, deskFile = file.replace(/status\.yaml$/, "gantry-cycles.yaml")] = args.filter(
-  (a, i) => !a.startsWith("--") && args[i - 1] !== "--only",
-);
+const [
+  json,
+  file,
+  deskFile = file.replace(/status\.yaml$/, "gantry-cycles.yaml"),
+  scheduleFile = file.replace(/status\.yaml$/, "shift-schedule.yaml"),
+] = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--only");
 if (!json || !file) {
-  console.error("usage: node apply-changes.mjs changes.json status.yaml [gantry-cycles.yaml] [--only <id>]");
+  console.error(
+    "usage: node apply-changes.mjs changes.json status.yaml [gantry-cycles.yaml] [shift-schedule.yaml] [--only <id>]",
+  );
   process.exit(1);
 }
 const { changes } = JSON.parse(readFileSync(json, "utf8"));
 let status = readFileSync(file, "utf8");
 let desk = existsSync(deskFile) ? readFileSync(deskFile, "utf8") : EMPTY_DESK;
+const schedule = existsSync(scheduleFile) ? readFileSync(scheduleFile, "utf8") : "";
 let conflicts = 0;
 const todo = only ? changes.filter((c) => c.id === only) : changes;
 if (!todo.length) {
@@ -31,7 +38,7 @@ if (!todo.length) {
 }
 for (const c of todo) {
   try {
-    ({ status, desk } = applyBoth({ status, desk }, c));
+    ({ status, desk } = applyBoth({ status, desk, schedule }, c));
     console.log(`APPLIED ${c.id}: ${c.message}`);
   } catch (e) {
     if (!(e instanceof Conflict)) throw e;

@@ -20,7 +20,8 @@ import { parseKey } from "../src/lib/time.js";
 
 const here = (p) => fileURLToPath(new URL(p, import.meta.url));
 const REAL = readFileSync(here("./fixtures/gantry-cycles-2026-11-11.yaml"), "utf8");
-const withList = (list) => REAL.replace(/\nentries:/, `\nirregular-shutdowns:\n${list}\nentries:`);
+// the real log, with an irregular shutdowns list in shift-schedule.yaml (lib/scheduleFile.js)
+const withList = (list, desk = REAL) => parseDesk(desk, `irregular-shutdowns:\n${list}\n`);
 const HOLIDAY = `  - label: Remembrance Day
     type: holiday
     start: 2026-11-11T06:00-07:00
@@ -28,7 +29,7 @@ const HOLIDAY = `  - label: Remembrance Day
 const D = (key) => parseKey(key);
 
 const plain = parseDesk(REAL);
-const holiday = parseDesk(withList(HOLIDAY));
+const holiday = withList(HOLIDAY);
 const in_ = (entries, fn) => withCalendar(entries, fn);
 
 test("a step reported during a shutdown is counted at its start, whatever the type", () => {
@@ -38,14 +39,12 @@ test("a step reported during a shutdown is counted at its start, whatever the ty
   assert.equal(at(holiday, "2026-11-11T05:59-07:00"), "2026-11-11T05:59-07:00", "before it");
   assert.equal(at(holiday, "2026-11-11T20:00-07:00"), "2026-11-11T20:00-07:00", "at its end it's over");
   assert.equal(at(holiday, "2026-11-12T09:00-07:00"), "2026-11-12T09:00-07:00", "after it");
-  const pump = parseDesk(withList("  - type: mechanical\n    start: 2026-11-11T07:00-07:00\n    hours: 2"));
+  const pump = withList("  - type: mechanical\n    start: 2026-11-11T07:00-07:00\n    hours: 2");
   assert.equal(at(pump, "2026-11-11T08:00-07:00"), "2026-11-11T07:00-07:00");
-  const open = parseDesk(withList("  - type: waiting\n    start: 2026-11-11T07:00-07:00"));
+  const open = withList("  - type: waiting\n    start: 2026-11-11T07:00-07:00");
   assert.equal(at(open, "2026-12-30T08:00-07:00"), "2026-11-11T07:00-07:00", "an open shutdown has no end");
-  const two = parseDesk(
-    withList(
-      "  - type: mechanical\n    start: 2026-11-11T07:00-07:00\n    hours: 1\n  - type: mechanical\n    start: 2026-11-11T06:30-07:00\n    hours: 1",
-    ),
+  const two = withList(
+    "  - type: mechanical\n    start: 2026-11-11T07:00-07:00\n    hours: 1\n  - type: mechanical\n    start: 2026-11-11T06:30-07:00\n    hours: 1",
   );
   assert.equal(at(two, "2026-11-11T07:30-07:00"), "2026-11-11T06:30-07:00", "overlapping: the earliest start");
   assert.equal(
@@ -71,7 +70,7 @@ test("the shift clock leaves out every irregular shutdown, and working time only
     11,
     "the day shift is the holiday",
   );
-  const pump = parseDesk(withList("  - type: mechanical\n    start: 2026-11-11T06:00-07:00\n    hours: 14"));
+  const pump = withList("  - type: mechanical\n    start: 2026-11-11T06:00-07:00\n    hours: 14");
   assert.equal(
     in_(pump, () => shiftHours(a, b)),
     11,
@@ -92,7 +91,7 @@ test("the shift clock leaves out every irregular shutdown, and working time only
 });
 
 test("a holiday is excused for 24 hours at most, from its start", () => {
-  const long = parseDesk(withList("  - type: holiday\n    start: 2026-11-11T06:00-07:00\n    hours: 38"));
+  const long = withList("  - type: holiday\n    start: 2026-11-11T06:00-07:00\n    hours: 38");
   const [c, d] = [D("2026-11-11T00:00-07:00"), D("2026-11-13T00:00-07:00")];
   assert.equal(workingHours(c, d), 48);
   assert.equal(
@@ -104,7 +103,7 @@ test("a holiday is excused for 24 hours at most, from its start", () => {
 
 test("hours that are in the weekly shutdown and an excused holiday are taken out once", () => {
   // Friday Nov. 6, 12:00 to midnight, in a day with the weekly shutdown from 18:00 to 7:00 on Saturday
-  const fri = parseDesk(withList("  - type: holiday\n    start: 2026-11-06T12:00-07:00\n    hours: 12"));
+  const fri = withList("  - type: holiday\n    start: 2026-11-06T12:00-07:00\n    hours: 12");
   const [c, d] = [D("2026-11-06T00:00-07:00"), D("2026-11-07T12:00-07:00")];
   assert.equal(workingHours(c, d), 36 - 13);
   // the holiday's 12:00 to 24:00 and the weekly 18:00 to 07:00 cover 12:00 to 07:00: 19 hours
@@ -153,7 +152,7 @@ test("the steps list: the step shows at 6:00 a.m., and the stage before it runs 
 
 // the real log with one more step after the holiday, so the week ends after it
 const LATER = "  - 2026-11-12T07:00-07:00:\n      span: 40\n      stage: gluing started\n";
-const later = (list, step = LATER) => parseDesk(withList(list).replace("entries:\n", `entries:\n${step}`));
+const later = (list, step = LATER) => withList(list, REAL.replace("entries:\n", `entries:\n${step}`));
 const H = 3600 * 1000;
 
 test("a holiday in the week extends it by its hours", () => {
@@ -218,7 +217,7 @@ test("a step that was moved says when it was reported, and so does the week's la
 
 test("a gap's weekly part leaves out a holiday's hours", () => {
   // Saturday's weekly shutdown ends Sunday at 20:00; a holiday on the Monday is a separate gap
-  const mon = parseDesk(withList("  - type: holiday\n    start: 2026-11-09T06:00-07:00\n    hours: 14"));
+  const mon = withList("  - type: holiday\n    start: 2026-11-09T06:00-07:00\n    hours: 14");
   const none = stepsWithEstimates(plain);
   const some = stepsWithEstimates(mon);
   // no step's weekly gap changes, though the holiday is out of the hours between steps
@@ -268,7 +267,7 @@ test("what each shutdown does to the week", () => {
 const OPEN = "  - label: Remembrance Day\n    type: holiday\n    start: 2026-11-11T06:00-07:00";
 
 test("an open shutdown: the shift clock stops where it starts", { timeout: 10000 }, () => {
-  const open = parseDesk(withList(OPEN));
+  const open = withList(OPEN);
   const [a, b] = [D("2026-11-11T00:00-07:00"), D("2027-06-01T00:00-07:00")];
   assert.equal(
     in_(open, () => shiftHours(a, b)),
@@ -292,7 +291,7 @@ test("an open shutdown: the shift clock stops where it starts", { timeout: 10000
 });
 
 test("an open shutdown: the velocity and the steps are worked out, as with it closed", { timeout: 20000 }, () => {
-  const open = parseDesk(withList(OPEN));
+  const open = withList(OPEN);
   const v = velocity(open);
   assert.equal(v.window.end, "2026-11-11T06:00-07:00");
   assert.equal(v.spansPerWeek.toFixed(2), "2.82", "the same as with the 14 hours written in");
@@ -300,19 +299,17 @@ test("an open shutdown: the velocity and the steps are worked out, as with it cl
   const [e] = shutdownEffects(open, v, new Date("2026-11-11T09:00:00-07:00"));
   assert.deepEqual([e.shutdown.open, e.state, e.extends], [true, "on", 0]);
   // a step reported long after is counted at its start
-  const later = parseDesk(
-    withList(OPEN).replace(
-      "entries:\n",
-      "entries:\n  - 2026-12-01T09:00-07:00:\n      span: 41\n      stage: arrived at span\n",
-    ),
+  const later = withList(
+    OPEN,
+    REAL.replace("entries:\n", "entries:\n  - 2026-12-01T09:00-07:00:\n      span: 41\n      stage: arrived at span\n"),
   );
   assert.equal(velocity(later).window.end, "2026-11-11T06:00-07:00");
 });
 
 // nights off (lib/nightsOff.js): Monday, Nov. 16, 2026 on, the night shift stood down, the day shift still working
-const withNights = (list) => REAL.replace(/\nentries:/, `\nnight-shift-off:\n${list}\nentries:`);
-const tonight = parseDesk(withNights("  - start: 2026-11-16\n    end: 2026-11-16"));
-const open = parseDesk(withNights("  - start: 2026-11-16"));
+const withNights = (list) => parseDesk(REAL, `night-shift-off:\n${list}\n`);
+const tonight = withNights("  - start: 2026-11-16\n    end: 2026-11-16");
+const open = withNights("  - start: 2026-11-16");
 
 test("the shift clock leaves out a night off, and only that night", () => {
   const hours = (entries, a, b) => in_(entries, () => shiftHours(D(a), D(b)));

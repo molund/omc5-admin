@@ -4,21 +4,27 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { EMPTY_DESK, formatDesk, parseDesk } from "../src/lib/deskFile.js";
+import { EMPTY_DESK } from "../src/lib/deskFile.js";
 import { applyBoth, shutdownsHit } from "../src/lib/deskChanges.js";
 import { headerOf, parseStatus } from "../src/lib/statusFile.js";
 
 const STATUS = readFileSync(fileURLToPath(new URL("./fixtures/status.yaml", import.meta.url)), "utf8");
 const head = headerOf(parseStatus(STATUS));
 
-const desk = (...lines) =>
-  formatDesk(parseDesk(EMPTY_DESK), { shutdowns: ["irregular-shutdowns:", ...lines.map((l) => `  ${l}`)] });
-const OPEN = desk("- label: Remembrance Day", "  type: holiday", "  start: 2026-11-11T06:00-07:00");
-const CLOSED = desk("- label: Remembrance Day", "  type: holiday", "  start: 2026-11-11T06:00-07:00", "  hours: 14");
+// a shift-schedule.yaml with these lines in its irregular shutdowns list
+const schedule = (...lines) => ["irregular-shutdowns:", ...lines.map((l) => `  ${l}`)].join("\n") + "\n";
+const OPEN = schedule("- label: Remembrance Day", "  type: holiday", "  start: 2026-11-11T06:00-07:00");
+const CLOSED = schedule(
+  "- label: Remembrance Day",
+  "  type: holiday",
+  "  start: 2026-11-11T06:00-07:00",
+  "  hours: 14",
+);
 
 // a move to the next span at a time: it logs "arrived at span" there
 const arrive = (time) => ({ kind: "move", time, span: head.span + 1, complete: false });
-const hit = (before, change) => shutdownsHit(before, applyBoth({ status: STATUS, desk: before }, change).desk);
+const hit = (sched, change, before = EMPTY_DESK) =>
+  shutdownsHit(before, applyBoth({ status: STATUS, desk: before, schedule: sched }, change).desk, sched);
 
 test("a step in an open shutdown is warned about, with the shutdown", () => {
   const [h, ...rest] = hit(OPEN, arrive("2026-11-11T09:00-07:00"));
@@ -46,12 +52,15 @@ test("a change that reports no step, or a step already there, isn't warned about
     0,
   );
   // an entry already in the shutdown, given a note: its step isn't new
-  const before = applyBoth({ status: STATUS, desk: OPEN }, arrive("2026-11-11T09:00-07:00")).desk;
-  assert.equal(hit(before, { kind: "desk-edit", key: "2026-11-11T09:00-07:00", noteToSelf: "checked" }).length, 0);
+  const before = applyBoth({ status: STATUS, desk: EMPTY_DESK, schedule: OPEN }, arrive("2026-11-11T09:00-07:00")).desk;
+  assert.equal(
+    hit(OPEN, { kind: "desk-edit", key: "2026-11-11T09:00-07:00", noteToSelf: "checked" }, before).length,
+    0,
+  );
 });
 
 test("a shutdown with a mistake in it isn't warned about, since it's left out of everything", () => {
-  const broken = desk("- label: No start", "  type: holiday", "  hours: 14");
+  const broken = schedule("- label: No start", "  type: holiday", "  hours: 14");
   assert.equal(hit(broken, arrive("2026-11-11T09:00-07:00")).length, 0);
-  assert.equal(hit(EMPTY_DESK, arrive("2026-11-11T09:00-07:00")).length, 0, "no shutdowns at all");
+  assert.equal(hit("", arrive("2026-11-11T09:00-07:00")).length, 0, "no shutdowns at all");
 });

@@ -134,13 +134,18 @@ export async function pushChanges({ token, changes, photos }) {
     if (e.status === 404) return EMPTY_DESK;
     throw e;
   });
+  // the work schedule, for the velocity: read, never written; a main without it has no shutdowns or nights off
+  const schedule = await api("GET", `/contents/shift-schedule.yaml?ref=${base}`, undefined, true).catch((e) => {
+    if (e.status === 404) return "";
+    throw e;
+  });
 
   const pushed = [],
     skipped = [];
   for (const change of changes) {
     let next;
     try {
-      next = applyBoth({ status: text, desk }, change);
+      next = applyBoth({ status: text, desk, schedule }, change);
     } catch (e) {
       if (!(e instanceof Conflict)) throw e;
       skipped.push({ id: change.id, why: e.message });

@@ -43,6 +43,7 @@ function fakeGitHub({ sha = "a".repeat(40), text = "span: 37\n", down = false, n
     if (url.startsWith(RAW) && !noGit) {
       if (url === `${RAW}/${sha}/status.yaml`) return ok(text);
       if (url === `${RAW}/${sha}/gantry-cycles.yaml`) return ok("records: []\n");
+      if (url === `${RAW}/${sha}/shift-schedule.yaml`) return ok("irregular-shutdowns:\n");
     }
     if (url.startsWith(RAW)) return missing;
     if (url === `${API}/commits/main`) return ok(sha);
@@ -64,9 +65,10 @@ test("status.yaml is read at main's commit, without the API, and copy.json names
   const meta = JSON.parse(await ownFile("copy.json"));
   assert.equal(meta.commit, sha);
   assert.ok(!isNaN(new Date(meta.syncedAt)));
+  assert.equal(await ownFile("shift-schedule.yaml"), "irregular-shutdowns:\n", "the schedule, read with the others");
   assert.deepEqual(
     calls.map((c) => c.url),
-    [REFS, `${RAW}/${sha}/status.yaml`, `${RAW}/${sha}/gantry-cycles.yaml`],
+    [REFS, `${RAW}/${sha}/status.yaml`, `${RAW}/${sha}/gantry-cycles.yaml`, `${RAW}/${sha}/shift-schedule.yaml`],
   );
 });
 
@@ -95,10 +97,10 @@ test("refreshing looks at main once, and reads the files again only when main mo
   const meta = JSON.parse(await ownFile("copy.json"));
   assert.equal(meta.commit, one);
   assert.ok(new Date(meta.syncedAt) > new Date(before));
-  // main moved: both files read at its new commit
+  // main moved: the three files read at its new commit
   calls = fakeGitHub({ sha: two, text: "span: 42\n" });
   assert.equal(await ownFile("status.yaml"), "span: 42\n");
-  assert.equal(calls.length, 3);
+  assert.equal(calls.length, 4);
   assert.equal(JSON.parse(await ownFile("copy.json")).commit, two);
 });
 

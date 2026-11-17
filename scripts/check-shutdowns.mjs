@@ -1,8 +1,8 @@
-// Checks the irregular shutdowns and the nights off in a gantry-cycles.yaml, for the site's workflows (molund/omc5's deploy.yml
+// Checks the irregular shutdowns and the nights off in shift-schedule.yaml, for the site's workflows (molund/omc5's deploy.yml
 // and desk.yml run it before building), so a mistake in either list fails the run: it isn't deployed, and GitHub emails the
 // failure.
 //
-//   node scripts/check-shutdowns.mjs gantry-cycles.yaml
+//   node scripts/check-shutdowns.mjs shift-schedule.yaml
 //
 // Every problem is printed as a GitHub annotation on its line of the file, and the exit code is 1 if there are any. Warnings
 // fail too (a typo'd type, a typo'd field, end and hours that disagree, a holiday over 24 hours, two shutdowns or two
@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { checkShutdowns } from "../src/lib/shutdowns.js";
 import { checkNightsOff } from "../src/lib/nightsOff.js";
 
-const file = process.argv[2] ?? "gantry-cycles.yaml";
+const file = process.argv[2] ?? "shift-schedule.yaml";
 const text = readFileSync(file, "utf8");
 const problems = [...checkShutdowns(text), ...checkNightsOff(text)].sort((a, b) => a.line - b.line);
 // annotation text has to escape these (GitHub's workflow command format)

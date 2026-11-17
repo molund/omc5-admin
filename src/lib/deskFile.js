@@ -8,8 +8,7 @@
 import { cleanText } from "./cleanText.js";
 import { compareKeys } from "./time.js";
 import { STAGES, currentName, furthest } from "./stages.js";
-import { parseShutdowns } from "./shutdowns.js";
-import { parseNightsOff } from "./nightsOff.js";
+import { parseSchedule } from "./scheduleFile.js";
 
 export const DESK_FILE = "gantry-cycles.yaml";
 
@@ -22,45 +21,8 @@ const HEADER = `# The Leash Log's own records (molund/omc5-admin). The site read
 #   progress: how far through the step it was, 0 to 99 per cent, when that was recorded
 #   note: a memo, one line
 # Every entry about the gantry has a stage, and one that marks its span hung is at "hung" or later. A time stamp can match a
-# note or follow-up in status.yaml, or stand alone (a step seen with no post about it).`;
-
-// above the irregular shutdowns list: how to write one, with examples to uncomment (take out the "# ")
-const SHUTDOWNS_COMMENT = `# irregular-shutdowns: stretches with no gantry work that the weekly shutdown doesn't cover, added by hand. Each one has:
-#   label: what to call it
-#   type: holiday (excused: it extends the week by its hours, up to 24 each), or mechanical, or waiting (on work ahead), or weather:
-#     those three count against the pace. Any other type does too, and has no icon
-#   start: a BC time stamp, like the entries below
-#   end: a BC time stamp, or hours: how long it lasted (14, 5.5): either one, whichever saves the arithmetic
-#   with neither, it's still going: add one when work starts again
-# Write the real stretch: if the crews worked into it, shorten it. A step reported during a shutdown is counted at its start.
-# A holiday is excused for 24 hours at most. Christmas and Boxing Day are two holidays: list them as two entries, one for
-# each day, not one of 48 hours.
-# Examples (take out the "# "):
-#   - label: Remembrance Day
-#     type: holiday
-#     start: 2026-11-11T06:00-07:00
-#     hours: 14
-#   - label: Hydraulic pump failure
-#     type: mechanical
-#     start: 2026-11-14T10:15-07:00
-#     end: 2026-11-14T15:15-07:00
-#   - label: Waiting for the caps at span 31
-#     type: waiting
-#     start: 2026-09-14T07:00-07:00
-#   - label: Thunderstorm
-#     type: weather
-#     start: 2026-11-15T13:00-07:00
-#     hours: 3`;
-
-// above the night-shift-off list: how to write one, with an example to uncomment
-const NIGHTS_OFF_COMMENT = `# night-shift-off: stretches of nights with no night shift, added by hand. The day shift still works. Each one has:
-#   start: the first night off, a date (2026-11-16): the night shift from 8 p.m. that day
-#   end: the last night off, a date; leave it out while the night shift is still off
-# The shift clock, which the stage shares and the estimated steps use, leaves those nights out. The lost nights count
-# against the pace.
-# Example (take out the "# "):
-#   - start: 2026-11-16
-#     end: 2026-12-04`;
+# note or follow-up in status.yaml, or stand alone (a step seen with no post about it). The work schedule (irregular
+# shutdowns, nights off) is in shift-schedule.yaml, written by hand.`;
 
 const unquote = (v) => {
   v = v.trim();
@@ -85,11 +47,13 @@ export const asProgress = (v) => {
  * @typedef {{ key: string, span: number|null, stage: string|null, progress: number|null, noteToSelf: string }} DeskEntry
  * stage: null only on an entry that is just a note to self (a blog post's). progress: how far through the stage, 0 to 99, or
  * null when none was recorded.
- * @returns {DeskEntry[]} Newest first. It also carries the file's irregular shutdowns (lib/shutdowns.js) as a `shutdowns` property
- * and its nights off (lib/nightsOff.js) as `nightsOff`, which don't show up when it's copied or looped over, which the velocity's
- * calculations read.
+ * @param {string} text gantry-cycles.yaml
+ * @param {string} [scheduleText] shift-schedule.yaml (lib/scheduleFile.js), "" when there's none
+ * @returns {DeskEntry[]} Newest first. It also carries the schedule's irregular shutdowns (lib/shutdowns.js) as a `shutdowns`
+ * property and its nights off (lib/nightsOff.js) as `nightsOff`, which don't show up when it's copied or looped over, which the
+ * velocity's calculations read.
  */
-export function parseDesk(text) {
+export function parseDesk(text, scheduleText = "") {
   const entries = [];
   let cur = null;
   for (const line of String(text ?? "").split("\n")) {
@@ -118,44 +82,20 @@ export function parseDesk(text) {
     else if (k === "note") cur.noteToSelf = unquote(v);
   }
   const sorted = sortEntries(entries);
-  Object.defineProperty(sorted, "shutdowns", { value: parseShutdowns(text), enumerable: false });
-  Object.defineProperty(sorted, "nightsOff", { value: parseNightsOff(text), enumerable: false });
+  const { shutdowns, nightsOff } = parseSchedule(scheduleText);
+  Object.defineProperty(sorted, "shutdowns", { value: shutdowns, enumerable: false });
+  Object.defineProperty(sorted, "nightsOff", { value: nightsOff, enumerable: false });
   return sorted;
 }
 
 const sortEntries = (entries) => [...entries].sort((a, b) => compareKeys(b.key, a.key));
 
 /**
- * A hand-written block of a gantry-cycles.yaml as it is, line for line (the key's line, then the list, with the comments and
- * spacing it was written with), so the Leash Log can write the file again without losing it: `irregular-shutdowns` or
- * `night-shift-off`. It runs to its last indented line: a comment at the left edge in the middle of the list is kept, but the
- * comment above the next key isn't taken. Null when the file has no such key.
- * @returns {string[]|null}
- */
-export function rawBlock(text, key) {
-  const lines = String(text ?? "").split("\n");
-  const at = lines.findIndex((l) => new RegExp(`^${key}:\\s*(#.*)?$`).test(l));
-  if (at < 0) return null;
-  let last = at;
-  for (let i = at + 1; i < lines.length && !/^[A-Za-z]/.test(lines[i]); i++) if (/^\s+\S/.test(lines[i])) last = i;
-  return lines.slice(at, last + 1);
-}
-
-/**
  * The file's text for these entries. Empty entries are left out.
  * @param {DeskEntry[]} entries
- * @param {{ shutdowns?: string[]|null, nightsOff?: string[]|null }} [keep] The irregular shutdowns and night-shift-off blocks
- *   to write back as they were (rawBlock). Without one, its key is written with nothing under it, ready for entries to be added.
  */
-export function formatDesk(entries, { shutdowns, nightsOff } = {}) {
-  const lines = [
-    HEADER,
-    SHUTDOWNS_COMMENT,
-    ...(shutdowns ?? ["irregular-shutdowns:"]),
-    NIGHTS_OFF_COMMENT,
-    ...(nightsOff ?? ["night-shift-off:"]),
-    "entries:",
-  ];
+export function formatDesk(entries) {
+  const lines = [HEADER, "entries:"];
   for (const e of sortEntries(entries)) {
     const stage = furthest([e.stage]);
     const memo = cleanText(e.noteToSelf).replace(/\s+/g, " ").trim();

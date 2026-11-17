@@ -1,5 +1,5 @@
 // Irregular shutdowns: stretches with no gantry work that the weekly shutdown doesn't cover, listed by hand in
-// gantry-cycles.yaml under `irregular-shutdowns:` (the header there says how). Each has a label, a type, a start, and an end or
+// shift-schedule.yaml under `irregular-shutdowns:` (its comments say how). Each has a label, a type, a start, and an end or
 // a number of hours (an open shutdown has neither: it's still going, and runs until one is written).
 //
 //   irregular-shutdowns:
@@ -76,7 +76,7 @@ const unquote = (v) => {
  */
 
 /**
- * A hand-written list in a gantry-cycles.yaml, line by line: its entries as written (each `{ line, fields, unknown }`, with only
+ * A hand-written list in shift-schedule.yaml, line by line: its entries as written (each `{ line, fields, unknown }`, with only
  * the `fields` named), the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one
  * (`- {label: x}`, say), which are left out. The list runs from its key to the next key at the left edge.
  * @param {string} text
@@ -119,7 +119,7 @@ export function scanList(text, key, fields) {
 }
 
 /**
- * What's in the `irregular-shutdowns:` list of a gantry-cycles.yaml, and what can't be read: the shutdowns in the order written,
+ * What's in the `irregular-shutdowns:` list of shift-schedule.yaml, and what can't be read: the shutdowns in the order written,
  * the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one, which are left out.
  * @returns {{ shutdowns: Shutdown[], keys: number[], unreadable: { line: number, text: string }[] }}
  */
@@ -130,7 +130,7 @@ export function scanShutdowns(text) {
   return { shutdowns, keys, unreadable };
 }
 
-/** The `irregular-shutdowns:` list of a gantry-cycles.yaml, in the order written. No list gives []. */
+/** The `irregular-shutdowns:` list of shift-schedule.yaml, in the order written. No list gives []. */
 export const parseShutdowns = (text) => scanShutdowns(text).shutdowns;
 
 /** Two shutdowns that overlap are probably a mistake (a stretch written twice): each is warned about the other. */
@@ -147,7 +147,7 @@ function flagOverlaps(list) {
 }
 
 /**
- * Everything wrong with a gantry-cycles.yaml's irregular shutdowns, for the check that stops a bad list being deployed: errors
+ * Everything wrong with shift-schedule.yaml's irregular shutdowns, for the check that stops a bad list being deployed: errors
  * (an entry that's left out of the velocity, a line that can't be read, the key twice) and warnings (a typo'd type or field,
  * end and hours that disagree, a holiday over 24 hours, two that overlap), which the check counts as failures too.
  * @returns {{ line: number, level: "error"|"warning", message: string }[]} In file order.

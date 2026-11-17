@@ -3,7 +3,7 @@
 //
 //   node scripts/build.mjs [--status path/to/status.yaml] [--commit sha]
 //
-// gantry-cycles.yaml is copied from beside status.yaml when it's there.
+// gantry-cycles.yaml and shift-schedule.yaml are copied from beside status.yaml when they're there.
 import { build } from "esbuild";
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -55,6 +55,8 @@ if (status) {
   copyFileSync(status, `${root}dist/status.yaml`);
   const desk = status.replace(/status\.yaml$/, "gantry-cycles.yaml");
   if (desk !== status && existsSync(desk)) copyFileSync(desk, `${root}dist/gantry-cycles.yaml`);
+  const schedule = status.replace(/status\.yaml$/, "shift-schedule.yaml");
+  if (schedule !== status && existsSync(schedule)) copyFileSync(schedule, `${root}dist/shift-schedule.yaml`);
   writeFileSync(
     `${root}dist/copy.json`,
     JSON.stringify({ commit: arg("--commit") ?? "", syncedAt: new Date().toISOString() }) + "\n",

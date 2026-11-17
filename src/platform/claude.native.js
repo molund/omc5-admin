@@ -50,9 +50,9 @@ async function fileAt(sha, path) {
 }
 
 /**
- * main's status.yaml and gantry-cycles.yaml, at the commit main is on now (so a file a cache is behind on can't be mixed with a
+ * main's status.yaml, gantry-cycles.yaml and shift-schedule.yaml, at the commit main is on now (so a file a cache is behind on can't be mixed with a
  * newer commit's name), read again only when main has moved. When GitHub can't be reached, the last copy kept on the
- * phone. A main without gantry-cycles.yaml has none.
+ * phone. A main without gantry-cycles.yaml or shift-schedule.yaml has none.
  */
 async function readMain() {
   try {
@@ -66,7 +66,8 @@ async function readMain() {
     }
     const text = await fileAt(sha, "status.yaml");
     const desk = await fileAt(sha, "gantry-cycles.yaml").catch(() => null);
-    const copy = { text, desk, meta: { commit: sha, syncedAt: new Date().toISOString() } };
+    const schedule = await fileAt(sha, "shift-schedule.yaml").catch(() => null);
+    const copy = { text, desk, schedule, meta: { commit: sha, syncedAt: new Date().toISOString() } };
     save("copy", copy);
     return copy;
   } catch (e) {
@@ -76,7 +77,10 @@ async function readMain() {
   }
 }
 
-/** The Leash Log's files: status.yaml, gantry-cycles.yaml and copy.json (where they came from). There's no pushed.json on the phone. */
+/**
+ * The Leash Log's files: status.yaml, gantry-cycles.yaml, shift-schedule.yaml and copy.json (where they came from). There's no
+ * pushed.json on the phone.
+ */
 export async function ownFile(path) {
   if (path === "status.yaml") {
     latest = await readMain();
@@ -86,6 +90,11 @@ export async function ownFile(path) {
     const desk = (latest ?? (await readMain())).desk;
     if (desk == null) throw new Error("main has no gantry-cycles.yaml");
     return desk;
+  }
+  if (path === "shift-schedule.yaml") {
+    const schedule = (latest ?? (await readMain())).schedule;
+    if (schedule == null) throw new Error("main has no shift-schedule.yaml");
+    return schedule;
   }
   if (path === "copy.json") return JSON.stringify((latest ?? (await readMain())).meta);
   throw new Error(`${path} isn't on the phone`);

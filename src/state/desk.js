@@ -8,6 +8,7 @@ import { AppState } from "react-native";
 import { commitMessage, photosOf } from "../lib/changes.js";
 import { applyAllBoth, applyBoth } from "../lib/deskChanges.js";
 import { EMPTY_DESK, parseDesk } from "../lib/deskFile.js";
+import { SCHEDULE_FILE } from "../lib/scheduleFile.js";
 import { replaceChangeIn } from "../lib/entries.js";
 import { velocity } from "../lib/velocity.js";
 import { parseStatus } from "../lib/statusFile.js";
@@ -34,16 +35,18 @@ function usePersisted(key, initial) {
 /** Everything a screen reads from the files, for one state of them. */
 function viewOf(files) {
   const parsed = parseStatus(files.status);
-  const deskEntries = parseDesk(files.desk);
+  const deskEntries = parseDesk(files.desk, files.schedule);
   return {
     text: files.status,
     deskText: files.desk,
+    // shift-schedule.yaml, read only
+    scheduleText: files.schedule,
     parsed,
     deskEntries,
     /** What a draft change would do to the files as they stand: { text, hunks, deskText, deskHunks, error }. */
     preview(change) {
       try {
-        const r = applyBoth({ status: files.status, desk: files.desk }, change);
+        const r = applyBoth({ status: files.status, desk: files.desk, schedule: files.schedule }, change);
         return { text: r.status, hunks: r.hunks, deskText: r.desk, deskHunks: r.deskHunks, error: null };
       } catch (e) {
         return { text: files.status, hunks: [], deskText: files.desk, deskHunks: [], error: e.message };
@@ -54,8 +57,9 @@ function viewOf(files) {
 }
 
 export function DeskProvider({ children }) {
-  // status.yaml's text, gantry-cycles.yaml's (the Leash Log's own records: notes to self and the gantry's steps), and where they came from
-  const [copy, setCopy] = useState({ text: null, desk: null, error: null, meta: null });
+  // status.yaml's text, gantry-cycles.yaml's (the Leash Log's own records: notes to self and the gantry's steps),
+  // shift-schedule.yaml's (the work schedule, read only), and where they came from
+  const [copy, setCopy] = useState({ text: null, desk: null, schedule: null, error: null, meta: null });
   const [changes, setChanges, changesKept] = usePersisted("changes", []);
   const [photos, setPhotos, photosKept] = usePersisted("photos", {});
   // counts the saves: a form's draft from before the latest one is dropped, so saving anything clears every form
@@ -78,6 +82,8 @@ export function DeskProvider({ children }) {
       const text = await ownFile("status.yaml");
       // a repo (or a desk published) before gantry-cycles.yaml existed has none yet
       const deskText = await ownFile("gantry-cycles.yaml").catch(() => EMPTY_DESK);
+      // no schedule is no shutdowns and no nights off
+      const scheduleText = await ownFile(SCHEDULE_FILE).catch(() => "");
       const meta = await ownFile("copy.json")
         .then(JSON.parse)
         .catch(() => null);
@@ -87,7 +93,7 @@ export function DeskProvider({ children }) {
       const outbox = await ownFile("outbox.json")
         .then(JSON.parse)
         .catch(() => null);
-      setCopy({ text, desk: deskText, error: null, meta });
+      setCopy({ text, desk: deskText, schedule: scheduleText, error: null, meta });
       setPending(outbox?.id && outbox.id !== meta?.handled ? outbox : null);
       if (pushed?.pushed?.length) {
         const done = new Set(pushed.pushed);
@@ -145,8 +151,11 @@ export function DeskProvider({ children }) {
   }, [changes]);
 
   const working = useMemo(
-    () => (copy.text == null ? null : applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK }, changes)),
-    [copy.text, copy.desk, changes],
+    () =>
+      copy.text == null
+        ? null
+        : applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK, schedule: copy.schedule ?? "" }, changes),
+    [copy.text, copy.desk, copy.schedule, changes],
   );
   const view = useMemo(() => (working ? viewOf(working) : null), [working]);
   const deskEntries = view?.deskEntries ?? [];
@@ -178,6 +187,7 @@ export function DeskProvider({ children }) {
       base: copy.text,
       text: null,
       deskText: null,
+      scheduleText: null,
       parsed: null,
       deskEntries,
       preview: () => ({ text: null, hunks: [], deskText: null, deskHunks: [], error: null }),
@@ -201,7 +211,10 @@ export function DeskProvider({ children }) {
       before(id) {
         const i = changes.findIndex((c) => c.id === id);
         return viewOf(
-          applyAllBoth({ status: copy.text, desk: copy.desk ?? EMPTY_DESK }, i < 0 ? changes : changes.slice(0, i)),
+          applyAllBoth(
+            { status: copy.text, desk: copy.desk ?? EMPTY_DESK, schedule: copy.schedule ?? "" },
+            i < 0 ? changes : changes.slice(0, i),
+          ),
         );
       },
       addChange(change, message) {

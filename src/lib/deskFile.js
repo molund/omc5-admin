@@ -51,6 +51,16 @@ const SHUTDOWNS_COMMENT = `# irregular-shutdowns: stretches with no gantry work 
 #     start: 2026-11-15T13:00-07:00
 #     hours: 3`;
 
+// above the night-shift-off list: how to write one, with an example to uncomment
+const NIGHTS_OFF_COMMENT = `# night-shift-off: stretches of nights with no night shift, added by hand. The day shift still works. Each one has:
+#   start: the first night off, a date (2026-11-16): the night shift from 8 p.m. that day
+#   end: the last night off, a date; leave it out while the night shift is still off
+# The shift clock, which the stage shares and the estimated steps use, leaves those nights out. The lost nights count
+# against the pace.
+# Example (take out the "# "):
+#   - start: 2026-11-16
+#     end: 2026-12-04`;
+
 const unquote = (v) => {
   v = v.trim();
   if (v.startsWith('"')) {
@@ -113,15 +123,15 @@ export function parseDesk(text) {
 const sortEntries = (entries) => [...entries].sort((a, b) => compareKeys(b.key, a.key));
 
 /**
- * The irregular shutdowns block of a gantry-cycles.yaml as it is, line for line (the `irregular-shutdowns:` line, then the list,
- * with the comments and spacing it was written with), so the Leash Log can write the file again without losing it. It runs to
- * its last indented line: a comment at the left edge in the middle of the list is kept, but the comment above the next key isn't
- * taken. Null when the file has no such key.
+ * A hand-written block of a gantry-cycles.yaml as it is, line for line (the key's line, then the list, with the comments and
+ * spacing it was written with), so the Leash Log can write the file again without losing it: `irregular-shutdowns` or
+ * `night-shift-off`. It runs to its last indented line: a comment at the left edge in the middle of the list is kept, but the
+ * comment above the next key isn't taken. Null when the file has no such key.
  * @returns {string[]|null}
  */
-export function rawShutdowns(text) {
+export function rawBlock(text, key) {
   const lines = String(text ?? "").split("\n");
-  const at = lines.findIndex((l) => /^irregular-shutdowns:\s*(#.*)?$/.test(l));
+  const at = lines.findIndex((l) => new RegExp(`^${key}:\\s*(#.*)?$`).test(l));
   if (at < 0) return null;
   let last = at;
   for (let i = at + 1; i < lines.length && !/^[A-Za-z]/.test(lines[i]); i++) if (/^\s+\S/.test(lines[i])) last = i;
@@ -131,11 +141,18 @@ export function rawShutdowns(text) {
 /**
  * The file's text for these entries. Empty entries are left out.
  * @param {DeskEntry[]} entries
- * @param {{ shutdowns?: string[]|null }} [keep] The irregular shutdowns block to write back as it was (rawShutdowns). Without
- *   one, the key is written with nothing under it, ready for entries to be added.
+ * @param {{ shutdowns?: string[]|null, nightsOff?: string[]|null }} [keep] The irregular shutdowns and night-shift-off blocks
+ *   to write back as they were (rawBlock). Without one, its key is written with nothing under it, ready for entries to be added.
  */
-export function formatDesk(entries, { shutdowns } = {}) {
-  const lines = [HEADER, SHUTDOWNS_COMMENT, ...(shutdowns ?? ["irregular-shutdowns:"]), "entries:"];
+export function formatDesk(entries, { shutdowns, nightsOff } = {}) {
+  const lines = [
+    HEADER,
+    SHUTDOWNS_COMMENT,
+    ...(shutdowns ?? ["irregular-shutdowns:"]),
+    NIGHTS_OFF_COMMENT,
+    ...(nightsOff ?? ["night-shift-off:"]),
+    "entries:",
+  ];
   for (const e of sortEntries(entries)) {
     const stage = furthest([e.stage]);
     const memo = cleanText(e.noteToSelf).replace(/\s+/g, " ").trim();

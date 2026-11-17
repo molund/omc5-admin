@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { EMPTY_DESK, formatDesk, parseDesk, rawShutdowns } from "../src/lib/deskFile.js";
+import { EMPTY_DESK, formatDesk, parseDesk, rawBlock } from "../src/lib/deskFile.js";
 import { applyBoth } from "../src/lib/deskChanges.js";
 import { setDeskVelocity } from "../src/lib/changes.js";
 import { velocityPoints } from "./fixtures/velocityChart.js";
@@ -39,10 +39,10 @@ entries:
 `;
 
 test("the block is taken whole: from its key to its last indented line, and not the velocity's comment", () => {
-  assert.equal(rawShutdowns(FILE).join("\n"), LIST);
-  assert.equal(rawShutdowns("entries:\n"), null);
-  assert.deepEqual(rawShutdowns("irregular-shutdowns:\nentries:\n"), ["irregular-shutdowns:"]);
-  assert.deepEqual(rawShutdowns("irregular-shutdowns:   # none yet\nentries:\n"), [
+  assert.equal(rawBlock(FILE, "irregular-shutdowns").join("\n"), LIST);
+  assert.equal(rawBlock("entries:\n", "irregular-shutdowns"), null);
+  assert.deepEqual(rawBlock("irregular-shutdowns:\nentries:\n", "irregular-shutdowns"), ["irregular-shutdowns:"]);
+  assert.deepEqual(rawBlock("irregular-shutdowns:   # none yet\nentries:\n", "irregular-shutdowns"), [
     "irregular-shutdowns:   # none yet",
   ]);
 });
@@ -50,10 +50,9 @@ test("the block is taken whole: from its key to its last indented line, and not 
 test("the file written fresh has the key, with the examples above it, before the entries", () => {
   const text = formatDesk([]);
   const lines = text.split("\n");
-  assert.ok(
-    lines.indexOf("irregular-shutdowns:") > 0 &&
-      lines.indexOf("entries:") === lines.indexOf("irregular-shutdowns:") + 1,
-  );
+  const at = (line) => lines.indexOf(line);
+  assert.ok(at("irregular-shutdowns:") > 0 && at("irregular-shutdowns:") < at("night-shift-off:"));
+  assert.equal(at("entries:"), at("night-shift-off:") + 1);
   assert.match(
     text,
     /#   - label: Remembrance Day\n#     type: holiday\n#     start: 2026-11-11T06:00-07:00\n#     hours: 14/,
@@ -64,7 +63,9 @@ test("the file written fresh has the key, with the examples above it, before the
 });
 
 test("the examples work: take out the '# ' and they're read", () => {
+  // the shutdowns' comment only, up to the night-shift-off list's
   const examples = formatDesk([])
+    .split("# night-shift-off:")[0]
     .split("\n")
     .filter(
       (l) =>
@@ -103,7 +104,7 @@ test("a push writes the list back as it was", () => {
 
 test("the velocity block goes between the list and the entries, and writing it again replaces it", () => {
   const text = formatDesk([{ key: "2026-11-06T08:00-07:00", span: 38, stage: "arrived at span", noteToSelf: "" }], {
-    shutdowns: rawShutdowns(FILE),
+    shutdowns: rawBlock(FILE, "irregular-shutdowns"),
   });
   const once = setDeskVelocity(text, { spansPerWeek: 2.81 }, []).text;
   const twice = setDeskVelocity(once, { spansPerWeek: 2.9 }, []).text;
@@ -128,7 +129,7 @@ test("a second push changes nothing it shouldn't: the list is stable", () => {
     { status: first.status, desk: first.desk },
     { kind: "move", time: "2026-11-06T21:00-07:00", span: 38, complete: false, noteToSelf: "again" },
   );
-  assert.equal(rawShutdowns(second.desk).join("\n"), LIST);
+  assert.equal(rawBlock(second.desk, "irregular-shutdowns").join("\n"), LIST);
   assert.equal(second.desk.match(/^irregular-shutdowns:/gm).length, 1, "never twice");
 });
 
@@ -141,5 +142,49 @@ test("a file with no list gets the key, so entries can be added under it", () =>
     { status: STATUS, desk: old },
     { kind: "move", time: "2026-11-06T20:00-07:00", span: 38, complete: false, noteToSelf: "hello" },
   ).desk;
-  assert.match(out, /\nirregular-shutdowns:\nentries:/);
+  assert.match(out, /\nirregular-shutdowns:\n# night-shift-off:/);
+});
+
+const NIGHTS = `night-shift-off:
+  # the night crew stood down
+  - start: 2026-11-16
+  - start: 2026-10-05
+    end: 2026-10-09`;
+
+test("the night-shift-off list is written back as it was, after the shutdowns, and a second push keeps it", () => {
+  const file = FILE.replace("\n# the Clayton Clipper's velocity", `\n${NIGHTS}\n# the Clayton Clipper's velocity`);
+  assert.equal(rawBlock(file, "night-shift-off").join("\n"), NIGHTS);
+  assert.equal(rawBlock(file, "irregular-shutdowns").join("\n"), LIST, "the shutdowns stop before it");
+  const first = applyBoth(
+    { status: STATUS, desk: file },
+    { kind: "move", time: "2026-11-06T20:00-07:00", span: 38, complete: false, noteToSelf: "hello" },
+  );
+  const second = applyBoth(
+    { status: first.status, desk: first.desk },
+    { kind: "move", time: "2026-11-06T21:00-07:00", span: 38, complete: false, noteToSelf: "again" },
+  );
+  for (const out of [first.desk, second.desk]) {
+    assert.ok(out.includes(NIGHTS + "\n"), "line for line");
+    assert.ok(out.includes(LIST + "\n"));
+    assert.equal(out.match(/^night-shift-off:/gm).length, 1, "never twice");
+    assert.ok(out.search(/^irregular-shutdowns:/m) < out.search(/^night-shift-off:/m));
+    assert.ok(out.search(/^night-shift-off:/m) < out.search(/^entries:/m));
+  }
+});
+
+test("a file with no night-shift-off list gets the key", () => {
+  const out = applyBoth(
+    { status: STATUS, desk: FILE },
+    { kind: "move", time: "2026-11-06T20:00-07:00", span: 38, complete: false, noteToSelf: "hello" },
+  ).desk;
+  assert.deepEqual(rawBlock(out, "night-shift-off"), ["night-shift-off:"]);
+});
+
+test("the night-shift-off example works: take out the '# ' and it's read", () => {
+  const comment = formatDesk([]).split("# night-shift-off:")[1].split("\nnight-shift-off:")[0];
+  const example = comment
+    .split("\n")
+    .filter((l) => /^#   (- |  )[a-z]+:/.test(l))
+    .map((l) => l.slice(2));
+  assert.deepEqual(example, ["  - start: 2026-11-16", "    end: 2026-12-04"]);
 });

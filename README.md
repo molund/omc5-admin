@@ -98,6 +98,10 @@ to self. A change writes both files in the same commit.
   reported during one is counted at its start. The Leash Log writes the list back untouched on every push, and lists it
   on the Velocity page. A mistake in the list (a typo'd type, a holiday over 24 hours, two that overlap) fails the site's
   deploy and a phone push's landing, so nothing bad goes out. The rules are in [`docs/velocity-calculation.md`](docs/velocity-calculation.md).
+- **Night shift off.** Nights with no night shift, while the day shift still works, are added by hand under
+  `night-shift-off:` in `gantry-cycles.yaml`: a `start` date, the first night off, and an `end` date, the last, left out
+  while it's still going. The shift clock leaves those nights out, so the stage shares aren't stretched; the lost nights
+  count against the pace. It's written back, listed and checked the same way as the irregular shutdowns.
 - **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
   reported most recently, part-spans included, with the weekly shutdown (Saturday 3 p.m. to Sunday 8 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the

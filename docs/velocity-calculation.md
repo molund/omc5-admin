@@ -78,6 +78,35 @@ enough that the simplification stops being fair.
 - Shift times are used for the stage shares and the estimated arrivals only (`shiftHours`, `afterShiftHours`): time
   between shifts counts as no time at all.
 
+## Night shift off
+
+Stretches of nights with no night shift, while the day shift still works. They're added by hand, under `night-shift-off:` in
+`gantry-cycles.yaml` (`lib/nightsOff.js`; the file's header has an example to uncomment), and written back line for line on
+every push, like the irregular shutdowns.
+
+```yaml
+night-shift-off:
+  - start: 2026-11-16
+    end: 2026-12-04
+```
+
+- **Each has** a `start` and maybe an `end`, both dates, not time stamps: a night is either worked or it isn't. `start` is
+  the first night off, the night shift from 8 p.m. that day; `end` is the last night off, so both count. With no `end`
+  it's open, still going: add one when the night shift comes back.
+- **Only the shift clock changes.** The night shifts in it are left out of the shift hours (`shiftHours`,
+  `afterShiftHours`), so the stage shares and the estimated steps aren't stretched by night hours nobody worked. The day
+  shifts carry on, so an open stretch doesn't stop the clock the way an open shutdown does.
+- **The lost nights count against the pace.** Working time doesn't change, so a week without its night shifts shows as a
+  slower velocity, the way a breakdown does. The velocity's start can still move a little, since it's read off between
+  steps using the stage shares.
+- A step reported overnight isn't moved: it happened by then, and the shift clock already puts no time between the day
+  shift's end and the next morning's.
+- **Mistakes.** No start, a start or end that isn't a date (a time stamp included), or an end before the start is an error,
+  and that stretch is left out. An unknown field (`label:`) or two stretches that overlap is a warning. The key twice, or a
+  line that can't be read, is an error. `scripts/check-shutdowns.mjs` checks these along with the irregular shutdowns, so
+  any of them fails the site's deploy.
+- **The Velocity page** lists them, and puts a dashed box among the steps at the first night's 8 p.m.
+
 ## The weekly shutdown
 
 - **3 p.m. Saturday to 8 p.m. Sunday**, 29 hours, every week (`SHUTDOWN_START`, `SHUTDOWN_HOURS`). The site works 24/6.
@@ -151,10 +180,10 @@ irregular-shutdowns:
 
 The code keeps two clocks, and they don't agree on the gaps between shifts:
 
-| Used for                         | Clock        | Counts                                                                        |
-| -------------------------------- | ------------ | ----------------------------------------------------------------------------- |
-| Cycle lengths, spans per week    | Working time | Every hour except the weekly shutdown and holidays (up to 24 h each)          |
-| Stage shares, estimated arrivals | Shift hours  | Only the hours inside a day or night shift, and none in an irregular shutdown |
+| Used for                         | Clock        | Counts                                                                                                       |
+| -------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------ |
+| Cycle lengths, spans per week    | Working time | Every hour except the weekly shutdown and holidays (up to 24 h each)                                         |
+| Stage shares, estimated arrivals | Shift hours  | Only the hours inside a day or night shift, none in an irregular shutdown, and no night shift on a night off |
 
 So the cycle lengths and spans per week include the shift-change gaps, and the shares don't.
 

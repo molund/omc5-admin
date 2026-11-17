@@ -85,8 +85,7 @@ to self. A change writes both files in the same commit.
   glued", "started moving its supports" and so on), or at the step already posted for the span when they find none
   (editing an entry that has no step, the one before it); drag it to change it. There's no way to leave it out. It
   can't go earlier than the furthest step already posted for the span, or than "hung" once the span is hung. A move
-  logs "arrived at span" by itself, and marking a span hung logs "hung". In the Claude app, "Ask Claude" reads the
-  text for wording the rules don't know (the artifact's `sample` capability).
+  logs "arrived at span" by itself, and marking a span hung logs "hung".
 - **Stage completion.** Under the step's slider, a "Record stage completion" box turns on a second slider, 0 to 99 per
   cent, for how far through the step it was. Nothing is recorded unless it's ticked. It can only go forward from the last
   move on the same step (that entry's `progress:` in `gantry-cycles.yaml`); to go lower, edit the last move first. It's a
@@ -223,7 +222,6 @@ capabilities:
 | Capability | What for                                                                                   |
 | ---------- | ------------------------------------------------------------------------------------------ |
 | `artifact` | the Leash Log saves its outbox into itself                                                 |
-| `sample`   | "Ask Claude" for the gantry steps                                                          |
 | `mcp`      | `{servers: [{server: "Claude Code Remote", tools: ["fire_trigger"]}]}`: starts the session |
 
 ### Platform files
@@ -260,7 +258,7 @@ Each file starts with a comment saying what it's for.
 | `src/components/`          | the pieces the screens share                                                                                          |
 | `src/lib/`                 | the files, the changes and the rules: plain JavaScript, no React, shared by the app, both kinds of push and the tests |
 | `src/state/desk.js`        | the Leash Log's copy, the waiting changes, drafts and photos                                                          |
-| `src/services/`            | pushing (from the phone and from the Claude app) and Ask Claude                                                       |
+| `src/services/`            | pushing (from the phone and from the Claude app)                                                                      |
 | `src/platform/`            | one file per platform (see Platform files above)                                                                      |
 | `src/theme/`               | the site's colours for twrnc                                                                                          |
 | `tools/apply-changes.mjs`  | the push session's CLI                                                                                                |

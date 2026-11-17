@@ -177,6 +177,6 @@ The model tests were throwaway Node scripts, not in the repo. To repeat one:
 
 - Nothing has been checked on an iPhone: the split button and its inline menu, Stop, the sparkle's Undo, the price
   refresh.
-- The Claude app could ask Claude itself (its `sample` capability, as `services/stageAI.js` does) instead of copy and
+- The Claude app could ask Claude itself (its `sample` capability) instead of copy and
   paste; it was left as copy and paste on purpose.
 - Short notes could ask for a summary alone, so they don't grow.

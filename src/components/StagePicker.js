@@ -1,12 +1,11 @@
 // The step of the gantry's cycle a change reports, for gantry-cycles.yaml and the velocity: always one. The rules (lib/stages.js)
-// suggest the furthest step the text reports; Mike drags a slider between the steps (sideways: a tap or a scroll doesn't move it); in the Claude app, "Ask Claude"
-// reads the text when the rules find nothing. Every position, update and addendum reports a step, with no way to leave it
+// suggest the furthest step the text reports; Mike drags a slider between the steps (sideways: a tap or a scroll doesn't move it). Every position, update and addendum reports a step, with no way to leave it
 // out: the one already posted for the span (or, editing an entry with none, the one before it), unless the rules or he move
 // it on, so it does no harm. It can't go earlier than the furthest step already posted for the span, or than hung once the
 // span is hung. Under the step's slider, a second one records how far through the step it was (0 to 99 per cent), once its box
 // is ticked: a plain record that never goes below the last move's on the same step. Its − and + move it a per cent at a time,
 // finer than a drag can.
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { PanResponder, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { isDoubleGirder } from "../lib/doubleGirder.js";
@@ -35,7 +34,6 @@ export const progressToPost = (value, entries, span, stage, time) =>
     : Math.max(value, progressBefore(entries, span, stage, time));
 import { progressBefore } from "../lib/deskFile.js";
 import { canRecordProgress } from "../lib/velocity.js";
-import { askClaude, canAskClaude } from "../services/stageAI.js";
 import { NoteToSelf } from "./NoteToSelf.js";
 import { Body, Button, Checkbox, Label, Panel, Row, Stepper } from "./ui.js";
 
@@ -176,33 +174,12 @@ export function StagePicker({
   const stage = stageToPost(value, floor, text, fallback, span);
   const index = STAGES.indexOf(stage);
   const min = STAGES.indexOf(floor);
-  const [claude, setClaude] = useState(false);
-  const [asking, setAsking] = useState(false);
-  const [problem, setProblem] = useState(null);
   // the completion cleared by moving off its step, and that step: moving back to it brings the completion back
   const kept = useRef(null);
-  useEffect(() => {
-    canAskClaude().then(setClaude);
-  }, []);
 
   const name = STAGE_LABELS[stage];
   // the last move's completion on this step: the new one can't be below it
   const lastMove = entries && time ? progressBefore(entries, progressSpan, stage, time) : 0;
-  async function ask() {
-    setAsking(true);
-    setProblem(null);
-    try {
-      const answer = furthest(await askClaude(text));
-      if (answer) onChange(answer);
-      else setProblem("Claude found no step in it. Pick by hand.");
-    } catch (e) {
-      setProblem(
-        e?.code === "not_granted" ? "Claude wasn't allowed to read it." : "Claude didn't answer. Pick by hand.",
-      );
-    } finally {
-      setAsking(false);
-    }
-  }
 
   return (
     <Panel>
@@ -284,24 +261,14 @@ export function StagePicker({
             .join(", ")} step: its in-place casting and form work are prerequisites to cables down.`}
         </Body>
       )}
-      {problem && (
-        <Body small mute>
-          {problem}
-        </Body>
-      )}
-      {!girder && (claude || (suggested && stage !== observable(span, atLeast(suggested, floor)))) && (
+      {!girder && suggested && stage !== observable(span, atLeast(suggested, floor)) && (
         <Row style={tw`justify-end`}>
-          {suggested && stage !== observable(span, atLeast(suggested, floor)) && (
-            <Button
-              small
-              kind="link"
-              title="Use what's found"
-              onPress={() => onChange(observable(span, atLeast(suggested, floor)))}
-            />
-          )}
-          {claude && !!text?.trim() && (
-            <Button small title={asking ? "Asking Claude…" : "Ask Claude"} disabled={asking} onPress={ask} />
-          )}
+          <Button
+            small
+            kind="link"
+            title="Use what's found"
+            onPress={() => onChange(observable(span, atLeast(suggested, floor)))}
+          />
         </Row>
       )}
       {onNotes && <NoteToSelf inBox value={notes ?? ""} onChange={onNotes} where={notesWhere} />}

@@ -179,6 +179,8 @@ export function StagePicker({
   const [claude, setClaude] = useState(false);
   const [asking, setAsking] = useState(false);
   const [problem, setProblem] = useState(null);
+  // the completion cleared by moving off its step, and that step: moving back to it brings the completion back
+  const kept = useRef(null);
   useEffect(() => {
     canAskClaude().then(setClaude);
   }, []);
@@ -220,8 +222,10 @@ export function StagePicker({
         disabled={girder}
         off={STAGES.flatMap((st, i) => (isNotObserved(span, st) ? [i] : []))}
         onChange={(p) => {
-          // a completion is of the step it was recorded for
-          if (progress != null) onProgress?.(null);
+          // a completion is of the step it was recorded for: cleared on another step, and back on its own
+          if (progress != null) kept.current = { stage, progress };
+          if (kept.current?.stage === STAGES[p]) onProgress?.(kept.current.progress);
+          else if (progress != null) onProgress?.(null);
           onChange(STAGES[p]);
         }}
       />
@@ -230,7 +234,11 @@ export function StagePicker({
           <Checkbox
             label="Record stage completion"
             value={progress != null}
-            onChange={(on) => onProgress(on ? lastMove : null)}
+            onChange={(on) => {
+              // unticked on purpose: not brought back
+              if (!on) kept.current = null;
+              onProgress(on ? lastMove : null);
+            }}
           />
           <Body small mute>
             Not used in the velocity calculation yet.

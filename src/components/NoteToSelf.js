@@ -30,7 +30,7 @@ export function NoteToSelf({ value, onChange, where, inBox }) {
         {...(inBox ? { title: name } : { heading: name })}
         value={value}
         onChangeText={onChange}
-        placeholder="Where it's at, e.g. 60% of the way through the lift"
+        placeholder="What you saw, e.g. front jacks hooked up to the forward support, not moved yet"
         label="Notes"
         noAi
         style={tw`min-h-14`}

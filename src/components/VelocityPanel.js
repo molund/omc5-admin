@@ -80,7 +80,14 @@ const looks = (tw) => ({
   durationIn: tw`border-ink`,
   durationOut: tw`border-transparent`,
   durationTotal: tw`font-semibold`,
+  // the night-shift-off list, ruled off from what's above it
+  section: tw`border-t border-line pt-2`,
+  // a stretch of nights off that can't be counted
+  invalid: tw`text-del-ink`,
 });
+
+// a night off's night shift starts at 8 p.m., BC time, on its date (lib/velocity.js's NIGHT_SHIFT)
+const NIGHT_START_HOURS = 20;
 
 /** What an irregular shutdown does to the week, in a sentence or two. */
 function shutdownNote(e, window) {
@@ -147,15 +154,23 @@ export function VelocityPanel({ full, onOpen }) {
     gaps.set(t, { shutdown, overtime: shutdown > 0.01 ? carried : 0 });
     if (shutdown > 0.01) carried = 0;
   });
-  // each irregular shutdown in a box above the first step after it began, or at the end when no step has come since
+  // each irregular shutdown, and each stretch of nights off (at its first night's 8 p.m.), in a box above the first step after
+  // it began, or at the end when no step has come since
   const effects = shutdownEffects(desk.deskEntries, v);
+  const nightsOff = desk.deskEntries.nightsOff ?? [];
   const firstAt = recent.length ? parseKey(recent[0].key).getTime() : Infinity;
   const boxesBefore = new Map();
   const boxesAfter = [];
-  for (const e of [...effects].reverse().filter((e) => e.valid && e.shutdown.startMs >= firstAt)) {
-    const next = recent.find((t) => parseKey(t.key).getTime() > e.shutdown.startMs);
-    if (next) boxesBefore.set(next, [...(boxesBefore.get(next) ?? []), e]);
-    else boxesAfter.push(e);
+  const boxed = [
+    ...effects.filter((e) => e.valid).map((e) => ({ at: e.shutdown.startMs, e })),
+    ...nightsOff
+      .filter((n) => n.errors.length === 0)
+      .map((night) => ({ at: night.startMs + NIGHT_START_HOURS * 3600000, night })),
+  ].sort((a, b) => a.at - b.at);
+  for (const b of boxed.filter((b) => b.at >= firstAt)) {
+    const next = recent.find((t) => parseKey(t.key).getTime() > b.at);
+    if (next) boxesBefore.set(next, [...(boxesBefore.get(next) ?? []), b]);
+    else boxesAfter.push(b);
   }
   const windowNotes = v.window
     ? [
@@ -226,9 +241,10 @@ export function VelocityPanel({ full, onOpen }) {
     if (t) marksBefore.set(t, [...(marksBefore.get(t) ?? []), m]);
   }
   let lastDay = null;
-  // an irregular shutdown's box or a marker, with a day bar of its own when it's on a later day than what's above it
+  // an irregular shutdown's box, a night off's or a marker, with a day bar of its own when it's on a later day than what's
+  // above it
   const between = (item) => {
-    const day = dayOf(item.e ? item.e.shutdown.start : item.mark.key);
+    const day = dayOf(new Date(item.at));
     const out = { ...item, newDay: day !== lastDay };
     lastDay = day;
     return out;
@@ -239,11 +255,8 @@ export function VelocityPanel({ full, onOpen }) {
     const boxes = boxesBefore.get(t) ?? [];
     const mine = (marksBefore.get(t) ?? []).sort((a, b) => ms(a.key) - ms(b.key));
     // a marker on the step's own day, after any shutdown in the gap, goes under its day bar (and span heading), above it
-    const above = mine.filter((m) => dayOf(m.key) === day && boxes.every((e) => e.shutdown.startMs <= ms(m.key)));
-    const irregular = [
-      ...boxes.map((e) => ({ at: e.shutdown.startMs, e })),
-      ...mine.filter((m) => !above.includes(m)).map((mark) => ({ at: ms(mark.key), mark })),
-    ]
+    const above = mine.filter((m) => dayOf(m.key) === day && boxes.every((b) => b.at <= ms(m.key)));
+    const irregular = [...boxes, ...mine.filter((m) => !above.includes(m)).map((mark) => ({ at: ms(mark.key), mark }))]
       .sort((a, b) => a.at - b.at)
       .map(between);
     const { shutdown = 0, overtime = 0 } = gaps.get(t) ?? {};
@@ -260,7 +273,7 @@ export function VelocityPanel({ full, onOpen }) {
     }
     bySpan.at(-1).steps.push(step);
   }
-  const after = boxesAfter.map((e) => between({ e }));
+  const after = boxesAfter.map(between);
   // The steps list ends with the latest check-in. Each step is listed once, at the earliest time it was reported, so a
   // check-in repeating the last step (or an earlier one) is left out of the list above; it gets a row of its own at the
   // end, unless the last step is that check-in itself. A row's completion donut is its own report's: a step's is the one
@@ -271,6 +284,8 @@ export function VelocityPanel({ full, onOpen }) {
   const lastStep = bySpan.at(-1)?.steps.at(-1);
   const checkin = latest && lastStep && latest.key !== lastStep.key ? latest : null;
   const num = { fontVariant: ["tabular-nums"] };
+  // whether the night shift is off now
+  const nightOffNow = nightsOff.some((n) => n.errors.length === 0 && n.startMs <= Date.now() && Date.now() < n.endMs);
   // the two column headings, small enough that "Observed" and "Estimated" fit their columns at large text sizes
   const header = { fontSize: 9, lineHeight: 12 };
   const cycleHours = v.spansPerWeek ? (WORKING_DAYS_PER_WEEK * 24) / v.spansPerWeek : null;
@@ -339,11 +354,19 @@ export function VelocityPanel({ full, onOpen }) {
       )}
     </View>
   );
-  // an irregular shutdown's box or a marker, under the day it's on when that's a new one
+  // a stretch of nights off, at its first night's 8 p.m., outlined like a marker: its nights count against the pace
+  const nightBox = (n, key) => (
+    <View key={key} style={s.marker}>
+      <Body small mute style={num}>
+        {`Night shift off · ${n.open ? "still going" : `through ${weekdayShort(n.end)} ${Number(n.end.slice(8))}`} · counts against the pace`}
+      </Body>
+    </View>
+  );
+  // an irregular shutdown's box, a night off's or a marker, under the day it's on when that's a new one
   const irregularBox = (b, k) => (
     <Fragment key={k}>
-      {b.newDay && dayLabel(b.e ? b.e.shutdown.start : b.mark.key)}
-      {b.e ? shutdownBox(b.e, k) : markerBox(b.mark, k)}
+      {b.newDay && dayLabel(toKey(new Date(b.at)))}
+      {b.e ? shutdownBox(b.e, k) : b.night ? nightBox(b.night, k) : markerBox(b.mark, k)}
     </Fragment>
   );
   // a step's row: its name, when it started and how long it ran
@@ -400,7 +423,7 @@ export function VelocityPanel({ full, onOpen }) {
           </View>
           {open && (
             <Body small mute>
-              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Friday and Saturday nights and Sunday's day shift. A statutory holiday extends the week by its hours without gantry work, up to ${HOLIDAY_CAP_HOURS} each; any other irregular shutdown counts against the pace. A step reported during one is counted at its start.`}
+              {`How far the gantry got in the week (168 hours) up to the latest step reported (${stageName(v.stage).toLowerCase()} on span ${v.window.span}). It allows for the weekly shutdown, Friday and Saturday nights and Sunday's day shift. A statutory holiday extends the week by its hours without gantry work, up to ${HOLIDAY_CAP_HOURS} each; any other irregular shutdown counts against the pace. A step reported during one is counted at its start.${nightsOff.length ? " Nights with the night shift off count against the pace too." : ""}`}
             </Body>
           )}
         </View>
@@ -463,6 +486,38 @@ export function VelocityPanel({ full, onOpen }) {
           </Body>
         </View>
       )}
+      {open && nightsOff.length > 0 && (
+        <View style={[tw`gap-2`, s.section]}>
+          <Body small mute>
+            Night shift off, newest first
+          </Body>
+          {[...nightsOff]
+            .sort((a, b) => (b.startMs || 0) - (a.startMs || 0))
+            .map((n, i) => {
+              const valid = n.errors.length === 0;
+              const when = !valid
+                ? null
+                : n.open
+                  ? `From ${stamp(n.start)} · still going`
+                  : `${stamp(n.start)} to ${stamp(n.end)} · ${n.nights} night${n.nights === 1 ? "" : "s"}`;
+              const note = valid
+                ? ["No night shift on the shift clock from 8pm. Counts against the pace.", ...n.warnings].join(" ")
+                : `Left out: ${n.errors.join("; ")}.`;
+              return (
+                <View key={i} style={tw`gap-0.5`}>
+                  {when && (
+                    <Body small style={num}>
+                      {when}
+                    </Body>
+                  )}
+                  <Body small mute={valid} style={valid ? null : s.invalid}>
+                    {note}
+                  </Body>
+                </View>
+              );
+            })}
+        </View>
+      )}
       {open && (
         <View style={tw`gap-0.5 border-t border-line pt-2`}>
           <Body small style={tw`font-bold`}>
@@ -475,7 +530,9 @@ export function VelocityPanel({ full, onOpen }) {
           </Body>
           <Body small mute>
             Hourglass: a short pause. Too quick to see on most visits, so its length is set in advance, in shift hours
-            (the 7–5 and 8–6 shifts, 20 of every 24 hours). Here it shows as elapsed hours, about 1.2 times longer.
+            {nightOffNow
+              ? "(the 7–5 shift alone while the night shift is off, 10 of every 24 hours). Here it shows as elapsed hours, about 2.4 times longer."
+              : "(the 7–5 and 8–6 shifts, 20 of every 24 hours). Here it shows as elapsed hours, about 1.2 times longer."}
           </Body>
           {v.shares.map((s) => (
             <View key={s.stage} style={tw`flex-row items-center gap-2`}>

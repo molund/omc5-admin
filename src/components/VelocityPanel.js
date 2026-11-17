@@ -525,7 +525,7 @@ export function VelocityPanel({ full, onOpen }) {
           </Body>
           <Body small mute>
             {v.spansPerWeek
-              ? `The percentages add up to one whole cycle: one span, from arriving at it to arriving at the next. The hours add up to ${hours(cycleHours)}, the time one span takes at ${v.spansPerWeek.toFixed(2)} spans a week (a week's ${hours(WORKING_DAYS_PER_WEEK * 24)} of working time, divided by that). They're elapsed hours, like the steps below.`
+              ? `The percentages add up to one whole cycle: one span, from arriving at it to arriving at the next. The hours add up to ${hours(cycleHours)}, the time one span takes at ${v.spansPerWeek.toFixed(2)} spans a week (the ${hours(WORKING_DAYS_PER_WEEK * 24)} of a week outside the weekend shutdown, divided by that). They're elapsed hours, like the steps below, not shift hours: the crews work ${nightOffNow ? "58 hours a week while the night shift is off" : "108 hours a week, day and night shifts"}.`
               : "The percentages add up to one whole cycle: one span, from arriving at it to arriving at the next."}
           </Body>
           <Body small mute>

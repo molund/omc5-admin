@@ -92,16 +92,17 @@ to self. A change writes both files in the same commit.
   move on the same step (that entry's `progress:` in `gantry-cycles.yaml`); to go lower, edit the last move first. It's a
   plain record: the velocity doesn't use it, and the Velocity page's debug steps show it as a small donut with no number.
   The four pauses (arrived, hung, glued, hangers down: the ones with an hourglass) don't have one.
+- **The work schedule** is `shift-schedule.yaml` in molund/omc5, written by hand: the Leash Log reads it and never writes
+  it, and the site doesn't read it.
 - **Irregular shutdowns.** Holidays, breakdowns and waits are added by hand under `irregular-shutdowns:` in
-  `gantry-cycles.yaml` (the header there has examples): a label, a type (`holiday`, `mechanical`, `waiting` or `weather`), a start,
+  `shift-schedule.yaml` (its comments have examples): a label, a type (`holiday`, `mechanical`, `waiting` or `weather`), a start,
   and an end or hours. A holiday extends the velocity's week by its hours, up to 24; the others count against the pace. A step
-  reported during one is counted at its start. The Leash Log writes the list back untouched on every push, and lists it
-  on the Velocity page. A mistake in the list (a typo'd type, a holiday over 24 hours, two that overlap) fails the site's
+  reported during one is counted at its start. The Leash Log lists them on the Velocity page. A mistake in the list (a typo'd type, a holiday over 24 hours, two that overlap) fails the site's
   deploy and a phone push's landing, so nothing bad goes out. The rules are in [`docs/velocity-calculation.md`](docs/velocity-calculation.md).
 - **Night shift off.** Nights with no night shift, while the day shift still works, are added by hand under
-  `night-shift-off:` in `gantry-cycles.yaml`: a `start` date, the first night off, and an `end` date, the last, left out
+  `night-shift-off:` in `shift-schedule.yaml`: a `start` date, the first night off, and an `end` date, the last, left out
   while it's still going. The shift clock leaves those nights out, so the stage shares aren't stretched; the lost nights
-  count against the pace. It's written back, listed and checked the same way as the irregular shutdowns.
+  count against the pace. It's listed and checked the same way as the irregular shutdowns.
 - **Velocity.** The Velocity panel on Home shows spans per week: how far the gantry got in the week up to the step
   reported most recently, part-spans included, with the weekly shutdown (Saturday 3 p.m. to Sunday 8 p.m.) allowed for.
   Opened, it shows each stage's share of the cycle, how long the gantry has been on its span, and each step with the
@@ -113,7 +114,7 @@ to self. A change writes both files in the same commit.
 
 ### The Leash Log's copy and its waiting changes
 
-- **The Leash Log's own copy of `status.yaml` and `gantry-cycles.yaml` is its database.** On the phone it's read from main on GitHub
+- **The Leash Log's own copy of `status.yaml` and `gantry-cycles.yaml` is its database**, with `shift-schedule.yaml` read alongside. On the phone it's read from main on GitHub
   (the repo is public, so no token), checked every minute and kept for when the phone is offline. In the Claude app it's
   published with the artifact, and `copy.json` says which commit of main it came from.
 - **Saving adds a change to a list on the device** (the phone's SQLite key-value store, or browser storage in the Claude
@@ -164,10 +165,11 @@ under `outbox/photos/` into the Leash Log's own artifact. Then it starts the "An
 [`docs/push-session.md`](docs/push-session.md):
 
 1. pulls main;
-2. applies each change, in order, to main's `status.yaml` and `gantry-cycles.yaml` with `tools/apply-changes.mjs`;
+2. applies each change, in order, to main's `status.yaml` and `gantry-cycles.yaml` with `tools/apply-changes.mjs` (reading
+   `shift-schedule.yaml` for the velocity);
 3. runs Prettier and `npm run build`, then makes one commit per change, as Mike Olund (Claude app);
 4. pushes;
-5. republishes the Leash Log with main's new `status.yaml` and `gantry-cycles.yaml`, `copy.json` (with `handled`: the request's id)
+5. republishes the Leash Log with main's new `status.yaml`, `gantry-cycles.yaml` and `shift-schedule.yaml`, `copy.json` (with `handled`: the request's id)
    and `pushed.json` (the ids it committed), and removes the outbox.
 
 The Leash Log reloads with the new copy and drops the changes listed in `pushed.json`. Refresh from main saves a refresh
@@ -213,8 +215,9 @@ Apple ID the app has to be rebuilt every 7 days. The iOS bundle can be checked w
 node scripts/build.mjs --status path/to/status.yaml --commit <sha>
 ```
 
-`gantry-cycles.yaml` is copied from beside `status.yaml`. Then publish `dist/index.html` as the artifact page, with `app.js`,
-`status.yaml`, `gantry-cycles.yaml`, `copy.json` and `tools/apply-changes.mjs` beside it, and the source under `source/`. Its
+`gantry-cycles.yaml` and `shift-schedule.yaml` are copied from beside `status.yaml`. Then publish `dist/index.html` as the
+artifact page, with `app.js`, `status.yaml`, `gantry-cycles.yaml`, `shift-schedule.yaml`, `copy.json` and
+`tools/apply-changes.mjs` beside it, and the source under `source/`. Its
 capabilities:
 
 | Capability | What for                                                                                   |

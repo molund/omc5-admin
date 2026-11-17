@@ -49,7 +49,8 @@ Nothing to commit: go to step 5 with no commits.
 Publish to the Leash Log's URL, with the page file the read in step 1 saved as `file_path`, the same label style as earlier
 versions, no `capabilities` (they carry forward) and only these `files`:
 
-- `status.yaml` and `gantry-cycles.yaml`: main's, after the push (`contentType: "text/plain"`).
+- `status.yaml`, `gantry-cycles.yaml` and `shift-schedule.yaml`: main's, after the push (`contentType: "text/plain"`).
+  `shift-schedule.yaml` is never changed by a push, but it's sent every time, so the Leash Log's copy follows main.
 - `copy.json`: `{"commit": "<main's sha>", "syncedAt": "<now, ISO>", "handled": "<the request's id>"}`.
 - `pushed.json`: `{"pushed": [<ids committed>]}` for a push; `{"pushed": []}` for a refresh.
 - `outbox.json` and each `outbox/photos/<file>`: `null`, to remove them.

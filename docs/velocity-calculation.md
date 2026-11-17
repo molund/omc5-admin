@@ -78,11 +78,17 @@ enough that the simplification stops being fair.
 - Shift times are used for the stage shares and the estimated arrivals only (`shiftHours`, `afterShiftHours`): time
   between shifts counts as no time at all.
 
+## shift-schedule.yaml
+
+The work schedule, in molund/omc5 beside `status.yaml` and `gantry-cycles.yaml` (`lib/scheduleFile.js`). It's written by hand:
+the Leash Log reads it for the velocity and never writes it, and the site doesn't read it. It holds the nights off and the
+irregular shutdowns, below. `scripts/check-shutdowns.mjs` checks it before the site deploys. With no file, there are none of
+either.
+
 ## Night shift off
 
 Stretches of nights with no night shift, while the day shift still works. They're added by hand, under `night-shift-off:` in
-`gantry-cycles.yaml` (`lib/nightsOff.js`; the file's header has an example to uncomment), and written back line for line on
-every push, like the irregular shutdowns.
+`shift-schedule.yaml` (`lib/nightsOff.js`; the file's comments have an example to uncomment), beside the irregular shutdowns.
 
 ```yaml
 night-shift-off:
@@ -124,8 +130,7 @@ night-shift-off:
 ## Irregular shutdowns
 
 Stretches with no gantry work that the weekly shutdown doesn't cover. They're added by hand, under `irregular-shutdowns:` in
-`gantry-cycles.yaml` (`lib/shutdowns.js`; the file's header has examples to uncomment). The Leash Log writes that file whole on
-every push and writes the list back line for line, comments included.
+`shift-schedule.yaml` (`lib/shutdowns.js`; the file's comments have examples to uncomment).
 
 ```yaml
 irregular-shutdowns:

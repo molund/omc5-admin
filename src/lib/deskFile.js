@@ -9,6 +9,7 @@ import { cleanText } from "./cleanText.js";
 import { compareKeys } from "./time.js";
 import { STAGES, currentName, furthest } from "./stages.js";
 import { parseShutdowns } from "./shutdowns.js";
+import { parseNightsOff } from "./nightsOff.js";
 
 export const DESK_FILE = "gantry-cycles.yaml";
 
@@ -85,7 +86,8 @@ export const asProgress = (v) => {
  * stage: null only on an entry that is just a note to self (a blog post's). progress: how far through the stage, 0 to 99, or
  * null when none was recorded.
  * @returns {DeskEntry[]} Newest first. It also carries the file's irregular shutdowns (lib/shutdowns.js) as a `shutdowns` property
- * that doesn't show up when it's copied or looped over, which the velocity's calculations read.
+ * and its nights off (lib/nightsOff.js) as `nightsOff`, which don't show up when it's copied or looped over, which the velocity's
+ * calculations read.
  */
 export function parseDesk(text) {
   const entries = [];
@@ -117,6 +119,7 @@ export function parseDesk(text) {
   }
   const sorted = sortEntries(entries);
   Object.defineProperty(sorted, "shutdowns", { value: parseShutdowns(text), enumerable: false });
+  Object.defineProperty(sorted, "nightsOff", { value: parseNightsOff(text), enumerable: false });
   return sorted;
 }
 

@@ -76,21 +76,24 @@ const unquote = (v) => {
  */
 
 /**
- * What's in the `irregular-shutdowns:` list of a gantry-cycles.yaml, and what can't be read: the shutdowns in the order written,
- * the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one (`- {label: x}`, say),
- * which are left out.
- * @returns {{ shutdowns: Shutdown[], keys: number[], unreadable: { line: number, text: string }[] }}
+ * A hand-written list in a gantry-cycles.yaml, line by line: its entries as written (each `{ line, fields, unknown }`, with only
+ * the `fields` named), the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one
+ * (`- {label: x}`, say), which are left out. The list runs from its key to the next key at the left edge.
+ * @param {string} text
+ * @param {string} key `irregular-shutdowns` or `night-shift-off`
+ * @param {Set<string>} fields
  */
-export function scanShutdowns(text) {
+export function scanList(text, key, fields) {
   const items = [],
     keys = [],
     unreadable = [];
+  const head = new RegExp(`^${key}:\\s*(#.*)?$`);
   let inList = false,
     cur = null;
   String(text ?? "")
     .split("\n")
     .forEach((line, i) => {
-      if (/^irregular-shutdowns:\s*(#.*)?$/.test(line)) {
+      if (head.test(line)) {
         inList = true;
         keys.push(i + 1);
         return;
@@ -109,9 +112,19 @@ export function scanShutdowns(text) {
         return;
       }
       if (start) items.push((cur = { line: i + 1, fields: {}, unknown: [] }));
-      if (FIELDS.has(field[1])) cur.fields[field[1]] = unquote(field[2]);
+      if (fields.has(field[1])) cur.fields[field[1]] = unquote(field[2]);
       else cur.unknown.push(field[1]);
     });
+  return { items, keys, unreadable };
+}
+
+/**
+ * What's in the `irregular-shutdowns:` list of a gantry-cycles.yaml, and what can't be read: the shutdowns in the order written,
+ * the lines of the file the key is on, and the lines in the list that aren't an entry or a field of one, which are left out.
+ * @returns {{ shutdowns: Shutdown[], keys: number[], unreadable: { line: number, text: string }[] }}
+ */
+export function scanShutdowns(text) {
+  const { items, keys, unreadable } = scanList(text, "irregular-shutdowns", FIELDS);
   const shutdowns = items.map(shutdownOf);
   flagOverlaps(shutdowns);
   return { shutdowns, keys, unreadable };

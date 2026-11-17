@@ -11,18 +11,20 @@
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
 import { HOLIDAY_CAP_HOURS, rangesOf, typeInfo } from "./shutdowns.js";
+import { nightRangesOf } from "./nightsOff.js";
 
 // The irregular shutdowns of the file being worked on (lib/shutdowns.js), as time ranges in ms, while a calculation runs:
 // `off` are all of them (no gantry work in them: the shift clock leaves them out, and a step reported in one is counted at its
 // start), `excused` the holidays (which leave working time too). It's set from the entries' `shutdowns` (what parseDesk
 // returns carries them) by the calculations that take entries; a copy of the entries that has lost them (a filter) keeps
-// whatever the caller set.
-let calendar = { off: [], excused: [] };
-/** Runs a calculation with the entries' irregular shutdowns in force. */
+// whatever the caller set. `nightsOff` are the nights with no night shift (lib/nightsOff.js), from the entries' `nightsOff`:
+// [the first night's BC midnight, the midnight after the last's), which the shift clock leaves the night shifts out of.
+let calendar = { off: [], excused: [], nightsOff: [] };
+/** Runs a calculation with the entries' irregular shutdowns and nights off in force. */
 export function withCalendar(entries, fn) {
-  if (!entries?.shutdowns) return fn();
+  if (!entries?.shutdowns && !entries?.nightsOff) return fn();
   const before = calendar;
-  calendar = rangesOf(entries.shutdowns);
+  calendar = { ...rangesOf(entries.shutdowns), nightsOff: nightRangesOf(entries.nightsOff) };
   try {
     return fn();
   } finally {
@@ -113,7 +115,9 @@ function* rawShiftsFrom(from) {
   for (; ; midnight += DAY) {
     const weekday = bc(new Date(midnight)).getUTCDay();
     if (weekday !== 0) yield (weekday === 6 ? SATURDAY_DAY_SHIFT : DAY_SHIFT).map((h) => midnight + h * HOUR);
-    if (weekday !== 5 && weekday !== 6) yield NIGHT_SHIFT.map((h) => midnight + h * HOUR);
+    // a night off has no night shift; the day shift still works
+    const off = calendar.nightsOff.some(([s, e]) => s <= midnight && midnight < e);
+    if (weekday !== 5 && weekday !== 6 && !off) yield NIGHT_SHIFT.map((h) => midnight + h * HOUR);
   }
 }
 

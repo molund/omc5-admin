@@ -308,3 +308,43 @@ test("an open shutdown: the velocity and the steps are worked out, as with it cl
   );
   assert.equal(velocity(later).window.end, "2026-11-11T06:00-07:00");
 });
+
+// nights off (lib/nightsOff.js): Monday, Nov. 16, 2026 on, the night shift stood down, the day shift still working
+const withNights = (list) => REAL.replace(/\nentries:/, `\nnight-shift-off:\n${list}\nentries:`);
+const tonight = parseDesk(withNights("  - start: 2026-11-16\n    end: 2026-11-16"));
+const open = parseDesk(withNights("  - start: 2026-11-16"));
+
+test("the shift clock leaves out a night off, and only that night", () => {
+  const hours = (entries, a, b) => in_(entries, () => shiftHours(D(a), D(b)));
+  // Monday's day shift, its night shift, Tuesday's day shift
+  assert.equal(hours(plain, "2026-11-16T07:00-07:00", "2026-11-17T17:00-07:00"), 30);
+  assert.equal(hours(tonight, "2026-11-16T07:00-07:00", "2026-11-17T17:00-07:00"), 20, "Monday night is off");
+  // Tuesday's night is after the stretch ends
+  assert.equal(hours(tonight, "2026-11-17T07:00-07:00", "2026-11-18T06:00-07:00"), 20);
+  assert.equal(hours(open, "2026-11-17T07:00-07:00", "2026-11-18T06:00-07:00"), 10, "open: every night after it too");
+  // Sunday night, Nov. 15, before it, still counts: 8 p.m. to 6 a.m.
+  assert.equal(hours(open, "2026-11-15T19:00-07:00", "2026-11-16T07:00-07:00"), 10);
+});
+
+test("the weekend is the same with nights off: Friday and Saturday nights had no night shift anyway", () => {
+  const hours = (entries) => in_(entries, () => shiftHours(D("2026-11-20T07:00-07:00"), D("2026-11-22T19:00-07:00")));
+  // Friday's day shift, Saturday's shorter one, no Sunday day shift
+  assert.equal(hours(plain), 18);
+  assert.equal(hours(open), 18);
+});
+
+test("afterShiftHours skips a night off, and an open stretch never ends the day shifts", () => {
+  const after = (entries, key, h) => in_(entries, () => afterShiftHours(D(key), h));
+  // from 4 p.m. Monday: an hour to 5 p.m., then the next one is Tuesday's from 7 a.m.
+  assert.equal(after(plain, "2026-11-16T16:00-07:00", 2).getTime(), D("2026-11-16T21:00-07:00").getTime());
+  assert.equal(after(tonight, "2026-11-16T16:00-07:00", 2).getTime(), D("2026-11-17T08:00-07:00").getTime());
+  assert.ok(after(open, "2026-11-16T07:00-07:00", 500) instanceof Date, "weeks of day shifts still come");
+});
+
+test("working time doesn't change with nights off: the lost nights count against the pace", () => {
+  const [a, b] = [D("2026-11-16T07:00-07:00"), D("2026-11-20T17:00-07:00")];
+  assert.equal(
+    in_(open, () => workingHours(a, b)),
+    in_(plain, () => workingHours(a, b)),
+  );
+});

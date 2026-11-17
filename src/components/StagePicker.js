@@ -1,5 +1,5 @@
 // The step of the gantry's cycle a change reports, for gantry-cycles.yaml and the velocity: always one. The rules (lib/stages.js)
-// suggest the furthest step the text reports; Mike drags or taps a slider between the steps; in the Claude app, "Ask Claude"
+// suggest the furthest step the text reports; Mike drags a slider between the steps (sideways: a tap or a scroll doesn't move it); in the Claude app, "Ask Claude"
 // reads the text when the rules find nothing. Every position, update and addendum reports a step, with no way to leave it
 // out: the one already posted for the span (or, editing an entry with none, the one before it), unless the rules or he move
 // it on, so it does no harm. It can't go earlier than the furthest step already posted for the span, or than hung once the
@@ -42,7 +42,7 @@ import { Body, Button, Checkbox, Label, Panel, Row, Stepper } from "./ui.js";
 const THUMB = 26;
 
 /**
- * A track with a stop per position and a thumb to drag or tap along it. Position 0 is the left end; none before `min`. With
+ * A track with a stop per position and a thumb to drag along it. Position 0 is the left end; none before `min`. With
  * `stops` off the track has no stop marks (for one with a position for every per cent).
  */
 function StepSlider({ position, count, min = 0, label, valueText, onChange, disabled, off = [], stops = true }) {
@@ -67,12 +67,14 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
   };
   const pan = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      // only a sideways drag moves it: a tap, or a thumb scrolling the page past it, leaves it where it is
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy),
       onPanResponderTerminationRequest: () => false, // a drag stays on the slider, rather than scrolling the page
-      onPanResponderGrant: (e) => {
-        startX.current = e.nativeEvent.locationX;
-        goToX(startX.current);
+      onPanResponderGrant: (e, g) => {
+        // where the drag started, as it's only taken once it has moved
+        startX.current = e.nativeEvent.locationX - g.dx;
+        goToX(e.nativeEvent.locationX);
       },
       onPanResponderMove: (_, g) => goToX(startX.current + g.dx),
     }),
@@ -98,7 +100,8 @@ function StepSlider({ position, count, min = 0, label, valueText, onChange, disa
       }}
       style={[
         tw`h-11 justify-center`,
-        { paddingHorizontal: THUMB / 2, touchAction: "none", userSelect: "none", opacity: disabled ? 0.4 : 1 },
+        // pan-y: the browser still scrolls the page from a touch on the slider
+        { paddingHorizontal: THUMB / 2, touchAction: "pan-y", userSelect: "none", opacity: disabled ? 0.4 : 1 },
       ]}
     >
       <View style={tw`h-1 justify-center rounded-full bg-line`}>

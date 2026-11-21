@@ -3,11 +3,12 @@ import { readToken } from "../platform/secrets";
 import { GitHubError, followWith, pushChanges } from "./github.js";
 
 /**
- * @param {{ changes: object[], photos: object, tokenInfo: object|null, setTokenInfo: Function }} desk
+ * @param {{ changes: object[], photos: object, tokenInfo: object|null, setTokenInfo: Function, onTop?: string }} desk
+ *   onTop: the last commit of an earlier push still landing, to push on top of (pushChanges()).
  * @returns {Promise<{ head: string, pushed: string[], skipped: object[] }>}
  * @throws {GitHubError} with a `settings` flag when the fix is in Settings.
  */
-export async function pushFromPhone({ changes, photos, tokenInfo, setTokenInfo }) {
+export async function pushFromPhone({ changes, photos, tokenInfo, setTokenInfo, onTop }) {
   const needsSettings = (code, message, detail) =>
     Object.assign(new GitHubError(code, message, detail), { settings: true });
   if (!tokenInfo) throw needsSettings("no_token", "Push needs a GitHub token. Add one in Settings.");
@@ -27,7 +28,7 @@ export async function pushFromPhone({ changes, photos, tokenInfo, setTokenInfo }
   }
 
   try {
-    const result = await pushChanges({ token, changes, photos });
+    const result = await pushChanges({ token, changes, photos, onTop });
     // the token Face ID just unlocked follows this push's runs too, in memory, until the push is done
     followWith(token, result.head);
     setTokenInfo((t) => t && { ...t, expiresAt: result.expiresAt ?? t.expiresAt, rejected: false });

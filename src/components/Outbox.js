@@ -155,6 +155,8 @@ function Landing({ p }) {
           desk.setPush((q) => (q && q.head === p.head ? { ...q, landed: true } : q));
           desk.reload();
         }
+        // a failed landing: a push made on top of it would fail too, so the next one goes on top of main again
+        if (s.stage === "failed") desk.setPush((q) => (q && q.head === p.head ? { ...q, failed: true } : q));
         if (["failed", "live", "deploy-failed"].includes(s.stage)) {
           final.current = true;
           stopFollowing(p.head);
@@ -246,6 +248,10 @@ export function Outbox({ onSettings, onEdit }) {
   const [error, setError] = useState(null);
   const p = desk.push;
   const fitting = desk.changes.filter((c) => desk.results.get(c.id)?.ok !== false);
+  // on the phone, once GitHub has the last push (its commit is on the desk branch), the next can go while that one is still
+  // landing: on top of it, with only the changes that weren't in it
+  const onTop = PHONE && p?.via === "github" && p.head && !p.landed && !p.failed ? p : null;
+  const toPush = onTop ? fitting.filter((c) => !onTop.ids.includes(c.id)) : fitting;
 
   async function go(kind) {
     setConfirm(null);
@@ -253,12 +259,13 @@ export function Outbox({ onSettings, onEdit }) {
     setSending(true);
     try {
       if (kind === "push" && PHONE) {
-        const r = await pushFromPhone({ ...desk, changes: fitting });
+        const r = await pushFromPhone({ ...desk, changes: toPush, onTop: onTop?.head });
         desk.setPush({
           kind,
           via: "github",
           head: r.head,
-          ids: r.pushed,
+          // pushed on top of one still landing: this push's landing lands both, so it carries both sets of changes
+          ids: [...(onTop?.ids ?? []), ...r.pushed],
           skipped: r.skipped,
           requestedAt: new Date().toISOString(),
         });
@@ -363,9 +370,11 @@ export function Outbox({ onSettings, onEdit }) {
         <View style={tw`gap-2 rounded-md bg-bg p-2.5`}>
           <Body small>
             {confirm === "push" && PHONE
-              ? `After Face ID, this pushes ${fitting.length === 1 ? "the change" : `the ${fitting.length} changes`} to GitHub${
-                  fitting.length === 1 ? "" : ", each as its own commit"
-                }, on top of main. A check there lands ${fitting.length === 1 ? "it" : "them"} on main, and the site deploys.`
+              ? `After Face ID, this pushes ${toPush.length === 1 ? "the change" : `the ${toPush.length} changes`} to GitHub${
+                  toPush.length === 1 ? "" : ", each as its own commit"
+                }, on top of ${onTop ? "the push still landing" : "main"}. A check there lands ${
+                  toPush.length === 1 ? "it" : "them"
+                } on main, and the site deploys.`
               : confirm === "push"
                 ? `This sends ${fitting.length === 1 ? "the change" : `the ${fitting.length} changes`} to Claude Code, which syncs with main first, then commits ${
                     fitting.length === 1 ? "it" : "each one on its own"
@@ -414,12 +423,13 @@ export function Outbox({ onSettings, onEdit }) {
         </Notice>
       )}
       {error && <Failure error={error} onSettings={onSettings} onCopied={(copied) => setError({ ...error, copied })} />}
-      {/* a push already on main can still be deploying: the next one can go meanwhile */}
-      {(!p || p.landed) && !sending && desk.changes.length > 0 && (
+      {/* a push already on main can still be deploying, and on the phone one GitHub has can still be landing: the next one
+          can go meanwhile */}
+      {(!p || p.landed || onTop) && !sending && (onTop ? toPush.length > 0 : desk.changes.length > 0) && (
         <Button
           kind="green"
-          title={`Push ${fitting.length} change${fitting.length === 1 ? "" : "s"} to main`}
-          disabled={!fitting.length}
+          title={`Push ${toPush.length} change${toPush.length === 1 ? "" : "s"} to main`}
+          disabled={!toPush.length}
           onPress={() => setConfirm(confirm === "push" ? null : "push")}
         />
       )}

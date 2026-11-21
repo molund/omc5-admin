@@ -117,15 +117,18 @@ export async function checkToken(raw) {
 }
 
 /**
- * Commits the changes on top of main and points the desk branch at the last commit.
- * @param {{ token: string, changes: object[], photos: object }} args The waiting changes, in order, and the Leash Log's photos.
+ * Commits the changes on top of main and points the desk branch at the last commit. With `onTop`, on top of that commit
+ * instead: an earlier push still landing (the desk branch's last commit), so this one goes without waiting for it, and the
+ * landing run for this one moves main up past both.
+ * @param {{ token: string, changes: object[], photos: object, onTop?: string }} args The waiting changes, in order (not the
+ * ones in the earlier push), the Leash Log's photos, and the earlier push's last commit.
  * @returns {Promise<{ head: string, base: string, pushed: string[], skipped: { id: string, why: string }[], expiresAt: string|null }>}
  */
-export async function pushChanges({ token, changes, photos }) {
+export async function pushChanges({ token, changes, photos, onTop }) {
   const seen = {};
   const api = (method, path, body, raw) => call(token, seen, method, path, body, raw);
 
-  const base = (await api("GET", "/git/ref/heads/main")).object.sha;
+  const base = onTop ?? (await api("GET", "/git/ref/heads/main")).object.sha;
   let parent = base;
   let tree = (await api("GET", `/git/commits/${base}`)).tree.sha;
   let text = await api("GET", `/contents/status.yaml?ref=${base}`, undefined, true);

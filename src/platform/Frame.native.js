@@ -35,9 +35,10 @@ export function Frame({ children }) {
   const swipe = useMemo(() => {
     const settle = () => Animated.spring(x, { toValue: 0, useNativeDriver: true }).start();
     return PanResponder.create({
-      // only a sideways drag that starts at the left edge, so taps, scrolling and selecting text are left alone
-      onMoveShouldSetPanResponderCapture: (_, g) =>
-        !!back.current && g.x0 <= EDGE && g.dx > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
+      // only a sideways drag that starts at the left edge, so taps, scrolling, selecting text and sliders are left alone.
+      // Where it started is worked out from the touch, as g.x0 is still 0 until a responder is granted
+      onMoveShouldSetPanResponderCapture: (e, g) =>
+        !!back.current && e.nativeEvent.pageX - g.dx <= EDGE && g.dx > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 2,
       onPanResponderTerminationRequest: () => false,
       onPanResponderMove: (_, g) => x.setValue(Math.max(0, g.dx)),
       onPanResponderRelease: (_, g) => {

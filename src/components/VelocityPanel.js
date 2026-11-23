@@ -283,6 +283,8 @@ export function VelocityPanel({ full, onOpen }) {
     .reduce((a, b) => (!a || parseKey(b.key) > parseKey(a.key) ? b : a), null);
   const lastStep = bySpan.at(-1)?.steps.at(-1);
   const checkin = latest && lastStep && latest.key !== lastStep.key ? latest : null;
+  // its day bar, when it's on a later day than the last thing listed above it
+  const checkinNewDay = !!checkin && dayOf(checkin.key) !== lastDay;
   const num = { fontVariant: ["tabular-nums"] };
   // whether the night shift is off now
   const nightOffNow = nightsOff.some((n) => n.errors.length === 0 && n.startMs <= Date.now() && Date.now() < n.endMs);
@@ -632,6 +634,7 @@ export function VelocityPanel({ full, onOpen }) {
                 </Fragment>
               ))}
               {g === bySpan.at(-1) && after.map(irregularBox)}
+              {g === bySpan.at(-1) && checkin && checkinNewDay && dayLabel(checkin.key)}
               {g === bySpan.at(-1) && checkin && (
                 <View style={[tw`flex-row items-baseline gap-2`, s.checkinRow]}>
                   <View style={tw`flex-1 flex-row items-center gap-2`}>

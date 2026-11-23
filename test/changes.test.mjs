@@ -633,3 +633,46 @@ test("editing a note can make its comments read-only and back on; left out, its 
   const back = applyChange(ro.text, { ...noteEdit(n2), comments: "on" });
   assert.equal(back.text, BASE);
 });
+
+test("a Comments page batch sets several notes' comments in one change, and the site reads them", async () => {
+  const notes = parseStatus(BASE).notes.filter((n) => n.fields.summary);
+  const post = notes.find((n) => n.fields.post);
+  const update = notes.find((n) => !n.fields.post && n.followUps.length);
+  const change = {
+    kind: "comments",
+    settings: [
+      { noteKey: post.key, comments: "off" },
+      { noteKey: update.key, comments: "readonly" },
+    ],
+  };
+  const r = applyChange(BASE, change);
+  const after = parseStatus(r.text);
+  assert.equal(after.notes.find((n) => n.key === post.key).fields.comments, "off");
+  assert.equal(after.notes.find((n) => n.key === update.key).fields.comments, "readonly");
+  assert.equal(r.hunks.length, 2, "one line added under each");
+  assert.match(r.text, new RegExp(`  - ${post.key}: .*\\n    summary: .*\\n    post: true\\n    comments: off\\n`));
+  const s = await site(r.text);
+  assert.equal(s.history.find((h) => h.time.getTime() === parseKey(update.key).getTime()).comments, "readonly");
+  assert.equal(commitMessage(change, BASE), "Change the comments on 2 updates and blog posts");
+  // back on: the lines come out again, leaving the file as it was
+  const back = applyChange(r.text, {
+    kind: "comments",
+    settings: [
+      { noteKey: post.key, comments: "on" },
+      { noteKey: update.key, comments: "on" },
+    ],
+  });
+  assert.equal(back.text, BASE);
+  // read-only to off: the line changes in place
+  const swap = applyChange(r.text, { kind: "comments", settings: [{ noteKey: update.key, comments: "off" }] });
+  assert.equal(swap.hunks.length, 1);
+  assert.equal(parseStatus(swap.text).notes.find((n) => n.key === update.key).fields.comments, "off");
+});
+
+test("a Comments page batch's commit message names what it did", () => {
+  const notes = parseStatus(BASE).notes.filter((n) => n.fields.summary && !n.fields.post);
+  const two = notes.slice(0, 2).map((n) => ({ noteKey: n.key, comments: "readonly" }));
+  assert.equal(commitMessage({ kind: "comments", settings: two }, BASE), "Make the comments read-only on 2 updates");
+  const one = [{ noteKey: notes[0].key, comments: "on" }];
+  assert.match(commitMessage({ kind: "comments", settings: one }, BASE), /^Turn comments back on for (the|")/);
+});

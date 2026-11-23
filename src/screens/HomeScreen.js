@@ -61,6 +61,13 @@ export function HomeScreen({ go, onEdit, onOpen }) {
         )}
         <Link title="All entries ›" onPress={() => go("entries")} />
       </Panel>
+      <Panel>
+        <Label>Comments</Label>
+        <Body small mute>
+          Turn comments on, off or read-only on any update or blog post.
+        </Body>
+        <Button icon="comment" title="Manage comments ›" onPress={() => go("comments")} />
+      </Panel>
     </View>
   );
 }

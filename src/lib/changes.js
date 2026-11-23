@@ -13,6 +13,7 @@
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
+//   { id, kind: "comments",      settings: [{ noteKey, comments }] }   several notes' comments settings at once (Comments page)
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.
@@ -302,6 +303,24 @@ function editNote(doc, note, title, blocks, comments) {
   if (lines.join("\n") !== doc.lines.slice(note.start, last + 1).join("\n")) doc.replace(note.start, count, lines);
 }
 
+/** A note's `comments:` line set to a new value: written after its summary (and `post: true`), or taken out when on. */
+function setComments(doc, note, comments) {
+  let last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
+  const own = (i) => i > note.start && i <= last;
+  const at = doc.lines.findIndex((l, i) => own(i) && /^ {4}comments:/.test(l));
+  const line = commentsLines(comments)[0];
+  if (at >= 0) {
+    if (line) {
+      if (doc.lines[at] !== line) doc.replace(at, 1, [line]);
+    } else doc.replace(at, 1, []);
+    return;
+  }
+  if (!line) return;
+  const summary = doc.lines.findIndex((l, i) => own(i) && /^ {4}summary:/.test(l));
+  const post = doc.lines.findIndex((l, i) => own(i) && /^ {4}post:/.test(l));
+  doc.replace(Math.max(summary, post, note.start) + 1, 0, [line]);
+}
+
 /** Takes lines out, and the blank lines after them, so the file never has two blank lines in a row. */
 function removeLines(doc, start, end) {
   while (doc.lines[end + 1] === "" && end + 2 < doc.lines.length) end++;
@@ -416,6 +435,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       fallBack(doc, [fu.key], head.updated, deskKeys);
       break;
     }
+    case "comments":
+      for (const { noteKey, comments } of change.settings) setComments(doc, findNote(doc.parsed, noteKey), comments);
+      break;
     case "desk-edit":
       break;
     case "desk-delete":
@@ -482,6 +504,24 @@ export function commitMessage(change, before) {
       return `Delete ${named}`;
     case "followup-delete":
       return `Delete the ${clock(change.fuKey)} addendum to ${named}`;
+    case "comments": {
+      const notes = before ? parseStatus(before).notes : [];
+      const picked = change.settings.map((x) => notes.find((n) => n.key === x.noteKey)).filter(Boolean);
+      const posts = picked.filter((n) => n.fields.post).length;
+      const count = change.settings.length;
+      const what =
+        count === 1 && picked[0]
+          ? nameOf(picked[0].key, picked[0].title)
+          : `${count} ${posts === count ? "blog posts" : posts ? "updates and blog posts" : "updates"}`;
+      const values = new Set(change.settings.map((x) => x.comments));
+      if (values.size > 1) return `Change the comments on ${what}`;
+      const [v] = values;
+      return v === "on"
+        ? `Turn comments back on for ${what}`
+        : v === "off"
+          ? `Turn comments off on ${what}`
+          : `Make the comments read-only on ${what}`;
+    }
     case "desk-edit":
       return `Edit the ${clock(change.key)} position record from ${monthDay(change.key)}`;
     case "desk-delete":

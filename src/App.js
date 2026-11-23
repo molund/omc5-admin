@@ -14,6 +14,7 @@ import { MoveScreen } from "./screens/MoveScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen, NoUpdateWarning } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
+import { CommentsScreen } from "./screens/CommentsScreen.js";
 import { EntriesScreen } from "./screens/EntriesScreen.js";
 import { EntryScreen } from "./screens/EntryScreen.js";
 import { recentUpdates, waitingAt } from "./lib/entries.js";
@@ -32,6 +33,11 @@ const PAGES = {
     about: "Add to today's or yesterday's update, or edit an addendum.",
   },
   blog: { title: "Blog post", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
+  comments: {
+    title: "Comments",
+    screen: CommentsScreen,
+    about: "Updates and blog posts, newest first. Change any of them, then send them all together.",
+  },
   velocity: { title: "Velocity" },
   entries: { title: "Entries" },
   entry: { title: "Edit" },

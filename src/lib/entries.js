@@ -50,8 +50,11 @@ export const positionMemo = ({ note, record }) => shorten(record?.noteToSelf || 
 export const replaceChangeIn = (changes, id, change, message, savedAt) =>
   changes.map((c) => (c.id === id ? { ...change, id, message, savedAt } : c));
 
-/** Whether a waiting change can be reopened. A delete has nothing to edit: it can only be discarded. */
-export const canReopen = (change) => !/-delete$/.test(change.kind);
+/**
+ * Whether a waiting change can be reopened. A delete has nothing to edit, and a Comments page batch is quicker made again:
+ * they can only be discarded.
+ */
+export const canReopen = (change) => !/-delete$/.test(change.kind) && change.kind !== "comments";
 
 /**
  * The updates a new follow-up can go under: today's and yesterday's (BC days), newest first. Not blog posts, nor a position's

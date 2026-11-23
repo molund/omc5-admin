@@ -121,6 +121,7 @@ export function applyDeskChange(deskText, change, statusBefore) {
       break;
     }
     case "blog":
+    case "comments":
       break;
     case "note-edit":
       if (stage) entries = replaceStage(entries, change.noteKey, stage, head.span, change.progress);

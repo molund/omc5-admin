@@ -605,3 +605,31 @@ test("the review's diff shows only the lines that changed, each run with the lin
   ]);
   assert.deepEqual(diff("same", "same"), []);
 });
+
+test("a new update or blog post can have its comments off, and the site reads it", async () => {
+  const blocks = [{ type: "summary", text: "Words." }];
+  const off = applyChange(BASE, { kind: "blog", date: "2027-01-02", title: "Quiet one", blocks, comments: "off" });
+  assert.match(off.text, /  - 2027-01-02: "Quiet one"\n    summary: "Words."\n    post: true\n    comments: off\n/);
+  assert.equal((await site(off.text)).history.find((h) => h.title === "Quiet one").comments, "off");
+  const on = applyChange(BASE, { kind: "blog", date: "2027-01-02", title: "Loud one", blocks, comments: "on" });
+  assert.doesNotMatch(on.text, /comments:/);
+});
+
+test("editing a note can make its comments read-only and back on; left out, its comments line stays", async () => {
+  const n = parseStatus(BASE).notes.find((x) => x.followUps.length);
+  const ro = applyChange(BASE, { ...noteEdit(n), comments: "readonly" });
+  assert.equal(parseStatus(ro.text).notes.find((x) => x.key === n.key).fields.comments, "readonly");
+  assert.equal(
+    (await site(ro.text)).history.find((h) => h.time.getTime() === parseKey(n.key).getTime())?.comments,
+    "readonly",
+  );
+  const n2 = parseStatus(ro.text).notes.find((x) => x.key === n.key);
+  assert.deepEqual(applyChange(ro.text, noteEdit(n2)).hunks, [], "left out: nothing changes");
+  assert.deepEqual(
+    applyChange(ro.text, { ...noteEdit(n2), comments: "readonly" }).hunks,
+    [],
+    "the same: nothing changes",
+  );
+  const back = applyChange(ro.text, { ...noteEdit(n2), comments: "on" });
+  assert.equal(back.text, BASE);
+});

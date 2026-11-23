@@ -15,6 +15,7 @@ import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../componen
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, progressToPost, stageToPost } from "../components/StagePicker.js";
+import { CommentsSwitch } from "../components/CommentsSwitch.js";
 import { stageFloor } from "../lib/stages.js";
 import { memoAt, postedStage } from "../lib/deskFile.js";
 import { Button, Confirm, Link, Notice } from "../components/ui.js";
@@ -66,6 +67,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
     complete: d.complete,
     title: title.trim(),
     blocks: d.blocks,
+    comments: d.comments ?? "on",
     memo: { noteKey: d.time, text: memo },
     stage,
     progress,
@@ -184,6 +186,7 @@ export function UpdateScreen({ onReview, onSwitch, draftKey = "update", seed }) 
           <StyleHints texts={[title, ...blockTexts(d.blocks)]} />
         </>
       )}
+      <CommentsSwitch value={d.comments ?? "on"} onChange={(comments) => update({ comments })} />
       <CardPreview card={cardFor(preview.text, preview.deskText)} />
       {problems.map((p) => (
         <Notice key={p} tone="problem">

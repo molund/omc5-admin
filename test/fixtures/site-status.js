@@ -11,7 +11,10 @@
 //     photo:
 //       file: span-36.jpg
 //       caption: "Its own caption, separate from the note"
-// a note to self is in desk.yaml now, not here; this reader skips a `note-to-self:` line all the same, so one is never shown
+// its comments, `on` when left out: `off` has no Comments button; `readonly` keeps the button, but shows the comments as they
+// were when the site was built (trackside/prerender.js), with no way to add one:
+//     comments: readonly
+// a note to self is in gantry-cycles.yaml now, not here; this reader skips a `note-to-self:` line all the same, so one is never shown
 // optionally more blocks, paragraphs and photos, indented under it (shown after the summary and its photo on the Trackside page
 // and in its thread; the card shows only the summary):
 //     block:
@@ -60,6 +63,7 @@ import { anchor } from "./comments.js";
  * @property {string} title The title for the note's own Trackside page, or "".
  * @property {string} slug The note's `?post=` slug on Trackside, unique among the notes.
  * @property {boolean} post Whether it is a post rather than a status update.
+ * @property {"on"|"off"|"readonly"} comments Its comments: open, none, or shown as they were when the site was built.
  * @property {FollowUp[]} followUps Its follow-ups, newest first.
  */
 
@@ -68,6 +72,8 @@ import { anchor } from "./comments.js";
  * @property {Date|null} updated When status.yaml was last updated.
  * @property {number|null} span The span the Clayton Clipper's gantry is on.
  * @property {boolean} complete Whether that span is complete.
+ * @property {string|null} spansPerWeek The Clayton Clipper's velocity, as the Leash Log writes it ("2.83"): how far it got
+ *   in the last week, in spans.
  * @property {Note|null} latest The newest status update (not a post).
  * @property {string} note The newest status update's text, or "".
  * @property {Photo|null} photo The newest status update's photo.
@@ -119,15 +125,27 @@ function slugify(s) {
  */
 function parse(src) {
   const out = {},
-    notes = [];
+    notes = [],
+    // the "- time: value" lists under a key above `notes:`, kept apart so they aren't taken for notes (the velocity's
+    // earlier values were one on Nov. 7, 2026; they're in gantry-cycles.yaml now)
+    lists = {};
   // "block" after a `block:` line, whose "- …" lines are paragraphs and photos
   let list = null,
     // the photo a `file:` or `caption:` line belongs to
     photo = null,
     // under `follow-up:`, and the follow-up the lines below belong to (the note's own keys are four spaces in)
     inFU = false,
-    fu = null;
+    fu = null,
+    // past the `notes:` line, and the key above it whose list the "- …" lines belong to
+    inNotes = false,
+    key = null;
   src.split("\n").forEach((line) => {
+    // above the notes, "  - time: value" is an item of the key's list, not a note
+    const item = !inNotes && key && line.match(/^ {2}-\s+(\S+):\s*(.*?)\s*$/);
+    if (item) {
+      (lists[key] ??= []).push({ time: item[1], value: unquote(item[2]) });
+      return;
+    }
     // a note: "  - time: text", two spaces in
     const n = line.match(/^ {2}-\s+(\S+):\s+(.*?)\s*$/);
     if (n) {
@@ -140,6 +158,7 @@ function parse(src) {
         photo: null,
         block: [],
         post: false,
+        comments: "on",
         followUps: [],
       });
       list = null;
@@ -201,6 +220,14 @@ function parse(src) {
       if (last) last.post = po[1] === "true";
       return;
     }
+    // "    comments: off" or "readonly"; anything else leaves them on
+    const co = line.match(/^ {4}comments:\s*(.*?)\s*$/);
+    if (co) {
+      list = null;
+      photo = null;
+      if (last) last.comments = ["off", "readonly"].includes(unquote(co[1])) ? unquote(co[1]) : "on";
+      return;
+    }
     // "    slug: words-for-the-address": a note's own address, instead of its title's
     const sl = line.match(/^ {4}slug:\s*(.*?)\s*$/);
     if (sl) {
@@ -231,8 +258,12 @@ function parse(src) {
       }
       return;
     }
-    const m = line.match(/^([A-Za-z_]+):\s*(.*?)\s*$/);
-    if (m) out[m[1]] = unquote(m[2]);
+    const m = line.match(/^([A-Za-z][A-Za-z_-]*):\s*(.*?)\s*$/);
+    if (m) {
+      out[m[1]] = unquote(m[2]);
+      key = m[1];
+      if (m[1] === "notes") inNotes = true;
+    }
   });
   // newest first by time stamp, whatever order the list is in
   // a photo without a file doesn't count
@@ -270,7 +301,11 @@ function parse(src) {
   return {
     updated: out.updated ? new Date(out.updated) : null,
     span: out.span ? +out.span : null,
-    complete: out.complete === "true",
+    // `hung:` in status.yaml (`complete:` before Nov. 6, 2026, still read)
+    complete: (out.hung ?? out.complete) === "true",
+    // the velocity the Leash Log writes on every push (a copy of gantry-cycles.yaml's, whose earlier values the chart is drawn
+    // from), as written, or null (`spans_per_week`, on Nov. 7, 2026, still read)
+    spansPerWeek: out["spans-per-week"] ?? out.spans_per_week ?? null,
     // the newest status update (not a post), or null
     latest,
     note: latest ? latest.summary : "",
@@ -297,7 +332,7 @@ export const status = parse(text);
  * @param {Date|number} t
  * @returns {string}
  */
-const dayOf = (t) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Dawson_Creek" }).format(t);
+export const dayOf = (t) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Dawson_Creek" }).format(t);
 
 /**
  * A time as "6:45 a.m. on Oct 29, 2026", BC time, rounded to the nearest quarter hour. With `relative`, a time today or

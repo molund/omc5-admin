@@ -3,12 +3,12 @@
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
 //   { id, kind: "move",          time, span, complete, noteToSelf?, stage }
-//   { id, kind: "update",        time, span, complete, title, blocks, retitle? }
+//   { id, kind: "update",        time, span, complete, title, blocks, comments?, retitle? }
 //       retitle: [{ key, title, slug }] is only on older waiting changes: the Leash Log no longer asks to retitle another update
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
 //   { id, kind: "followup-edit", noteKey, fuKey, time, blocks }
-//   { id, kind: "blog",          date, title, blocks }
-//   { id, kind: "note-edit",     noteKey, title, blocks }   the note's own text; its time stamp is locked (comments follow it)
+//   { id, kind: "blog",          date, title, blocks, comments? }
+//   { id, kind: "note-edit",     noteKey, title, blocks, comments? }   the note's own text; its time stamp is locked (comments follow it)
 //   { id, kind: "note-delete",   noteKey }                  the note and its follow-ups
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
@@ -16,6 +16,9 @@
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.
+//
+// comments: "on" | "off" | "readonly", the note's `comments:` line (none when on); left out of a note-edit, the line stays as
+// it is. A new note is on or off; read-only is for an edit.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -77,9 +80,12 @@ function fieldLines(blocks, n, extra = []) {
   return out;
 }
 
-export const noteLines = (key, title, blocks, post = false) => [
+/** A note's `comments:` line: none when they're on. */
+const commentsLines = (comments) => (comments && comments !== "on" ? [`    comments: ${comments}`] : []);
+
+export const noteLines = (key, title, blocks, post = false, comments = "on") => [
   `  - ${key}: ${q(title)}`,
-  ...fieldLines(blocks, 4, post ? ["    post: true"] : []),
+  ...fieldLines(blocks, 4, [...(post ? ["    post: true"] : []), ...commentsLines(comments)]),
 ];
 
 export const followUpLines = (key, blocks) => [`      - ${key}:`, ...fieldLines(blocks, 10)];
@@ -272,14 +278,19 @@ function insertNote(doc, key, lines) {
 
 const later = (a, b) => (!b || compareKeys(a, b) >= 0 ? a : b);
 
-/** A note's own part (up to `follow-up:`) with new text. Its `slug:`, `post:`, any `note-to-self:` and comments stay. */
-function editNote(doc, note, title, blocks) {
+/**
+ * A note's own part (up to `follow-up:`) with new text. Its `slug:`, `post:`, any `note-to-self:` and YAML comments stay, and
+ * its `comments:` line too, unless a new setting is given (written after the summary).
+ */
+function editNote(doc, note, title, blocks, comments) {
   let last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
   while (last > note.start && doc.lines[last].trim() === "") last--;
   const own = doc.lines.slice(note.start + 1, last + 1);
-  const kept = (l) => /^ {4}(slug|post|note-to-self):/.test(l) || /^\s*#/.test(l);
+  const keys = comments === undefined ? "slug|post|comments|note-to-self" : "slug|post|note-to-self";
+  const kept = (l) => new RegExp(`^ {4}(${keys}):`).test(l) || /^\s*#/.test(l);
   const at = own.findIndex((l) => /^ {4}summary:/.test(l));
   const [summary, ...rest] = fieldLines(blocks, 4);
+  if (comments !== undefined) rest.unshift(...commentsLines(comments));
   const lines = [
     title === note.title ? doc.lines[note.start] : `  - ${note.key}: ${q(title)}`,
     ...own.filter((l, i) => kept(l) && i < at),
@@ -350,11 +361,11 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
         if (!note.fields.slug && r.slug) lines.push(`    slug: ${r.slug}`);
         doc.replace(note.start, 1, lines);
       }
-      insertNote(doc, change.time, noteLines(change.time, change.title, change.blocks));
+      insertNote(doc, change.time, noteLines(change.time, change.title, change.blocks, false, change.comments));
       break;
     }
     case "blog":
-      insertNote(doc, change.date, noteLines(change.date, change.title, change.blocks, true));
+      insertNote(doc, change.date, noteLines(change.date, change.title, change.blocks, true, change.comments));
       break;
     case "followup": {
       // the gantry it reports, only when it isn't older than the card
@@ -383,7 +394,7 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
     }
     case "note-edit": {
       const addresses = slugsOf(doc.parsed.notes);
-      editNote(doc, findNote(doc.parsed, change.noteKey), change.title, change.blocks);
+      editNote(doc, findNote(doc.parsed, change.noteKey), change.title, change.blocks, change.comments);
       keepAddresses(doc, addresses);
       break;
     }

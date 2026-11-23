@@ -11,6 +11,7 @@ import { BlockEditor, blockProblems, blockTexts, emptyBlocks } from "../componen
 import { StyleHints } from "../components/StyleHints.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { NoteToSelf, whereIs } from "../components/NoteToSelf.js";
+import { CommentsSwitch } from "../components/CommentsSwitch.js";
 import { Button, Notice } from "../components/ui.js";
 import { allPhotos, emptyWalk, FilledNotice, unusedPhotos, WalkNotes, WalkSwitch } from "../components/WalkNotes.js";
 
@@ -33,6 +34,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
     date: d.date,
     title: d.title.trim(),
     blocks: d.blocks,
+    comments: d.comments ?? "on",
     memo: { noteKey: d.date, text: d.memo ?? "" },
   };
   const preview = desk.preview(change);
@@ -84,6 +86,7 @@ export function BlogScreen({ onReview, draftKey = "blog", seed }) {
           />
         </>
       )}
+      <CommentsSwitch value={d.comments ?? "on"} onChange={(comments) => update({ comments })} />
       <NoteToSelf value={d.memo ?? ""} onChange={(memo) => update({ memo })} />
       {mode !== "walk" && <StyleHints texts={[d.title, ...blockTexts(d.blocks)]} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} label="The card stays as it is" />

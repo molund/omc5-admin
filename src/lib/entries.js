@@ -160,7 +160,14 @@ export function reopenAs(change, head) {
         screen: "entry",
         // "blog" or "update" is settled against the note itself when it opens
         target: { type: "note", key: change.noteKey },
-        seed: { title: change.title, blocks: change.blocks, memo: memo ?? "", stage, ...recorded },
+        seed: {
+          title: change.title,
+          blocks: change.blocks,
+          ...(change.comments && { comments: change.comments }),
+          memo: memo ?? "",
+          stage,
+          ...recorded,
+        },
       };
     case "desk-edit":
       return {

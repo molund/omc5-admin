@@ -20,6 +20,7 @@ import { StagePicker, progressToPost, stageToPost } from "./StagePicker.js";
 import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
+import { CommentsSwitch } from "./CommentsSwitch.js";
 import { Body, Button, Confirm, Label, Notice, Panel, Row } from "./ui.js";
 
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Addendum" };
@@ -39,7 +40,13 @@ export function seedFor(desk, target) {
   if (target.type === "followup")
     return { ...steps, time: target.key, blocks: blocksOf(fu.fields), memo: memoAt(desk.deskEntries, note.key) };
   if (target.type === "position") return { ...steps, memo: record?.noteToSelf ?? "" };
-  return { ...steps, title: note.title, blocks: blocksOf(note.fields), memo: memoAt(desk.deskEntries, note.key) };
+  return {
+    ...steps,
+    title: note.title,
+    blocks: blocksOf(note.fields),
+    comments: note.fields.comments,
+    memo: memoAt(desk.deskEntries, note.key),
+  };
 }
 
 /** Whether a note's or addendum's fields have a photo: its own, or in a block. */
@@ -131,6 +138,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       noteKey: note.key,
       title,
       blocks: d.blocks,
+      comments: d.comments ?? note.fields.comments,
       memo: { noteKey: note.key, text: memo },
       ...(isPost ? {} : { stage, progress }),
     };
@@ -233,6 +241,13 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           followUp={target.type === "followup"}
           title={d.title}
           above={target.type === "followup" ? addendumAbove(note, target.key) : undefined}
+        />
+      )}
+      {(target.type === "update" || isPost) && (
+        <CommentsSwitch
+          value={d.comments ?? note.fields.comments}
+          onChange={(comments) => update({ comments })}
+          editing
         />
       )}
       {/* a blog post has no step, so its notes aren't in a step box */}

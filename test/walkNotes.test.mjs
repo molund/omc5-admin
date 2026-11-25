@@ -15,7 +15,7 @@ test("an update's prompt offers the standard title, the notes and the captions",
   assert.ok(p.includes("rewrite each one from scratch as one short, clear sentence"));
   assert.ok(p.includes("You're the editor: rewrite freely"));
   assert.ok(!p.includes("keep my wording where it works") && !p.includes("leave it as I wrote it"));
-  assert.ok(p.includes("A summary: one sentence"));
+  assert.ok(p.includes("A summary: the post's first paragraph, 150 characters at most"));
   assert.ok(p.includes("PHOTO 1: The tulip\nPHOTO 2: (no caption)"));
   assert.ok(p.includes("Put the whole reply in one code block"));
   assert.ok(p.endsWith("My walk notes:\n\nLots."));

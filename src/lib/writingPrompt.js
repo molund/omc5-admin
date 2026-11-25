@@ -139,6 +139,9 @@ export function walkPrompt({ kind, standardTitle, notes, captions }, alone = fal
   const title = update
     ? `- A title. The standard title is "${standardTitle}". Keep it unless something from this walk stands out enough for a title of its own, like "Clayton Clipper finishes hanging span 35; new girder arrives" or "Surrey Sprinter hangs its first span past Green Timbers".`
     : `- A title, like "The curious case of Clayton Clipper span 50" or "I found someone who posts Clayton Clipper videos on TikTok".`;
+  const summary = update
+    ? `- A summary: the post's first paragraph, 150 characters at most, counting spaces (about 25 words). It shows on its own on the progress card on the site's home page, which has to fit all of it, then opens the post on Trackside. Lead with the most interesting thing and actually say it, like the opening of a story, not a teaser or a summary of the whole post. Don't hint at something and save it for later ("I have a guess about…"). A good one: "A mobile crane is doing a job the Clayton Clipper can't do by itself: lifting one of its supports from the ground up to the other side of span 42."`
+    : `- A summary: the post's first paragraph, a few sentences at most. It doesn't show on the progress card, so it can run longer than an update's. Lead with the most interesting thing and actually say it, like the opening of a story, not a teaser or a summary of the whole post.`;
   const photos = captions.length
     ? `\n- My photos, each with a caption. My captions are rough notes: rewrite each one from scratch as one short, clear sentence saying what the photo shows. Use what my notes say about it, and fix the grammar. Put each photo after the paragraph it goes with.`
     : "";
@@ -164,8 +167,8 @@ ${WALK_NO_INVENTION}
 The post has:
 
 ${title}
-- A summary: one sentence, short enough for the status card on the site's home page. It's a hook to get readers to open the full post, so give them the most interesting thing without giving it all away.
-- Paragraphs after the summary.${photos}
+${summary}
+- Paragraphs that carry on from the summary, never repeating what it says.${photos}
 
 Style:
 

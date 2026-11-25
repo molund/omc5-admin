@@ -13,7 +13,7 @@
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
-//   { id, kind: "comments",      settings: [{ noteKey, comments }] }   several notes' comments settings at once (Comments page)
+//   { id, kind: "comments",      settings: [{ noteKey, comments }] }   several notes' comments settings at once (Trackside page)
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.

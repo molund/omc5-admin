@@ -28,7 +28,7 @@ const KIND = {
   "followup-delete": "Addendum delete",
   "desk-edit": "Position record edit",
   "desk-delete": "Position record delete",
-  comments: "Comments",
+  comments: "Trackside",
 };
 
 /** What went wrong, the platform's own words, and the request to send by hand. */

@@ -634,7 +634,7 @@ test("editing a note can make its comments read-only and back on; left out, its 
   assert.equal(back.text, BASE);
 });
 
-test("a Comments page batch sets several notes' comments in one change, and the site reads them", async () => {
+test("a Trackside page batch sets several notes' comments in one change, and the site reads them", async () => {
   const notes = parseStatus(BASE).notes.filter((n) => n.fields.summary);
   const post = notes.find((n) => n.fields.post);
   const update = notes.find((n) => !n.fields.post && n.followUps.length);
@@ -669,7 +669,7 @@ test("a Comments page batch sets several notes' comments in one change, and the 
   assert.equal(parseStatus(swap.text).notes.find((n) => n.key === update.key).fields.comments, "off");
 });
 
-test("a Comments page batch's commit message names what it did", () => {
+test("a Trackside page batch's commit message names what it did", () => {
   const notes = parseStatus(BASE).notes.filter((n) => n.fields.summary && !n.fields.post);
   const two = notes.slice(0, 2).map((n) => ({ noteKey: n.key, comments: "readonly" }));
   assert.equal(commitMessage({ kind: "comments", settings: two }, BASE), "Make the comments read-only on 2 updates");

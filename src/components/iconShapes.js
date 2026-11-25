@@ -61,10 +61,10 @@ export const ICONS = {
   check: [["path", { d: "M5 12.5l4.5 4.5L19 7.5", fill: "none" }]],
   // a downward chevron, for a split button's menu
   chevronDown: [["path", { d: "M6 9.5l6 6 6-6", fill: "none" }]],
-  // left and right chevrons, for stepping back and on (the Comments page's preview)
+  // left and right chevrons, for stepping back and on (the Trackside page's preview)
   chevronLeft: [["path", { d: "M14.5 6l-6 6 6 6", fill: "none" }]],
   chevronRight: [["path", { d: "M9.5 6l6 6-6 6", fill: "none" }]],
-  // an eye, for looking at something without opening it (the Comments page's preview)
+  // an eye, for looking at something without opening it (the Trackside page's preview)
   eye: [
     ["path", { d: "M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z", fill: "none" }],
     ["circle", { cx: 12, cy: 12, r: 3, fill: "none" }],

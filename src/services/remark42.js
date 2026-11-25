@@ -1,5 +1,5 @@
 // The site's comment server, Remark42 at comments.olund.ca: how many comments each update and blog post has, for the
-// Comments page. One request for all of them; the thread addresses are the site's (threadUrl() in molund/omc5's
+// Trackside page. One request for all of them; the thread addresses are the site's (threadUrl() in molund/omc5's
 // src/lib/comments.js): the update's own Trackside page.
 const HOST = "https://comments.olund.ca";
 const SITE_ID = "trackside";

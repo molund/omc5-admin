@@ -51,7 +51,7 @@ export const replaceChangeIn = (changes, id, change, message, savedAt) =>
   changes.map((c) => (c.id === id ? { ...change, id, message, savedAt } : c));
 
 /**
- * Whether a waiting change can be reopened. A delete has nothing to edit, and a Comments page batch is quicker made again:
+ * Whether a waiting change can be reopened. A delete has nothing to edit, and a Trackside page batch is quicker made again:
  * they can only be discarded.
  */
 export const canReopen = (change) => !/-delete$/.test(change.kind) && change.kind !== "comments";

@@ -1,4 +1,4 @@
-// Comments: every update, or every blog post (a tab each, updates first), newest first, each with its comments setting (On, Off or Read-only) and how many
+// Trackside: every update, or every blog post (a tab each, updates first), newest first, each with its comments setting (On, Off or Read-only) and how many
 // comments it has on the site's comment server (services/remark42.js). Change any of them, then send them all together as
 // one change (`comments` in lib/changes.js). The filters show the posts by their saved setting, or just the ones changed
 // here; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
@@ -189,7 +189,7 @@ function Preview({ note, place, onStep, value, onChange, count, onClose }) {
   );
 }
 
-export function CommentsScreen({ onReview }) {
+export function TracksideScreen({ onReview }) {
   const { tw, colors } = useTw();
   const s = useMemo(() => looks(tw), [tw]);
   const desk = useDesk();

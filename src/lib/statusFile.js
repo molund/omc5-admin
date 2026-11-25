@@ -44,7 +44,7 @@ export function unquote(v) {
  * @param {number} indent How far in its fields are (4 for a note, 10 for a follow-up).
  */
 function parseFields(lines, indent) {
-  const out = { summary: "", post: false, comments: "on", slug: "", memo: "", photo: null, block: [] };
+  const out = { summary: "", post: false, comments: "on", scroll: true, slug: "", memo: "", photo: null, block: [] };
   const at = (n) => new RegExp(`^ {${n}}(\\S.*)$`);
   let mode = null, // "photo" | "block"
     photo = null;
@@ -59,6 +59,7 @@ function parseFields(lines, indent) {
       if (k === "summary") out.summary = unquote(v);
       else if (k === "post") out.post = v === "true";
       else if (k === "comments") out.comments = ["off", "readonly"].includes(unquote(v)) ? unquote(v) : "on";
+      else if (k === "scroll") out.scroll = unquote(v) !== "off";
       else if (k === "slug") out.slug = unquote(v);
       else if (k === "note-to-self") out.memo = unquote(v);
       else if (k === "photo") {

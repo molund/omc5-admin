@@ -14,6 +14,9 @@
 // its comments, `on` when left out: `off` has no Comments button; `readonly` keeps the button, but shows the comments as they
 // were when the site was built (trackside/prerender.js), with no way to add one:
 //     comments: readonly
+// whether it's pulled into the scroll on Trackside, `on` when left out: `off` keeps it on its own page of updates
+// (/trackside/page/N/), but the scroll that adds older pages under the one the reader opened skips it:
+//     scroll: off
 // a note to self is in gantry-cycles.yaml now, not here; this reader skips a `note-to-self:` line all the same, so one is never shown
 // optionally more blocks, paragraphs and photos, indented under it (shown after the summary and its photo on the Trackside page
 // and in its thread; the card shows only the summary):
@@ -64,6 +67,7 @@ import { anchor } from "./comments.js";
  * @property {string} slug The note's `?post=` slug on Trackside, unique among the notes.
  * @property {boolean} post Whether it is a post rather than a status update.
  * @property {"on"|"off"|"readonly"} comments Its comments: open, none, or shown as they were when the site was built.
+ * @property {boolean} scroll Whether Trackside's scroll pulls it in under the page the reader opened.
  * @property {FollowUp[]} followUps Its follow-ups, newest first.
  */
 
@@ -159,6 +163,7 @@ function parse(src) {
         block: [],
         post: false,
         comments: "on",
+        scroll: true,
         followUps: [],
       });
       list = null;
@@ -226,6 +231,14 @@ function parse(src) {
       list = null;
       photo = null;
       if (last) last.comments = ["off", "readonly"].includes(unquote(co[1])) ? unquote(co[1]) : "on";
+      return;
+    }
+    // "    scroll: off"; anything else leaves it in the scroll
+    const sc = line.match(/^ {4}scroll:\s*(.*?)\s*$/);
+    if (sc) {
+      list = null;
+      photo = null;
+      if (last) last.scroll = unquote(sc[1]) !== "off";
       return;
     }
     // "    slug: words-for-the-address": a note's own address, instead of its title's

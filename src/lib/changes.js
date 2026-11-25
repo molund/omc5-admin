@@ -13,13 +13,17 @@
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
-//   { id, kind: "comments",      settings: [{ noteKey, comments }] }   several notes' comments settings at once (Trackside page)
+//   { id, kind: "comments",      settings: [{ noteKey, comments?, scroll? }] }   several notes' Trackside settings at once
+//       (Trackside page): each with its new comments setting, its new scroll setting, or both
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.
 //
 // comments: "on" | "off" | "readonly", the note's `comments:` line (none when on); left out of a note-edit, the line stays as
 // it is. A new note is on or off; read-only is for an edit.
+//
+// scroll: false is the note's `scroll: off` line: it stays on its own page of updates on Trackside, but out of the scroll that
+// adds older pages under the one the reader opened; true (no line) puts it back. Only the Trackside page sets it.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -287,7 +291,7 @@ function editNote(doc, note, title, blocks, comments) {
   let last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
   while (last > note.start && doc.lines[last].trim() === "") last--;
   const own = doc.lines.slice(note.start + 1, last + 1);
-  const keys = comments === undefined ? "slug|post|comments|note-to-self" : "slug|post|note-to-self";
+  const keys = comments === undefined ? "slug|post|comments|scroll|note-to-self" : "slug|post|scroll|note-to-self";
   const kept = (l) => new RegExp(`^ {4}(${keys}):`).test(l) || /^\s*#/.test(l);
   const at = own.findIndex((l) => /^ {4}summary:/.test(l));
   const [summary, ...rest] = fieldLines(blocks, 4);
@@ -319,6 +323,27 @@ function setComments(doc, note, comments) {
   const summary = doc.lines.findIndex((l, i) => own(i) && /^ {4}summary:/.test(l));
   const post = doc.lines.findIndex((l, i) => own(i) && /^ {4}post:/.test(l));
   doc.replace(Math.max(summary, post, note.start) + 1, 0, [line]);
+}
+
+/** A note's `scroll: off` line: written after its summary (and `post:` and `comments:`), or taken out when it's back in. */
+function setScroll(doc, note, scroll) {
+  const last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
+  const own = (i) => i > note.start && i <= last;
+  const at = doc.lines.findIndex((l, i) => own(i) && /^ {4}scroll:/.test(l));
+  const line = "    scroll: off";
+  if (at >= 0) {
+    if (scroll) doc.replace(at, 1, []);
+    else if (doc.lines[at] !== line) doc.replace(at, 1, [line]);
+    return;
+  }
+  if (scroll) return;
+  const after = Math.max(
+    note.start,
+    ...["summary", "post", "comments"].map((k) =>
+      doc.lines.findIndex((l, i) => own(i) && new RegExp(`^ {4}${k}:`).test(l)),
+    ),
+  );
+  doc.replace(after + 1, 0, [line]);
 }
 
 /** Takes lines out, and the blank lines after them, so the file never has two blank lines in a row. */
@@ -436,7 +461,10 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       break;
     }
     case "comments":
-      for (const { noteKey, comments } of change.settings) setComments(doc, findNote(doc.parsed, noteKey), comments);
+      for (const { noteKey, comments, scroll } of change.settings) {
+        if (comments !== undefined) setComments(doc, findNote(doc.parsed, noteKey), comments);
+        if (scroll !== undefined) setScroll(doc, findNote(doc.parsed, noteKey), scroll);
+      }
       break;
     case "desk-edit":
       break;
@@ -513,7 +541,15 @@ export function commitMessage(change, before) {
         count === 1 && picked[0]
           ? nameOf(picked[0].key, picked[0].title)
           : `${count} ${posts === count ? "blog posts" : posts ? "updates and blog posts" : "updates"}`;
-      const values = new Set(change.settings.map((x) => x.comments));
+      const comments = change.settings.filter((x) => x.comments !== undefined);
+      const scrolls = change.settings.filter((x) => x.scroll !== undefined);
+      if (comments.length && scrolls.length) return `Change the Trackside settings on ${what}`;
+      if (scrolls.length) {
+        const ins = new Set(scrolls.map((x) => x.scroll));
+        if (ins.size > 1) return `Change which of ${what} are in Trackside's scroll`;
+        return ins.has(true) ? `Put ${what} back in Trackside's scroll` : `Leave ${what} out of Trackside's scroll`;
+      }
+      const values = new Set(comments.map((x) => x.comments));
       if (values.size > 1) return `Change the comments on ${what}`;
       const [v] = values;
       return v === "on"

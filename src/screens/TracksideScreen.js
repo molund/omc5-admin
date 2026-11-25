@@ -1,7 +1,8 @@
 // Trackside: every update, or every blog post (a tab each, updates first), newest first, each with its comments setting (On, Off or Read-only) and how many
-// comments it has on the site's comment server (services/remark42.js). Change any of them, then send them all together as
-// one change (`comments` in lib/changes.js). The filters show the posts by their saved setting, or just the ones changed
-// here; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
+// comments it has on the site's comment server (services/remark42.js), and whether Trackside's scroll pulls it in under the
+// page the reader opened (Left out keeps it on its own page of updates only: `scroll: off`). Change any of them, then send
+// them all together as one change (`comments` in lib/changes.js). The filters show the posts by their saved comments
+// setting, the ones left out of the scroll, or just the ones changed here; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
 // post with comments: they'd vanish from Trackside while still on the server, so they're deleted there first.
 import { useEffect, useMemo, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -16,6 +17,7 @@ import { Icon } from "../components/Icon";
 import { SafeArea } from "../components/SafeArea";
 
 const LABEL = { on: "On", off: "Off", readonly: "Read-only" };
+const SCROLL_LABEL = { in: "In the scroll", out: "Left out" };
 const FILTERS = ["on", "off", "readonly"];
 
 const looks = (tw) => ({
@@ -26,6 +28,8 @@ const looks = (tw) => ({
   headline: tw`text-sm leading-snug text-ink`,
   meta: tw`text-xs text-mute`,
   changedNote: tw`text-xs font-semibold text-accent`,
+  // the small name over each of a row's two settings
+  settingName: tw`text-xs font-semibold text-mute`,
   eye: tw`h-11 w-11 items-center justify-center rounded-lg border border-line bg-panel`,
   list: tw`overflow-hidden rounded-lg border border-line`,
   bar: tw`gap-2.5 rounded-lg border border-line bg-panel p-3`,
@@ -98,7 +102,25 @@ function Setting({ value, onChange, count }) {
   return <Segmented options={options} value={value} onChange={onChange} />;
 }
 
-function Preview({ note, place, onStep, value, onChange, count, onClose }) {
+/** In the scroll · Left out, for one post: whether Trackside's scroll pulls it in under the page the reader opened. */
+function ScrollSetting({ value, onChange }) {
+  const options = ["in", "out"].map((v) => ({ value: v, label: SCROLL_LABEL[v] }));
+  return <Segmented options={options} value={value ? "in" : "out"} onChange={(v) => onChange(v === "in")} small />;
+}
+
+/** A setting with its name over it. */
+function Named({ name, children }) {
+  const { tw } = useTw();
+  const s = useMemo(() => looks(tw), [tw]);
+  return (
+    <View style={tw`gap-1`}>
+      <Text style={s.settingName}>{name}</Text>
+      {children}
+    </View>
+  );
+}
+
+function Preview({ note, place, onStep, value, onChange, count, scroll, onScroll, onClose }) {
   const { tw, colors } = useTw();
   const s = useMemo(() => looks(tw), [tw]);
   const { heading, headline, meta } = named(note);
@@ -182,6 +204,9 @@ function Preview({ note, place, onStep, value, onChange, count, onClose }) {
               </Body>
             )}
             <Setting value={value} onChange={onChange} count={count} />
+            <Named name="Scroll on Trackside">
+              <ScrollSetting value={scroll} onChange={onScroll} />
+            </Named>
           </View>
         </View>
       </SafeArea>
@@ -194,8 +219,9 @@ export function TracksideScreen({ onReview }) {
   const s = useMemo(() => looks(tw), [tw]);
   const desk = useDesk();
   // the settings changed here, by note key; kept on this device like any form's draft
-  const [d, update, reset] = useDraft("comments", () => ({ changes: {} }));
+  const [d, update, reset] = useDraft("comments", () => ({ changes: {}, scrolls: {} }));
   const changes = d.changes ?? {};
+  const scrolls = d.scrolls ?? {};
   const [kind, setKind] = useState("update");
   const [filter, setFilter] = useState("on");
   const [previewKey, setPreviewKey] = useState(null);
@@ -230,18 +256,33 @@ export function TracksideScreen({ onReview }) {
     const next = { ...changes };
     if (value === saved(note)) delete next[note.key];
     else next[note.key] = value;
-    update({ changes: next });
+    update({ changes: next, scrolls });
   };
-  const isChanged = (n) => changes[n.key] !== undefined && changes[n.key] !== saved(n);
+  const savedScroll = (note) => note.fields.scroll !== false;
+  const nowScroll = (note) => scrolls[note.key] ?? savedScroll(note);
+  const setScrollTo = (note, value) => {
+    const next = { ...scrolls };
+    if (value === savedScroll(note)) delete next[note.key];
+    else next[note.key] = value;
+    update({ changes, scrolls: next });
+  };
+  const commentsChanged = (n) => changes[n.key] !== undefined && changes[n.key] !== saved(n);
+  const scrollChanged = (n) => scrolls[n.key] !== undefined && scrolls[n.key] !== savedScroll(n);
+  const isChanged = (n) => commentsChanged(n) || scrollChanged(n);
   const changedKeys = notes.filter(isChanged);
-  const matches = (f, n) => (f === "all" ? true : f === "changed" ? changedKeys.includes(n) : saved(n) === f);
+  const matches = (f, n) =>
+    f === "all" ? true : f === "changed" ? changedKeys.includes(n) : f === "out" ? !savedScroll(n) : saved(n) === f;
   const shown = notes.filter((n) => matches(filter, n));
   const tally = (f) => notes.filter((n) => matches(f, n)).length;
 
   // what's sent: the changes on both tabs
   const change = {
     kind: "comments",
-    settings: allNotes.filter(isChanged).map((n) => ({ noteKey: n.key, comments: changes[n.key] })),
+    settings: allNotes.filter(isChanged).map((n) => ({
+      noteKey: n.key,
+      ...(commentsChanged(n) && { comments: changes[n.key] }),
+      ...(scrollChanged(n) && { scroll: scrolls[n.key] }),
+    })),
   };
   const count = change.settings.length;
   const review = () => onReview(change, { after: reset });
@@ -255,7 +296,9 @@ export function TracksideScreen({ onReview }) {
         <Text style={s.barCount}>
           {count === 0 ? "No changes yet" : count === 1 ? "1 change waiting" : `${count} changes waiting`}
         </Text>
-        {count > 0 && <Button kind="link" small title="Undo all" onPress={() => update({ changes: {} })} />}
+        {count > 0 && (
+          <Button kind="link" small title="Undo all" onPress={() => update({ changes: {}, scrolls: {} })} />
+        )}
       </View>
       <Button
         kind="green"
@@ -295,7 +338,7 @@ export function TracksideScreen({ onReview }) {
       </View>
       <View accessibilityRole="tablist" style={s.filterInset}>
         <View style={s.grid}>
-          {[FILTERS, ["all", "changed"]].map((line, r) => (
+          {[FILTERS, ["all", "changed", "out"]].map((line, r) => (
             <View key={r} style={[tw`flex-row`, r > 0 && s.gridBottom]}>
               {line.map((f, i) => {
                 const on = filter === f;
@@ -308,7 +351,7 @@ export function TracksideScreen({ onReview }) {
                     style={[tw`flex-1`, s.cell, i > 0 && s.cellLine, on && s.cellOn]}
                   >
                     <Text style={on ? s.cellTextOn : r > 0 ? s.cellTextView : s.cellText}>
-                      {`${{ ...LABEL, all: "All", changed: "Changed" }[f]} ${tally(f)}`}
+                      {`${{ ...LABEL, all: "All", changed: "Changed", out: "Left out" }[f]} ${tally(f)}`}
                     </Text>
                   </Pressable>
                 );
@@ -348,11 +391,34 @@ export function TracksideScreen({ onReview }) {
                     <Icon name="eye" color={colors.ink} size={20} />
                   </Pressable>
                 </View>
-                <Setting value={now(note)} onChange={(v) => setTo(note, v)} count={countOf(note)} />
+                <Named name="Comments">
+                  <Setting value={now(note)} onChange={(v) => setTo(note, v)} count={countOf(note)} />
+                </Named>
+                <Named name="Scroll on Trackside">
+                  <ScrollSetting value={nowScroll(note)} onChange={(v) => setScrollTo(note, v)} />
+                </Named>
                 {changed && (
                   <View style={tw`flex-row items-center justify-between`}>
-                    <Text style={s.changedNote}>{`Changed from ${LABEL[saved(note)]}`}</Text>
-                    <Button kind="link" small title="Undo" onPress={() => setTo(note, saved(note))} />
+                    <Text style={s.changedNote}>
+                      {`Changed from ${[
+                        commentsChanged(note) && LABEL[saved(note)],
+                        scrollChanged(note) && SCROLL_LABEL[savedScroll(note) ? "in" : "out"],
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}`}
+                    </Text>
+                    <Button
+                      kind="link"
+                      small
+                      title="Undo"
+                      onPress={() => {
+                        const c = { ...changes },
+                          sc = { ...scrolls };
+                        delete c[note.key];
+                        delete sc[note.key];
+                        update({ changes: c, scrolls: sc });
+                      }}
+                    />
                   </View>
                 )}
               </View>
@@ -371,6 +437,8 @@ export function TracksideScreen({ onReview }) {
           value={now(previewed)}
           onChange={(v) => setTo(previewed, v)}
           count={countOf(previewed)}
+          scroll={nowScroll(previewed)}
+          onScroll={(v) => setScrollTo(previewed, v)}
           onClose={() => setPreviewKey(null)}
         />
       )}

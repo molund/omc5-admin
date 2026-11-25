@@ -41,7 +41,7 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Girders: a precast concrete or steel one connecting two supports is a "girder", never a "span" or "beam"; use the span's number only to say where it goes ("both precast concrete girders for span 34").
 - Don't call a span "complete": say what happened ("all the segments for span 38 are hung").
 - Titles: sentence case ("The curious case of Clayton Clipper span 50").
-- Gantries: the full name first ("Clayton Clipper", "Surrey Sprinter"); "the Sprinter" or "the gantry" after. Never "the Clipper": to shorten "Clayton Clipper", say "the gantry". "The gantry" on its own means the Clayton Clipper.
+- Gantries: the full name first, with "the" whenever the name is the gantry itself, in titles too ("the Clayton Clipper is post-tensioning", "The Surrey Sprinter hangs its first span"); no "the" when the name describes another noun ("Clayton Clipper span 50", "Clayton Clipper construction update"). Then "the Sprinter" or "the gantry". Never "the Clipper": to shorten "Clayton Clipper", say "the gantry". "The gantry" on its own means the Clayton Clipper.
 - Pillar, support, tulip, hammerhead, bent: use the word as written.
 - Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles. Two numbers with a slash are a support only when they're consecutive, like 70/71. When the second number is 105 or more, it's how far along the route the gantry is, not a support: "span 39/105" means span 39 of 105.
 - Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".
@@ -137,7 +137,7 @@ Interesting: something new or unusual, a first or a milestone, something people 
 export function walkPrompt({ kind, standardTitle, notes, captions }, alone = false) {
   const update = kind === "update";
   const title = update
-    ? `- A title. The standard title is "${standardTitle}". Keep it unless something from this walk stands out enough for a title of its own, like "Clayton Clipper finishes hanging span 35; new girder arrives" or "Surrey Sprinter hangs its first span past Green Timbers".`
+    ? `- A title. The standard title is "${standardTitle}". Keep it unless something from this walk stands out enough for a title of its own, like "The Clayton Clipper finishes hanging span 35; new girder arrives" or "The Surrey Sprinter hangs its first span past Green Timbers".`
     : `- A title, like "The curious case of Clayton Clipper span 50" or "I found someone who posts Clayton Clipper videos on TikTok".`;
   const summary = update
     ? `- A summary: the post's first paragraph, 150 characters at most, counting spaces (about 25 words). It shows on its own on the progress card on the site's home page, which has to fit all of it, then opens the post on Trackside. Lead with the most interesting thing and actually say it, like the opening of a story, not a teaser or a summary of the whole post. Don't hint at something and save it for later ("I have a guess about…"). A good one: "A mobile crane is doing a job the Clayton Clipper can't do by itself: lifting one of its supports from the ground up to the other side of span 42."`

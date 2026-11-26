@@ -1,23 +1,26 @@
 // Trackside: every update, or every blog post (a tab each, updates first), newest first, each with its comments setting (On, Off or Read-only) and how many
-// comments it has on the site's comment server (services/remark42.js), and whether Trackside's scroll pulls it in under the
-// page the reader opened (Left out keeps it on its own page of updates only: `scroll: off`). Change any of them, then send
-// them all together as one change (`comments` in lib/changes.js). The filters show the posts by their saved comments
-// setting, the ones left out of the scroll, or just the ones changed here; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
+// comments it has on the site's comment server (services/remark42.js), and its star: whether it's featured on Trackside
+// (/trackside/'s scroll shows it once it's older than the newest 10, which are always shown; an update only with
+// `featured: true`, a blog post unless it has `featured: false`). Change any
+// of them, then send them all together as one change (`comments` in lib/changes.js). The filters show the posts by their
+// saved comments setting, or just the ones changed here, and Featured only narrows any of them to the saved featured ones; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
 // post with comments: they'd vanish from Trackside while still on the server, so they're deleted there first.
 import { useEffect, useMemo, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { useTw } from "../theme/tw.js";
 import { useDesk, useDraft } from "../state/desk.js";
 import { listEntries } from "../lib/entries.js";
-import { clock, pageHeading } from "../lib/time.js";
+import { clock, pageHeading, parseKey } from "../lib/time.js";
 import { isDateTitle, slugsOf } from "../lib/titles.js";
 import { commentCounts, photoUrl } from "../services/remark42.js";
-import { Body, Button, Link, Notice, Segmented } from "../components/ui.js";
+import { Body, Button, Checkbox, Link, Notice, Segmented } from "../components/ui.js";
 import { Icon } from "../components/Icon";
 import { SafeArea } from "../components/SafeArea";
 
 const LABEL = { on: "On", off: "Off", readonly: "Read-only" };
-const SCROLL_LABEL = { in: "In the scroll", out: "Left out" };
+// /trackside/ always shows this many of the newest updates and blog posts, featured or not (PAGE_SIZE in molund/omc5's
+// trackside/TracksidePage.svelte)
+const NEWEST = 10;
 const FILTERS = ["on", "off", "readonly"];
 
 const looks = (tw) => ({
@@ -31,6 +34,8 @@ const looks = (tw) => ({
   // the small name over each of a row's two settings
   settingName: tw`text-xs font-semibold text-mute`,
   eye: tw`h-11 w-11 items-center justify-center rounded-lg border border-line bg-panel`,
+  // the note on the newest 10, which the star doesn't change yet
+  newestNote: tw`text-xs italic text-mute`,
   list: tw`overflow-hidden rounded-lg border border-line`,
   bar: tw`gap-2.5 rounded-lg border border-line bg-panel p-3`,
   barCount: tw`text-sm font-semibold text-ink`,
@@ -102,10 +107,21 @@ function Setting({ value, onChange, count }) {
   return <Segmented options={options} value={value} onChange={onChange} />;
 }
 
-/** In the scroll · Left out, for one post: whether Trackside's scroll pulls it in under the page the reader opened. */
-function ScrollSetting({ value, onChange }) {
-  const options = ["in", "out"].map((v) => ({ value: v, label: SCROLL_LABEL[v] }));
-  return <Segmented options={options} value={value ? "in" : "out"} onChange={(v) => onChange(v === "in")} small />;
+/** The star, for one post: outlined when it isn't featured on Trackside, filled in gold when it is; a press flips it. */
+function Star({ value, onChange, heading }) {
+  const { tw, colors } = useTw();
+  const s = useMemo(() => looks(tw), [tw]);
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={`Feature ${heading} on Trackside`}
+      accessibilityState={{ checked: value }}
+      onPress={() => onChange(!value)}
+      style={({ pressed }) => [s.eye, pressed && tw`opacity-60`]}
+    >
+      <Icon name={value ? "starFilled" : "star"} color={value ? colors.date : colors.mute} size={20} />
+    </Pressable>
+  );
 }
 
 /** A setting with its name over it. */
@@ -120,7 +136,7 @@ function Named({ name, children }) {
   );
 }
 
-function Preview({ note, place, onStep, value, onChange, count, scroll, onScroll, onClose }) {
+function Preview({ note, place, onStep, value, onChange, count, featured, onFeatured, onClose }) {
   const { tw, colors } = useTw();
   const s = useMemo(() => looks(tw), [tw]);
   const { heading, headline, meta } = named(note);
@@ -204,9 +220,10 @@ function Preview({ note, place, onStep, value, onChange, count, scroll, onScroll
               </Body>
             )}
             <Setting value={value} onChange={onChange} count={count} />
-            <Named name="Scroll on Trackside">
-              <ScrollSetting value={scroll} onChange={onScroll} />
-            </Named>
+            <View style={tw`flex-row items-center gap-2.5`}>
+              <Star value={featured} onChange={onFeatured} heading={heading} />
+              <Body small>{featured ? "Featured on Trackside" : "Not featured on Trackside"}</Body>
+            </View>
           </View>
         </View>
       </SafeArea>
@@ -219,11 +236,12 @@ export function TracksideScreen({ onReview }) {
   const s = useMemo(() => looks(tw), [tw]);
   const desk = useDesk();
   // the settings changed here, by note key; kept on this device like any form's draft
-  const [d, update, reset] = useDraft("comments", () => ({ changes: {}, scrolls: {} }));
+  const [d, update, reset] = useDraft("comments", () => ({ changes: {}, stars: {} }));
   const changes = d.changes ?? {};
-  const scrolls = d.scrolls ?? {};
+  const stars = d.stars ?? {};
   const [kind, setKind] = useState("update");
   const [filter, setFilter] = useState("on");
+  const [featuredOnly, setFeaturedOnly] = useState(false);
   const [previewKey, setPreviewKey] = useState(null);
 
   const all = useMemo(
@@ -256,22 +274,30 @@ export function TracksideScreen({ onReview }) {
     const next = { ...changes };
     if (value === saved(note)) delete next[note.key];
     else next[note.key] = value;
-    update({ changes: next, scrolls });
+    update({ changes: next, stars });
   };
-  const savedScroll = (note) => note.fields.scroll !== false;
-  const nowScroll = (note) => scrolls[note.key] ?? savedScroll(note);
-  const setScrollTo = (note, value) => {
-    const next = { ...scrolls };
-    if (value === savedScroll(note)) delete next[note.key];
+  const savedStar = (note) => note.fields.featured === true;
+  const nowStar = (note) => stars[note.key] ?? savedStar(note);
+  const setStarTo = (note, value) => {
+    const next = { ...stars };
+    if (value === savedStar(note)) delete next[note.key];
     else next[note.key] = value;
-    update({ changes, scrolls: next });
+    update({ changes, stars: next });
   };
+  // the newest 10 updates and blog posts together, newest first, as /trackside/ counts them
+  const newest = new Set(
+    allNotes
+      .map((n) => n.key)
+      .sort((a, b) => parseKey(b) - parseKey(a))
+      .slice(0, NEWEST),
+  );
   const commentsChanged = (n) => changes[n.key] !== undefined && changes[n.key] !== saved(n);
-  const scrollChanged = (n) => scrolls[n.key] !== undefined && scrolls[n.key] !== savedScroll(n);
-  const isChanged = (n) => commentsChanged(n) || scrollChanged(n);
+  const starChanged = (n) => stars[n.key] !== undefined && stars[n.key] !== savedStar(n);
+  const isChanged = (n) => commentsChanged(n) || starChanged(n);
   const changedKeys = notes.filter(isChanged);
   const matches = (f, n) =>
-    f === "all" ? true : f === "changed" ? changedKeys.includes(n) : f === "out" ? !savedScroll(n) : saved(n) === f;
+    (!featuredOnly || savedStar(n)) &&
+    (f === "all" ? true : f === "changed" ? changedKeys.includes(n) : saved(n) === f);
   const shown = notes.filter((n) => matches(filter, n));
   const tally = (f) => notes.filter((n) => matches(f, n)).length;
 
@@ -281,7 +307,7 @@ export function TracksideScreen({ onReview }) {
     settings: allNotes.filter(isChanged).map((n) => ({
       noteKey: n.key,
       ...(commentsChanged(n) && { comments: changes[n.key] }),
-      ...(scrollChanged(n) && { scroll: scrolls[n.key] }),
+      ...(starChanged(n) && { featured: stars[n.key] }),
     })),
   };
   const count = change.settings.length;
@@ -296,9 +322,7 @@ export function TracksideScreen({ onReview }) {
         <Text style={s.barCount}>
           {count === 0 ? "No changes yet" : count === 1 ? "1 change waiting" : `${count} changes waiting`}
         </Text>
-        {count > 0 && (
-          <Button kind="link" small title="Undo all" onPress={() => update({ changes: {}, scrolls: {} })} />
-        )}
+        {count > 0 && <Button kind="link" small title="Undo all" onPress={() => update({ changes: {}, stars: {} })} />}
       </View>
       <Button
         kind="green"
@@ -338,7 +362,7 @@ export function TracksideScreen({ onReview }) {
       </View>
       <View accessibilityRole="tablist" style={s.filterInset}>
         <View style={s.grid}>
-          {[FILTERS, ["all", "changed", "out"]].map((line, r) => (
+          {[FILTERS, ["all", "changed"]].map((line, r) => (
             <View key={r} style={[tw`flex-row`, r > 0 && s.gridBottom]}>
               {line.map((f, i) => {
                 const on = filter === f;
@@ -351,7 +375,7 @@ export function TracksideScreen({ onReview }) {
                     style={[tw`flex-1`, s.cell, i > 0 && s.cellLine, on && s.cellOn]}
                   >
                     <Text style={on ? s.cellTextOn : r > 0 ? s.cellTextView : s.cellText}>
-                      {`${{ ...LABEL, all: "All", changed: "Changed", out: "Left out" }[f]} ${tally(f)}`}
+                      {`${{ ...LABEL, all: "All", changed: "Changed" }[f]} ${tally(f)}`}
                     </Text>
                   </Pressable>
                 );
@@ -359,6 +383,7 @@ export function TracksideScreen({ onReview }) {
             </View>
           ))}
         </View>
+        <Checkbox value={featuredOnly} onChange={setFeaturedOnly} label="Featured only" />
       </View>
       {countError && (
         <Notice tone="problem">{`Couldn't get the comment counts: ${countError} Off stays greyed out.`}</Notice>
@@ -381,7 +406,9 @@ export function TracksideScreen({ onReview }) {
                     <Text style={s.heading}>{heading}</Text>
                     {!!headline && <Text style={s.headline}>{headline}</Text>}
                     <Text style={s.meta}>{`${meta} · ${countLabel(countOf(note))}`}</Text>
+                    {newest.has(note.key) && <Text style={s.newestNote}>In the newest 10: shown anyway</Text>}
                   </View>
+                  <Star value={nowStar(note)} onChange={(v) => setStarTo(note, v)} heading={heading} />
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={`Preview ${heading}`}
@@ -394,15 +421,12 @@ export function TracksideScreen({ onReview }) {
                 <Named name="Comments">
                   <Setting value={now(note)} onChange={(v) => setTo(note, v)} count={countOf(note)} />
                 </Named>
-                <Named name="Scroll on Trackside">
-                  <ScrollSetting value={nowScroll(note)} onChange={(v) => setScrollTo(note, v)} />
-                </Named>
                 {changed && (
                   <View style={tw`flex-row items-center justify-between`}>
                     <Text style={s.changedNote}>
                       {`Changed from ${[
                         commentsChanged(note) && LABEL[saved(note)],
-                        scrollChanged(note) && SCROLL_LABEL[savedScroll(note) ? "in" : "out"],
+                        starChanged(note) && (savedStar(note) ? "Featured" : "Not featured"),
                       ]
                         .filter(Boolean)
                         .join(" · ")}`}
@@ -413,10 +437,10 @@ export function TracksideScreen({ onReview }) {
                       title="Undo"
                       onPress={() => {
                         const c = { ...changes },
-                          sc = { ...scrolls };
+                          st = { ...stars };
                         delete c[note.key];
-                        delete sc[note.key];
-                        update({ changes: c, scrolls: sc });
+                        delete st[note.key];
+                        update({ changes: c, stars: st });
                       }}
                     />
                   </View>
@@ -437,8 +461,8 @@ export function TracksideScreen({ onReview }) {
           value={now(previewed)}
           onChange={(v) => setTo(previewed, v)}
           count={countOf(previewed)}
-          scroll={nowScroll(previewed)}
-          onScroll={(v) => setScrollTo(previewed, v)}
+          featured={nowStar(previewed)}
+          onFeatured={(v) => setStarTo(previewed, v)}
           onClose={() => setPreviewKey(null)}
         />
       )}

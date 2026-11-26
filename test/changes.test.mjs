@@ -669,40 +669,56 @@ test("a Trackside page batch sets several notes' comments in one change, and the
   assert.equal(parseStatus(swap.text).notes.find((n) => n.key === update.key).fields.comments, "off");
 });
 
-test("a Trackside page batch can leave notes out of the scroll and put them back, and the site reads it", async () => {
+test("a Trackside page batch can feature notes and stop featuring them, and the site reads it", async () => {
   const notes = parseStatus(BASE).notes.filter((n) => n.fields.summary);
   const post = notes.find((n) => n.fields.post);
   const update = notes.find((n) => !n.fields.post && n.followUps.length);
-  const out = { kind: "comments", settings: [{ noteKey: update.key, scroll: false }] };
+  const out = { kind: "comments", settings: [{ noteKey: update.key, featured: true }] };
   const r = applyChange(BASE, out);
   assert.equal(r.hunks.length, 1);
-  assert.equal(parseStatus(r.text).notes.find((n) => n.key === update.key).fields.scroll, false);
+  assert.equal(parseStatus(r.text).notes.find((n) => n.key === update.key).fields.featured, true);
   const s = await site(r.text);
-  assert.equal(s.history.find((h) => h.time.getTime() === parseKey(update.key).getTime()).scroll, false);
-  assert.equal(s.history.filter((h) => h.scroll === false).length, 1);
-  assert.match(commitMessage(out, BASE), /^Leave .* out of Trackside's scroll$/);
-  // both settings on one note: the scroll line goes after the comments line
+  assert.equal(s.history.find((h) => h.time.getTime() === parseKey(update.key).getTime()).featured, true);
+  assert.equal(s.history.filter((h) => h.featured && !h.post).length, 1);
+  assert.match(commitMessage(out, BASE), /^Feature .* on Trackside$/);
+  // both settings on one note: the featured line goes after the comments line
   const both = applyChange(BASE, {
     kind: "comments",
-    settings: [{ noteKey: post.key, comments: "off", scroll: false }],
+    settings: [{ noteKey: post.key, comments: "off", featured: false }],
   });
   assert.match(
     both.text,
-    new RegExp(`  - ${post.key}: .*\\n    summary: .*\\n    post: true\\n    comments: off\\n    scroll: off\\n`),
+    new RegExp(`  - ${post.key}: .*\\n    summary: .*\\n    post: true\\n    comments: off\\n    featured: false\\n`),
   );
   assert.equal(
-    commitMessage({ kind: "comments", settings: [{ noteKey: post.key, comments: "off", scroll: false }] }, BASE),
+    commitMessage({ kind: "comments", settings: [{ noteKey: post.key, comments: "off", featured: false }] }, BASE),
     `Change the Trackside settings on ${commitMessage({ kind: "comments", settings: [{ noteKey: post.key, comments: "off" }] }, BASE).replace(/^Turn comments off on /, "")}`,
   );
-  // an edit keeps the line; back in takes it out, leaving the file as it was
+  // an edit keeps the line; unfeaturing takes it out, leaving the file as it was
   const edited = applyChange(r.text, noteEdit(parseStatus(r.text).notes.find((n) => n.key === update.key)));
-  assert.equal(parseStatus(edited.text).notes.find((n) => n.key === update.key).fields.scroll, false);
-  const back = applyChange(r.text, { kind: "comments", settings: [{ noteKey: update.key, scroll: true }] });
+  assert.equal(parseStatus(edited.text).notes.find((n) => n.key === update.key).fields.featured, true);
+  const back = applyChange(r.text, { kind: "comments", settings: [{ noteKey: update.key, featured: false }] });
   assert.equal(back.text, BASE);
   assert.match(
-    commitMessage({ kind: "comments", settings: [{ noteKey: update.key, scroll: true }] }, BASE),
-    /^Put .* back in Trackside's scroll$/,
+    commitMessage({ kind: "comments", settings: [{ noteKey: update.key, featured: false }] }, BASE),
+    /^Stop featuring .* on Trackside$/,
   );
+});
+
+test("a blog post is featured unless it says featured: false", async () => {
+  const post = parseStatus(BASE).notes.find((n) => n.fields.summary && n.fields.post);
+  assert.equal(post.fields.featured, true);
+  const off = { kind: "comments", settings: [{ noteKey: post.key, featured: false }] };
+  const r = applyChange(BASE, off);
+  assert.match(r.text, new RegExp(`  - ${post.key}: .*\\n    summary: .*\\n    post: true\\n    featured: false\\n`));
+  assert.equal(parseStatus(r.text).notes.find((n) => n.key === post.key).fields.featured, false);
+  const s = await site(r.text);
+  assert.equal(s.history.find((h) => h.time.getTime() === parseKey(post.key).getTime()).featured, false);
+  assert.equal(s.history.filter((h) => h.post && h.featured).length, s.history.filter((h) => h.post).length - 1);
+  assert.match(commitMessage(off, BASE), /^Stop featuring .* on Trackside$/);
+  // featured again is the default: the line comes out, leaving the file as it was
+  const back = applyChange(r.text, { kind: "comments", settings: [{ noteKey: post.key, featured: true }] });
+  assert.equal(back.text, BASE);
 });
 
 test("a Trackside page batch's commit message names what it did", () => {

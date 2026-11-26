@@ -1,5 +1,8 @@
 // The Leash Log's icons: thin-line drawings on a 24-unit grid, as lists of ["circle" or "path", its attributes]. Add one by
 // giving its shapes a name here. Icon.web.js draws them as an <svg> and Icon.native.js with react-native-svg.
+// a five-pointed star, for star and starFilled
+const STAR = "M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.1 6.1-5.4-2.9-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z";
+
 export const ICONS = {
   // "where it is now", as on Google Maps' my-location button
   crosshair: [
@@ -64,6 +67,9 @@ export const ICONS = {
   // left and right chevrons, for stepping back and on (the Trackside page's preview)
   chevronLeft: [["path", { d: "M14.5 6l-6 6 6 6", fill: "none" }]],
   chevronRight: [["path", { d: "M9.5 6l6 6-6 6", fill: "none" }]],
+  // a star, outlined and filled, for whether an update is featured on Trackside
+  star: [["path", { d: STAR, fill: "none", strokeLinejoin: "round" }]],
+  starFilled: [["path", { d: STAR, fill: "currentColor", strokeLinejoin: "round" }]],
   // an eye, for looking at something without opening it (the Trackside page's preview)
   eye: [
     ["path", { d: "M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z", fill: "none" }],

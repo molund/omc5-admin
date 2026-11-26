@@ -14,9 +14,11 @@
 // its comments, `on` when left out: `off` has no Comments button; `readonly` keeps the button, but shows the comments as they
 // were when the site was built (trackside/prerender.js), with no way to add one:
 //     comments: readonly
-// whether it's pulled into the scroll on Trackside, `on` when left out: `off` keeps it on its own page of updates
-// (/trackside/page/N/), but the scroll that adds older pages under the one the reader opened skips it:
-//     scroll: off
+// whether it's featured on Trackside: /trackside/ shows the newest 10 updates whatever this says, then, as the reader
+// scrolls, only the older featured ones; every update is on its page of updates (/trackside/page/N/) either way. Left
+// out, a status update isn't featured and a blog post is:
+//     featured: true
+//     featured: false
 // a note to self is in gantry-cycles.yaml now, not here; this reader skips a `note-to-self:` line all the same, so one is never shown
 // optionally more blocks, paragraphs and photos, indented under it (shown after the summary and its photo on the Trackside page
 // and in its thread; the card shows only the summary):
@@ -67,7 +69,8 @@ import { anchor } from "./comments.js";
  * @property {string} slug The note's `?post=` slug on Trackside, unique among the notes.
  * @property {boolean} post Whether it is a post rather than a status update.
  * @property {"on"|"off"|"readonly"} comments Its comments: open, none, or shown as they were when the site was built.
- * @property {boolean} scroll Whether Trackside's scroll pulls it in under the page the reader opened.
+ * @property {boolean} featured Whether /trackside/'s scroll shows it once it's older than the newest 10: a status update
+ *   only with `featured: true`, a blog post unless it has `featured: false`.
  * @property {FollowUp[]} followUps Its follow-ups, newest first.
  */
 
@@ -163,7 +166,7 @@ function parse(src) {
         block: [],
         post: false,
         comments: "on",
-        scroll: true,
+        featured: null,
         followUps: [],
       });
       list = null;
@@ -233,12 +236,13 @@ function parse(src) {
       if (last) last.comments = ["off", "readonly"].includes(unquote(co[1])) ? unquote(co[1]) : "on";
       return;
     }
-    // "    scroll: off"; anything else leaves it in the scroll
-    const sc = line.match(/^ {4}scroll:\s*(.*?)\s*$/);
-    if (sc) {
+    // "    featured: true" or "    featured: false"; anything else, or no line, leaves it to the default: a post is featured,
+    // a status update isn't
+    const fe = line.match(/^ {4}featured:\s*(.*?)\s*$/);
+    if (fe) {
       list = null;
       photo = null;
-      if (last) last.scroll = unquote(sc[1]) !== "off";
+      if (last) last.featured = { true: true, false: false }[unquote(fe[1])] ?? null;
       return;
     }
     // "    slug: words-for-the-address": a note's own address, instead of its title's
@@ -295,6 +299,8 @@ function parse(src) {
       .sort((a, b) => b.time - a.time);
   });
   const sorted = notes.filter((n) => !isNaN(n.time)).sort((a, b) => b.time - a.time);
+  // featured when its `featured:` line doesn't say: a post is, a status update isn't
+  sorted.forEach((n) => (n.featured ??= n.post));
   // each note's address: its `slug:`, else its title's, made unique. Those given are kept first, then the oldest notes take
   // the plain words and a later note with the same title gets "-2", so adding an update never changes an old address.
   // "page" is taken by /trackside/page/2/; a note with no title uses its time stamp.

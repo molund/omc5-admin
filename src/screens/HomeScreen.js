@@ -64,7 +64,8 @@ export function HomeScreen({ go, onEdit, onOpen }) {
       <Panel>
         <Label>Trackside</Label>
         <Body small mute>
-          Turn comments on, off or read-only on any update or blog post, and leave older ones out of Trackside's scroll.
+          Turn comments on, off or read-only on any update or blog post, and pick which older ones are featured on
+          Trackside.
         </Body>
         <Button icon="comment" title="Manage Trackside ›" onPress={() => go("trackside")} />
       </Panel>

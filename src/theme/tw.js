@@ -25,6 +25,8 @@ const light = {
   warn: "#fff4d6",
   "warn-ink": "#6b4a00",
   code: "#eef0f2",
+  // the gold of Trackside's dates (--date)
+  date: "#86682b",
 };
 const dark = {
   bg: "#14181c",
@@ -47,6 +49,7 @@ const dark = {
   warn: "#3a2f12",
   "warn-ink": "#f0d48a",
   code: "#1a1f24",
+  date: "#c9a456",
 };
 
 // the web takes a CSS font stack; iOS takes one font's name (Menlo is on every iPhone)

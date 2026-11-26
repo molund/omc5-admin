@@ -13,8 +13,8 @@
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
-//   { id, kind: "comments",      settings: [{ noteKey, comments?, scroll? }] }   several notes' Trackside settings at once
-//       (Trackside page): each with its new comments setting, its new scroll setting, or both
+//   { id, kind: "comments",      settings: [{ noteKey, comments?, featured? }] }   several notes' Trackside settings at once
+//       (Trackside page): each with its new comments setting, whether it's featured, or both
 //
 // update, blog and follow-up changes can carry  memo: { noteKey, text }  the note to self of one entry: the new note, or the
 // parent of a follow-up. One per entry; "" removes it. Notes to self and the stage are written to gantry-cycles.yaml, not here.
@@ -22,8 +22,9 @@
 // comments: "on" | "off" | "readonly", the note's `comments:` line (none when on); left out of a note-edit, the line stays as
 // it is. A new note is on or off; read-only is for an edit.
 //
-// scroll: false is the note's `scroll: off` line: it stays on its own page of updates on Trackside, but out of the scroll that
-// adds older pages under the one the reader opened; true (no line) puts it back. Only the Trackside page sets it.
+// featured: whether /trackside/'s scroll shows the note once it's older than the newest 10 (which are always shown); not
+// featured leaves it on its page of updates only. An update isn't featured unless it has `featured: true`, a blog post is
+// unless it has `featured: false`; the line is written only where it differs from that. Only the Trackside page sets it.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -291,7 +292,7 @@ function editNote(doc, note, title, blocks, comments) {
   let last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
   while (last > note.start && doc.lines[last].trim() === "") last--;
   const own = doc.lines.slice(note.start + 1, last + 1);
-  const keys = comments === undefined ? "slug|post|comments|scroll|note-to-self" : "slug|post|scroll|note-to-self";
+  const keys = comments === undefined ? "slug|post|comments|featured|note-to-self" : "slug|post|featured|note-to-self";
   const kept = (l) => new RegExp(`^ {4}(${keys}):`).test(l) || /^\s*#/.test(l);
   const at = own.findIndex((l) => /^ {4}summary:/.test(l));
   const [summary, ...rest] = fieldLines(blocks, 4);
@@ -325,18 +326,22 @@ function setComments(doc, note, comments) {
   doc.replace(Math.max(summary, post, note.start) + 1, 0, [line]);
 }
 
-/** A note's `scroll: off` line: written after its summary (and `post:` and `comments:`), or taken out when it's back in. */
-function setScroll(doc, note, scroll) {
+/**
+ * A note's `featured:` line: written after its summary (and `post:` and `comments:`) when it differs from the default (an
+ * update isn't featured, a blog post is), or taken out when it's back to the default.
+ */
+function setFeatured(doc, note, featured) {
   const last = note.fuLine >= 0 ? note.fuLine - 1 : note.end;
   const own = (i) => i > note.start && i <= last;
-  const at = doc.lines.findIndex((l, i) => own(i) && /^ {4}scroll:/.test(l));
-  const line = "    scroll: off";
+  const at = doc.lines.findIndex((l, i) => own(i) && /^ {4}featured:/.test(l));
+  const line = `    featured: ${featured}`;
+  const plain = featured === !!note.fields.post;
   if (at >= 0) {
-    if (scroll) doc.replace(at, 1, []);
+    if (plain) doc.replace(at, 1, []);
     else if (doc.lines[at] !== line) doc.replace(at, 1, [line]);
     return;
   }
-  if (scroll) return;
+  if (plain) return;
   const after = Math.max(
     note.start,
     ...["summary", "post", "comments"].map((k) =>
@@ -461,9 +466,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       break;
     }
     case "comments":
-      for (const { noteKey, comments, scroll } of change.settings) {
+      for (const { noteKey, comments, featured } of change.settings) {
         if (comments !== undefined) setComments(doc, findNote(doc.parsed, noteKey), comments);
-        if (scroll !== undefined) setScroll(doc, findNote(doc.parsed, noteKey), scroll);
+        if (featured !== undefined) setFeatured(doc, findNote(doc.parsed, noteKey), featured);
       }
       break;
     case "desk-edit":
@@ -542,12 +547,12 @@ export function commitMessage(change, before) {
           ? nameOf(picked[0].key, picked[0].title)
           : `${count} ${posts === count ? "blog posts" : posts ? "updates and blog posts" : "updates"}`;
       const comments = change.settings.filter((x) => x.comments !== undefined);
-      const scrolls = change.settings.filter((x) => x.scroll !== undefined);
-      if (comments.length && scrolls.length) return `Change the Trackside settings on ${what}`;
-      if (scrolls.length) {
-        const ins = new Set(scrolls.map((x) => x.scroll));
-        if (ins.size > 1) return `Change which of ${what} are in Trackside's scroll`;
-        return ins.has(true) ? `Put ${what} back in Trackside's scroll` : `Leave ${what} out of Trackside's scroll`;
+      const stars = change.settings.filter((x) => x.featured !== undefined);
+      if (comments.length && stars.length) return `Change the Trackside settings on ${what}`;
+      if (stars.length) {
+        const ins = new Set(stars.map((x) => x.featured));
+        if (ins.size > 1) return `Change which of ${what} are featured on Trackside`;
+        return ins.has(true) ? `Feature ${what} on Trackside` : `Stop featuring ${what} on Trackside`;
       }
       const values = new Set(comments.map((x) => x.comments));
       if (values.size > 1) return `Change the comments on ${what}`;

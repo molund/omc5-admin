@@ -186,6 +186,24 @@ export function spanAt(entries, key) {
 export const postedStage = (entries, span, before) =>
   furthest(entries.filter((e) => e.span === span && (!before || compareKeys(e.key, before) < 0)).map((e) => e.stage));
 
+/**
+ * Keeps gantry-cycles.yaml from growing with every check-in: of a run of entries reporting the same step on the same span,
+ * only the first (when the step was reached) and the latest are kept. One in between goes, unless it carries a completion or
+ * a note to self. Entries with no step (a blog post's note to self) don't break a run.
+ */
+export function dropRepeats(entries) {
+  const steps = sortEntries(entries)
+    .filter((e) => e.stage)
+    .reverse();
+  const same = (a, b) => a && b && a.span === b.span && a.stage === b.stage;
+  const drop = new Set(
+    steps
+      .filter((e, i) => same(steps[i - 1], e) && same(e, steps[i + 1]) && e.progress == null && !e.noteToSelf)
+      .map((e) => e.key),
+  );
+  return entries.filter((e) => !drop.has(e.key));
+}
+
 /** Takes these time stamps out altogether. */
 export const removeEntries = (entries, keys) => entries.filter((e) => !keys.includes(e.key));
 

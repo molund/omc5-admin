@@ -1193,3 +1193,32 @@ test("the chart's points: the new list has the figure now in it once; the older 
   assert.deepEqual(velocityPoints(fresh), want);
   assert.deepEqual(velocityPoints(old), want);
 });
+
+test("a run of check-ins on the same step keeps only its first and latest entries", () => {
+  const entry = (key, stage, extra = {}) => ({ key, span: 42, stage, progress: null, noteToSelf: "", ...extra });
+  const entries = [
+    entry("2026-11-25T16:00-07:00", "post-tensioning started"),
+    entry("2026-11-25T11:45-07:00", "post-tensioning started"),
+    entry("2026-11-24T08:00-07:00", "post-tensioning started", { noteToSelf: "Kept" }),
+    entry("2026-11-23T19:15-07:00", "post-tensioning started"),
+    { key: "2026-11-23", span: null, stage: null, progress: null, noteToSelf: "Blog" },
+    entry("2026-11-23T13:00-07:00", "post-tensioning started"),
+    entry("2026-11-23T09:00-07:00", "gluing started", { progress: 83 }),
+  ];
+  const desk = formatDesk(entries);
+  const out = applyDeskChange(
+    desk,
+    { kind: "update", time: "2026-11-26T06:30-07:00", span: 42, complete: true, stage: "post-tensioning started" },
+    STATUS,
+  );
+  assert.deepEqual(
+    parseDesk(out.text).map((e) => e.key),
+    [
+      "2026-11-26T06:30-07:00",
+      "2026-11-24T08:00-07:00",
+      "2026-11-23T13:00-07:00",
+      "2026-11-23T09:00-07:00",
+      "2026-11-23",
+    ],
+  );
+});

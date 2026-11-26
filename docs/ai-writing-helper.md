@@ -61,6 +61,10 @@ commit, `scripts/promptVersion.cjs`), which each kept prompt records.
   "th", official station names, "a.m." and "p.m.". A slash is a support only for consecutive numbers ("70/71"); with
   105 or more it's progress: "span 39/105" means span 39 of 105. That rule was added after Haiku called "39/105" the
   support where spans 39 and 105 meet.
+- **Gantry names**, also in `STYLE_GUIDE`: never "the Clipper"; to shorten "Clayton Clipper", say "the gantry". Added
+  Nov. 14, 2026, 12 minutes after a Write with AI reply called it "the Clipper" twice. Since Nov. 25, "the" goes with
+  the name whenever it's the gantry itself, titles included ("The Clayton Clipper finishes hanging span 35"), and not
+  when the name describes something else ("Clayton Clipper span 50").
 
 ## Asking a model
 

@@ -1194,7 +1194,7 @@ test("the chart's points: the new list has the figure now in it once; the older 
   assert.deepEqual(velocityPoints(old), want);
 });
 
-test("a run of check-ins on the same step keeps only its first and latest entries", () => {
+test("a step keeps only its first report, and a repeat of it only when it is the latest check-in of all", () => {
   const entry = (key, stage, extra = {}) => ({ key, span: 42, stage, progress: null, noteToSelf: "", ...extra });
   const entries = [
     entry("2026-11-25T16:00-07:00", "post-tensioning started"),
@@ -1204,6 +1204,8 @@ test("a run of check-ins on the same step keeps only its first and latest entrie
     { key: "2026-11-23", span: null, stage: null, progress: null, noteToSelf: "Blog" },
     entry("2026-11-23T13:00-07:00", "post-tensioning started"),
     entry("2026-11-23T09:00-07:00", "gluing started", { progress: 83 }),
+    entry("2026-11-22T09:00-07:00", "gluing started"),
+    entry("2026-11-21T08:30-07:00", "gluing started"),
   ];
   const desk = formatDesk(entries);
   const out = applyDeskChange(
@@ -1219,6 +1221,7 @@ test("a run of check-ins on the same step keeps only its first and latest entrie
       "2026-11-23T13:00-07:00",
       "2026-11-23T09:00-07:00",
       "2026-11-23",
+      "2026-11-21T08:30-07:00",
     ],
   );
 });

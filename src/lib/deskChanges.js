@@ -135,7 +135,9 @@ export function applyDeskChange(deskText, change, statusBefore) {
       throw new Conflict(`Unknown change "${change.kind}".`);
   }
   if (change.memo) at(change.memo.noteKey, undefined, undefined, change.memo.text);
-  const text = formatDesk(dropRepeats(entries));
+  // a check-in (a move, update or follow-up) clears out the repeats; an edit or delete changes only what it's about
+  const checkIn = ["move", "update", "followup"].includes(change.kind);
+  const text = formatDesk(checkIn ? dropRepeats(entries) : entries);
   return { text, hunks: diff(deskText, text) };
 }
 

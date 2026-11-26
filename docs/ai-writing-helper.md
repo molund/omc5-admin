@@ -142,6 +142,20 @@ OpenRouter takes `reasoning: { effort }` (`none`, `minimal`, `low`, `medium`, `h
 - MiniMax got about twice as fast with any setting but made up content twice.
 - So nothing is sent. If it's ever added, it belongs in `askModel`, per model.
 
+## Real use
+
+From the kept prompts, Nov. 12 to 23, 2026:
+
+- Mike's default in Settings is **GPT-6.1 Sol**, and every request in that time went to it. `DEFAULT_MODEL` is still
+  Haiku, for a fresh install.
+- 45 requests: 9 Write with AI and 36 sparkle tidy-ups, 14.5¢ in all. A Write with AI post came to about 0.7¢ (0.42¢ to
+  0.93¢).
+- Of the 7 Write with AI drafts that became posts, 3 went out as written, 3 with light edits and 1 rewritten by hand
+  (Nov. 19, where the reply merged two different supports into one). The other 2 runs asked for help with wording, not a
+  post. The light edits were mostly facts dictated wrong and style rules added later. This compares each reply with
+  `status.yaml` as of Nov. 25, so edits made after publishing count too.
+- The OpenRouter balance used by Nov. 25: 56¢ of $5, mostly on the Nov. 12 tests.
+
 ## The key
 
 - Pasted in Settings → OpenRouter. **Check and save** calls `checkKey`: it must start `sk-or-`, then

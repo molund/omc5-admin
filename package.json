@@ -8,6 +8,7 @@
     "start": "expo start",
     "ios": "expo run:ios",
     "release": "expo run:ios --configuration Release --device",
+    "sign": "xcodebuild -workspace ios/StatusDesk.xcworkspace -scheme StatusDesk -configuration Release -destination generic/platform=iOS -allowProvisioningUpdates -quiet build",
     "build": "node scripts/build.mjs",
     "test": "node --test test/*.test.mjs",
     "format": "prettier --write .",

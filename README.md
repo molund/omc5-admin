@@ -205,7 +205,9 @@ npm run ios            # expo run:ios: builds with Xcode and installs on the pho
 ```
 
 Sign in with an Apple ID under Xcode's signing settings the first time; the signing team is in `app.json`. With a free
-Apple ID the app has to be rebuilt every 7 days. The iOS bundle can be checked without a phone with
+Apple ID the app has to be rebuilt every 7 days, and its provisioning profile expires with it: when a build fails with
+"No profiles for 'ca.olund.statusdesk' were found", run `npm run sign` once (it builds with Xcode allowed to make a new
+profile), then build again. The iOS bundle can be checked without a phone with
 `npx expo export --platform ios`.
 
 ### The Claude app artifact

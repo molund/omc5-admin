@@ -183,8 +183,9 @@ The model tests were throwaway Node scripts, not in the repo. To repeat one:
 
 ## Not done yet
 
-- Nothing has been checked on an iPhone: the split button and its inline menu, Stop, the sparkle's Undo, the price
-  refresh.
+- In use on the iPhone since Nov. 14, 2026 (Write with AI and the sparkle, 45 requests by Nov. 23). Not deliberately
+  checked there yet: the split button's inline menu, Stop, the sparkle's Undo and the price refresh.
 - The Claude app could ask Claude itself (its `sample` capability) instead of copy and
   paste; it was left as copy and paste on purpose.
-- Short notes could ask for a summary alone, so they don't grow.
+- Short notes could ask for a summary alone, so they don't grow. The summary rule (no repeating it in the paragraphs)
+  may already cover most of this; not checked yet.

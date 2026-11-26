@@ -48,11 +48,15 @@ commit, `scripts/promptVersion.cjs`), which each kept prompt records.
 - **Write with AI** (`walkPrompt({ kind, standardTitle, notes, captions }, alone)`): asks for `TITLE:` (or `TITLE: keep`
   for an update's standard date title), `SUMMARY:`, `PARAGRAPH:` and `PHOTO n:` lines, one item per line. Captions are
   rewritten from scratch. Unlike the sparkle, it's an editor: it may rewrite freely, but never invent.
+- **The summary is the post's opening** (Nov. 25, 2026): its first paragraph, said outright like the opening of a story,
+  not a teaser or a summary of the whole post. An update's is at most 150 characters (about 25 words), because the
+  progress card shows it on its own and has to fit all of it; a blog post's can run a few sentences, since it isn't on
+  the card. The paragraphs carry on from it and never repeat what it says.
 - **Length slides with the notes** (`walkTarget`): 200 × (1 − e^(−words ÷ 225)), to the nearest 5, at most 120. So 80
   words of notes → about 60, 120 → 85, 160 → 100, 200 or more → 120. Notes of 30 words or less (`SHORT_NOTES`) get
   different wording: keep everything and just tidy it; the "interesting / boring" paragraph is left out. Haiku hits the
-  targets within about 5 words. Short notes can come back longer than written (26 words became 63), because the summary
-  and paragraph repeat each other.
+  targets within about 5 words. Short notes used to come back longer than written (26 words became 63), because the
+  summary and paragraph repeated each other; the summary rule above now tells the paragraphs not to.
 - **Style guide** (`STYLE_GUIDE`), shared by both: span numbers lowercase, girders vs spans, "SkyTrain", "176 St" with no
   "th", official station names, "a.m." and "p.m.". A slash is a support only for consecutive numbers ("70/71"); with
   105 or more it's progress: "span 39/105" means span 39 of 105. That rule was added after Haiku called "39/105" the

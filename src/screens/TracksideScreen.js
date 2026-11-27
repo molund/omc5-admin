@@ -240,7 +240,9 @@ export function TracksideScreen({ onReview }) {
   const changes = d.changes ?? {};
   const stars = d.stars ?? {};
   const [kind, setKind] = useState("highlights");
-  const [filter, setFilter] = useState("on");
+  // the filter each tab starts on: All on Highlights, On on the others
+  const defaultFilter = (k) => (k === "highlights" ? "all" : "on");
+  const [filter, setFilter] = useState(() => defaultFilter(kind));
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [previewKey, setPreviewKey] = useState(null);
 
@@ -353,6 +355,7 @@ export function TracksideScreen({ onReview }) {
               accessibilityState={{ selected: on }}
               onPress={() => {
                 setKind(k);
+                setFilter(defaultFilter(k));
                 setPreviewKey(null);
               }}
               style={[s.tab, on && s.tabOn]}

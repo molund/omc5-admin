@@ -13,6 +13,7 @@
 //   { id, kind: "followup-delete", noteKey, fuKey }
 //   { id, kind: "desk-edit",     key, stage, noteToSelf }   a record in gantry-cycles.yaml with no post: only gantry-cycles.yaml changes
 //   { id, kind: "desk-delete",   key }                      the same, gone; the gantry's span and hung stay
+//   { id, kind: "card-text",     text, until }             the progress card's text on its own; "" takes it away
 //   { id, kind: "comments",      settings: [{ noteKey, comments?, featured? }] }   several notes' Trackside settings at once
 //       (Trackside page): each with its new comments setting, whether it's featured, or both
 //
@@ -28,7 +29,8 @@
 //
 // The progress card's text is status.yaml's `card-text:` (setCardText): an update or addendum that moves the card's time
 // stamp writes its summary there, until the end of its day, from its update; a position writes its own words (cardText,
-// until cardTextUntil, a BC date), or none, which takes the card text away. Blog posts, edits and deletes leave it.
+// until cardTextUntil, a BC date), or none, which takes the card text away. Blog posts, edits and deletes leave it; a
+// card-text change edits it on its own, keeping the update it came from.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
@@ -539,6 +541,9 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
         if (featured !== undefined) setFeatured(doc, findNote(doc.parsed, noteKey), featured);
       }
       break;
+    case "card-text":
+      setCardText(doc, { text: change.text, until: change.until, from: head.cardTextFrom });
+      break;
     case "desk-edit":
       break;
     case "desk-delete":
@@ -600,6 +605,8 @@ export function commitMessage(change, before) {
       return `Add the blog post "${change.title}"`;
     case "followup":
       return `Add an addendum to ${named}`;
+    case "card-text":
+      return change.text?.trim() ? "Edit the progress card's text" : "Clear the progress card's text";
     case "followup-edit":
       return `Edit the ${clock(change.fuKey)} addendum to ${named}`;
     case "note-edit":

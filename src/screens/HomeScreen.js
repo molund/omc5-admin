@@ -14,7 +14,7 @@ const RECENT = 3; // the entries shown, newest first
 
 /**
  * @param {object} props
- * @param {(page: string) => void} props.go Opens a page: "move", "update", "followup", "blog", "velocity", "entries" or
+ * @param {(page: string) => void} props.go Opens a page: "move", "update", "followup", "blog", "cardtext", "velocity", "entries" or
  *   "settings".
  * @param {(change: object) => void} props.onEdit Reopens a waiting change.
  * @param {(target: object) => void} props.onOpen Opens a saved entry.
@@ -60,6 +60,13 @@ export function HomeScreen({ go, onEdit, onOpen }) {
           </Body>
         )}
         <Link title="All entries ›" onPress={() => go("entries")} />
+      </Panel>
+      <Panel>
+        <Label>Progress card</Label>
+        <Body small mute>
+          Change the card's text, or how long it shows, without posting anything.
+        </Body>
+        <Button title="Edit card text ›" onPress={() => go("cardtext")} />
       </Panel>
       <Panel>
         <Label>Trackside</Label>

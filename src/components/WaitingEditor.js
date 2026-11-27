@@ -8,13 +8,20 @@ import { useDesk, useDraft } from "../state/desk.js";
 import { reopenAs } from "../lib/entries.js";
 import { headerOf } from "../lib/statusFile.js";
 import { BlogScreen } from "../screens/BlogScreen.js";
+import { CardTextScreen } from "../screens/CardTextScreen.js";
 import { FollowUpScreen } from "../screens/FollowUpScreen.js";
 import { MoveScreen } from "../screens/MoveScreen.js";
 import { UpdateScreen } from "../screens/UpdateScreen.js";
 import { EntryEditor } from "./EntryEditor.js";
 import { Body, Button, Label, Panel, Row } from "./ui.js";
 
-const SCREENS = { move: MoveScreen, update: UpdateScreen, followup: FollowUpScreen, blog: BlogScreen };
+const SCREENS = {
+  move: MoveScreen,
+  update: UpdateScreen,
+  followup: FollowUpScreen,
+  blog: BlogScreen,
+  cardtext: CardTextScreen,
+};
 
 function SavedEntry({ target, seed, onCancel, onReview }) {
   const desk = useDesk();

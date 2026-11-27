@@ -750,6 +750,10 @@ test("a waiting change reopens as the draft that makes it again", () => {
       seed: { time: T, span: 38, complete: false, memo: "m", stage: "glued" },
     },
   );
+  assert.deepEqual(reopenAs({ kind: "card-text", text: "Words.", until: "2030-01-02" }, head), {
+    screen: "cardtext",
+    seed: { text: "Words.", until: "2030-01-02" },
+  });
   // with its card text
   assert.deepEqual(
     reopenAs(

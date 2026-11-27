@@ -169,6 +169,33 @@ test("an update or addendum writes its summary as the card text, until the end o
   assert.equal(cardFor(withNote, undefined, T).button, "comments");
 });
 
+test("the card text can be edited on its own, keeping the update it came from, or taken away", async () => {
+  const withNote = applyChange(BASE, {
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: false,
+    title: dateTitle(T),
+    blocks,
+  }).text;
+  const edit = { kind: "card-text", text: "Fewer words.", until: "2026-11-06" };
+  const edited = applyChange(withNote, edit).text;
+  const s = await site(edited);
+  assert.deepEqual(
+    [s.cardText, s.cardTextUntil, s.cardTextFrom],
+    ["Fewer words.", "2026-11-06", "construction-update-for-wednesday-nov-4-2026"],
+  );
+  assert.equal(+s.updated, +new Date(T), "the card's time stamp stays");
+  assert.equal(cardFor(edited, undefined, "2026-11-06T23:00-07:00").button, "comments");
+  assert.equal(commitMessage(edit, withNote), "Edit the progress card's text");
+  // the same again changes nothing
+  assert.equal(applyChange(edited, edit).hunks.length, 0);
+  const cleared = applyChange(edited, { kind: "card-text", text: " ", until: "2026-11-06" }).text;
+  assert.equal(headerOf(parseStatus(cleared)).cardText, "");
+  assert.doesNotMatch(cleared, /card-text|progress card's text/);
+  assert.equal(commitMessage({ kind: "card-text", text: "" }, edited), "Clear the progress card's text");
+});
+
 test("an update or addendum older than the card leaves the card as it is", () => {
   const old = "2026-11-01T09:00-07:00";
   const before = headerOf(parseStatus(BASE));

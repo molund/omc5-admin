@@ -173,6 +173,8 @@ export function reopenAs(change, head) {
           ...recorded,
         },
       };
+    case "card-text":
+      return { screen: "cardtext", seed: { text: change.text, until: change.until } };
     case "desk-edit":
       return {
         screen: "entry",

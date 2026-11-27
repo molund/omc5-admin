@@ -11,6 +11,7 @@ import { ReviewSheet } from "./components/ReviewSheet.js";
 import { VelocityPanel } from "./components/VelocityPanel.js";
 import { HomeScreen } from "./screens/HomeScreen.js";
 import { MoveScreen } from "./screens/MoveScreen.js";
+import { CardTextScreen } from "./screens/CardTextScreen.js";
 import { UpdateScreen } from "./screens/UpdateScreen.js";
 import { FollowUpScreen, NoUpdateWarning } from "./screens/FollowUpScreen.js";
 import { BlogScreen } from "./screens/BlogScreen.js";
@@ -33,6 +34,11 @@ const PAGES = {
     about: "Add to today's or yesterday's update, or edit an addendum.",
   },
   blog: { title: "Blog post", screen: BlogScreen, about: "A dated piece for Trackside. The card stays as it is." },
+  cardtext: {
+    title: "Card text",
+    screen: CardTextScreen,
+    about: "The progress card's text on its own, never on Trackside: change it, or take it away.",
+  },
   trackside: {
     title: "Trackside",
     screen: TracksideScreen,

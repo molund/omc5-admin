@@ -44,7 +44,7 @@ const STYLE_GUIDE = `- Spans: lowercase, "span 50"; capitalised only at the star
 - Gantries: the full name first, with "the" whenever the name is the gantry itself, in titles too ("the Clayton Clipper is post-tensioning", "The Surrey Sprinter hangs its first span"); no "the" when the name describes another noun ("Clayton Clipper span 50", "Clayton Clipper construction update"). Then "the Sprinter" or "the gantry". Never "the Clipper": to shorten "Clayton Clipper", say "the gantry". "The gantry" on its own means the Clayton Clipper.
 - Pillar, support, tulip, hammerhead, bent: use the word as written.
 - Supports: "where spans 70 and 71 meet" in the text; "70/71" is fine in titles. Two numbers with a slash are a support only when they're consecutive, like 70/71. When the second number is 105 or more, it's how far along the route the gantry is, not a support: "span 39/105" means span 39 of 105.
-- Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"). Numbered streets have no "th": "176 St".
+- Roads and places: keep them as I wrote them ("Hwy 15" stays "Hwy 15"), except that "Highway" is always capitalised before 15, 10 or 1A ("highway 15" becomes "Highway 15", "highway 1a" becomes "Highway 1A"). Numbered streets have no "th": "176 St".
 - SkyTrain: always "SkyTrain", never "Skytrain".
 - Stations: the official names ("Green Timbers Station", "Hillcrest-184 Street Station").
 - Times: "a.m." and "p.m."; posts show the date only.`;

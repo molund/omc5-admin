@@ -1,4 +1,4 @@
-// Trackside: updates and blog posts together (Featured, the first tab), every update, or every blog post (a tab each), newest first, each with its comments setting (On, Off or Read-only) and how many
+// Trackside: the starred updates and blog posts together (Featured, the first tab), every update, or every blog post (a tab each), newest first, each with its comments setting (On, Off or Read-only) and how many
 // comments it has on the site's comment server (services/remark42.js), and its star: whether it's featured on Trackside
 // (/trackside/'s scroll shows it once it's older than the newest 10, which are always shown; an update only with
 // `featured: true`, a blog post unless it has `featured: false`). Change any
@@ -248,7 +248,9 @@ export function TracksideScreen({ onReview }) {
     () => listEntries(desk.parsed, desk.deskEntries).filter((e) => e.type === "update" || e.type === "blog"),
     [desk.parsed, desk.deskEntries],
   );
-  const ofKind = (k) => all.filter((e) => k === "featured" || e.type === k);
+  const savedStar = (note) => note.fields.featured === true;
+  // Featured: the starred ones (as saved, so one unstarred here stays in the list until it's sent)
+  const ofKind = (k) => all.filter((e) => (k === "featured" ? savedStar(e.note) : e.type === k));
   const notes = ofKind(kind).map((e) => e.note);
   const allNotes = all.map((e) => e.note);
   const slugs = useMemo(() => slugsOf(desk.parsed.notes), [desk.parsed]);
@@ -277,7 +279,6 @@ export function TracksideScreen({ onReview }) {
     else next[note.key] = value;
     update({ changes: next, stars });
   };
-  const savedStar = (note) => note.fields.featured === true;
   const nowStar = (note) => stars[note.key] ?? savedStar(note);
   const setStarTo = (note, value) => {
     const next = { ...stars };

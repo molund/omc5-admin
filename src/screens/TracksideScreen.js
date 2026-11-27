@@ -1,9 +1,9 @@
-// Trackside: the starred updates and blog posts together (Featured, the first tab), every update, or every blog post (a tab each), newest first, each with its comments setting (On, Off or Read-only) and how many
+// Trackside: the updates and blog posts /trackside/ shows, the newest 10 and the older featured ones (Highlights, the first tab), every update, or every blog post (a tab each), newest first, each with its comments setting (On, Off or Read-only) and how many
 // comments it has on the site's comment server (services/remark42.js), and its star: whether it's featured on Trackside
 // (/trackside/'s scroll shows it once it's older than the newest 10, which are always shown; an update only with
 // `featured: true`, a blog post unless it has `featured: false`). Change any
 // of them, then send them all together as one change (`comments` in lib/changes.js). The filters show the posts by their
-// saved comments setting, or just the ones changed here, and Featured only (not on the Featured tab) narrows any of them to the saved featured ones; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
+// saved comments setting, or just the ones changed here, and Featured only (not on the Highlights tab) narrows any of them to the saved featured ones; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
 // post with comments: they'd vanish from Trackside while still on the server, so they're deleted there first.
 import { useEffect, useMemo, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -52,7 +52,7 @@ const looks = (tw) => ({
   cellText: tw`text-xs font-semibold text-button-ink`,
   cellTextOn: tw`text-xs font-semibold text-accent-ink`,
   cellTextView: tw`text-xs font-semibold text-link`,
-  // Featured | Updates | Blog posts: tabs, underlined in the accent colour when picked, so they don't look like the filters under them
+  // Highlights | Updates | Blog posts: tabs, underlined in the accent colour when picked, so they don't look like the filters under them
   tabs: tw`border-b border-line`,
   tab: tw`min-h-10 justify-center border-b-4 border-transparent px-0.5`,
   tabOn: [tw`border-b-4`, { borderBottomColor: tw.color("accent") }],
@@ -239,7 +239,7 @@ export function TracksideScreen({ onReview }) {
   const [d, update, reset] = useDraft("comments", () => ({ changes: {}, stars: {} }));
   const changes = d.changes ?? {};
   const stars = d.stars ?? {};
-  const [kind, setKind] = useState("featured");
+  const [kind, setKind] = useState("highlights");
   const [filter, setFilter] = useState("on");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [previewKey, setPreviewKey] = useState(null);
@@ -249,8 +249,17 @@ export function TracksideScreen({ onReview }) {
     [desk.parsed, desk.deskEntries],
   );
   const savedStar = (note) => note.fields.featured === true;
-  // Featured: the starred ones (as saved, so one unstarred here stays in the list until it's sent)
-  const ofKind = (k) => all.filter((e) => (k === "featured" ? savedStar(e.note) : e.type === k));
+  // the newest 10 updates and blog posts together, newest first, as /trackside/ counts them
+  const newest = new Set(
+    all
+      .map((e) => e.note.key)
+      .sort((a, b) => parseKey(b) - parseKey(a))
+      .slice(0, NEWEST),
+  );
+  // Highlights: what /trackside/ shows, in its order: the newest 10, then the older featured ones (as saved, so one unstarred
+  // here stays in the list until it's sent)
+  const ofKind = (k) =>
+    all.filter((e) => (k === "highlights" ? newest.has(e.note.key) || savedStar(e.note) : e.type === k));
   const notes = ofKind(kind).map((e) => e.note);
   const allNotes = all.map((e) => e.note);
   const slugs = useMemo(() => slugsOf(desk.parsed.notes), [desk.parsed]);
@@ -286,13 +295,6 @@ export function TracksideScreen({ onReview }) {
     else next[note.key] = value;
     update({ changes, stars: next });
   };
-  // the newest 10 updates and blog posts together, newest first, as /trackside/ counts them
-  const newest = new Set(
-    allNotes
-      .map((n) => n.key)
-      .sort((a, b) => parseKey(b) - parseKey(a))
-      .slice(0, NEWEST),
-  );
   const commentsChanged = (n) => changes[n.key] !== undefined && changes[n.key] !== saved(n);
   const starChanged = (n) => stars[n.key] !== undefined && stars[n.key] !== savedStar(n);
   const isChanged = (n) => commentsChanged(n) || starChanged(n);
@@ -339,7 +341,7 @@ export function TracksideScreen({ onReview }) {
     <View style={tw`gap-3`}>
       <View accessibilityRole="tablist" style={[tw`flex-row gap-5`, s.tabs]}>
         {[
-          ["featured", "Featured"],
+          ["highlights", "Highlights"],
           ["update", "Updates"],
           ["blog", "Blog posts"],
         ].map(([k, label]) => {
@@ -386,8 +388,8 @@ export function TracksideScreen({ onReview }) {
             </View>
           ))}
         </View>
-        {/* the Featured tab shows only the featured ones already */}
-        {kind !== "featured" && <Checkbox value={featuredOnly} onChange={setFeaturedOnly} label="Featured only" />}
+        {/* not on Highlights, which is what /trackside/ shows */}
+        {kind !== "highlights" && <Checkbox value={featuredOnly} onChange={setFeaturedOnly} label="Featured only" />}
       </View>
       {countError && (
         <Notice tone="problem">{`Couldn't get the comment counts: ${countError} Off stays greyed out.`}</Notice>

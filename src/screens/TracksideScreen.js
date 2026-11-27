@@ -1,4 +1,4 @@
-// Trackside: every update, or every blog post (a tab each, updates first), newest first, each with its comments setting (On, Off or Read-only) and how many
+// Trackside: updates and blog posts together (Featured, the first tab), every update, or every blog post (a tab each), newest first, each with its comments setting (On, Off or Read-only) and how many
 // comments it has on the site's comment server (services/remark42.js), and its star: whether it's featured on Trackside
 // (/trackside/'s scroll shows it once it's older than the newest 10, which are always shown; an update only with
 // `featured: true`, a blog post unless it has `featured: false`). Change any
@@ -52,7 +52,7 @@ const looks = (tw) => ({
   cellText: tw`text-xs font-semibold text-button-ink`,
   cellTextOn: tw`text-xs font-semibold text-accent-ink`,
   cellTextView: tw`text-xs font-semibold text-link`,
-  // Updates | Blog posts: tabs, underlined in the accent colour when picked, so they don't look like the filters under them
+  // Featured | Updates | Blog posts: tabs, underlined in the accent colour when picked, so they don't look like the filters under them
   tabs: tw`border-b border-line`,
   tab: tw`min-h-10 justify-center border-b-4 border-transparent px-0.5`,
   tabOn: [tw`border-b-4`, { borderBottomColor: tw.color("accent") }],
@@ -239,7 +239,7 @@ export function TracksideScreen({ onReview }) {
   const [d, update, reset] = useDraft("comments", () => ({ changes: {}, stars: {} }));
   const changes = d.changes ?? {};
   const stars = d.stars ?? {};
-  const [kind, setKind] = useState("update");
+  const [kind, setKind] = useState("featured");
   const [filter, setFilter] = useState("on");
   const [featuredOnly, setFeaturedOnly] = useState(false);
   const [previewKey, setPreviewKey] = useState(null);
@@ -248,7 +248,8 @@ export function TracksideScreen({ onReview }) {
     () => listEntries(desk.parsed, desk.deskEntries).filter((e) => e.type === "update" || e.type === "blog"),
     [desk.parsed, desk.deskEntries],
   );
-  const notes = all.filter((e) => e.type === kind).map((e) => e.note);
+  const ofKind = (k) => all.filter((e) => k === "featured" || e.type === k);
+  const notes = ofKind(kind).map((e) => e.note);
   const allNotes = all.map((e) => e.note);
   const slugs = useMemo(() => slugsOf(desk.parsed.notes), [desk.parsed]);
 
@@ -337,6 +338,7 @@ export function TracksideScreen({ onReview }) {
     <View style={tw`gap-3`}>
       <View accessibilityRole="tablist" style={[tw`flex-row gap-5`, s.tabs]}>
         {[
+          ["featured", "Featured"],
           ["update", "Updates"],
           ["blog", "Blog posts"],
         ].map(([k, label]) => {
@@ -354,7 +356,7 @@ export function TracksideScreen({ onReview }) {
             >
               <Text style={on ? s.tabTextOn : s.tabText}>
                 {`${label} `}
-                <Text style={s.tabText}>{all.filter((e) => e.type === k).length}</Text>
+                <Text style={s.tabText}>{ofKind(k).length}</Text>
               </Text>
             </Pressable>
           );

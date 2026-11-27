@@ -58,6 +58,8 @@ const looks = (tw) => ({
   tabOn: [tw`border-b-4`, { borderBottomColor: tw.color("accent") }],
   tabText: tw`text-base font-semibold text-mute`,
   tabTextOn: tw`text-base font-bold text-ink`,
+  // the count after a tab's name, a step smaller, so the three tabs fit across a phone at large text sizes
+  tabCount: tw`text-sm font-semibold text-mute`,
   // the preview: a card over the list dimmed
   // the dimming is the dark theme's background colour (theme/tw.js) at 90%
   backdrop: [tw`px-4 pt-4 pb-5`, { backgroundColor: "rgba(20, 24, 28, 0.9)" }],
@@ -341,7 +343,7 @@ export function TracksideScreen({ onReview }) {
 
   return (
     <View style={tw`gap-3`}>
-      <View accessibilityRole="tablist" style={[tw`flex-row gap-5`, s.tabs]}>
+      <View accessibilityRole="tablist" style={[tw`flex-row gap-2`, s.tabs]}>
         {[
           ["highlights", "Highlights"],
           ["update", "Updates"],
@@ -362,7 +364,7 @@ export function TracksideScreen({ onReview }) {
             >
               <Text style={on ? s.tabTextOn : s.tabText}>
                 {`${label} `}
-                <Text style={s.tabText}>{ofKind(k).length}</Text>
+                <Text style={s.tabCount}>{ofKind(k).length}</Text>
               </Text>
             </Pressable>
           );

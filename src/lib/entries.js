@@ -115,6 +115,7 @@ export function reopenAs(change, head) {
           memo: change.noteToSelf ?? "",
           stage,
           ...recorded,
+          ...(change.cardText && { cardText: change.cardText, cardTextUntil: change.cardTextUntil }),
         },
       };
     case "update":

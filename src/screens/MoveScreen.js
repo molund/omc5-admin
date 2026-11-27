@@ -1,4 +1,5 @@
-// Position: the gantry's span, Hung and a time stamp. No text, so the card shows a Trackside button. The steps of the
+// Position: the gantry's span, Hung and a time stamp, and optionally a few words for the card that aren't an update (Card
+// text), so the card shows a Trackside button. The steps of the
 // cycle seen and a note to self go in gantry-cycles.yaml; a move logs "arrived at span" and marking a span hung logs "hung" by itself, so
 // the velocity has them even when there's no update about them.
 import { View } from "react-native";
@@ -9,9 +10,10 @@ import { headerOf } from "../lib/statusFile.js";
 import { cardFor } from "../lib/card.js";
 import { stageFloor } from "../lib/stages.js";
 import { postedStage } from "../lib/deskFile.js";
-import { compareKeys, nowKey, asOf } from "../lib/time.js";
+import { compareKeys, nowKey, asOf, dayOf } from "../lib/time.js";
 import { GantryControls } from "../components/GantryControls.js";
 import { TimeStampField } from "../components/TimeStampField.js";
+import { CardTextField } from "../components/CardTextField.js";
 import { CardPreview } from "../components/CardPreview.js";
 import { StagePicker, progressToPost, stageToPost } from "../components/StagePicker.js";
 import { emptyBlocks } from "../components/BlockEditor.js";
@@ -37,6 +39,9 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));
   const stage = stageToPost(d.stage, floor, memo, undefined, d.span);
   const progress = progressToPost(d.progress, desk.deskEntries, d.span, stage, d.time);
+  // the card text shows until the end of the position's day, or a later one picked
+  const day = dayOf(d.time);
+  const cardTextUntil = d.cardTextUntil > day ? d.cardTextUntil : day;
   const change = {
     kind: "move",
     time: d.time,
@@ -45,6 +50,8 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
     noteToSelf: memo,
     stage,
     progress,
+    cardText: d.cardText ?? "",
+    cardTextUntil,
   };
   const preview = desk.preview(change);
   // an addendum goes under the newest update from today or yesterday (blog posts aren't updates, so they're left out)
@@ -141,6 +148,13 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
         span={d.span}
         notes={memo}
         onNotes={(m) => update({ memo: m })}
+      />
+      <CardTextField
+        value={d.cardText ?? ""}
+        until={cardTextUntil}
+        floor={day}
+        onChange={(cardText) => update({ cardText })}
+        onUntil={(until) => update({ cardTextUntil: until })}
       />
       {onSwitch && <TurnIntoLinks under={under} onUpdate={sayIt} onAddendum={toAddendum} />}
       <CardPreview card={cardFor(preview.text, preview.deskText)} />

@@ -14,8 +14,8 @@
 // its comments, `on` when left out: `off` has no Comments button; `readonly` keeps the button, but shows the comments as they
 // were when the site was built (trackside/prerender.js), with no way to add one:
 //     comments: readonly
-// whether it's featured on Trackside: /trackside/ shows the newest 10 updates whatever this says, then, as the reader
-// scrolls, only the older featured ones; every update is on its page of updates (/trackside/page/N/) either way. Left
+// whether it's featured on Trackside: /trackside/ shows the newest 10 updates whatever this says, then only the older
+// featured ones; every update is on its page of updates (/trackside/page/N/) either way. Left
 // out, a status update isn't featured and a blog post is:
 //     featured: true
 //     featured: false
@@ -81,6 +81,10 @@ import { anchor } from "./comments.js";
  * @property {boolean} complete Whether that span is complete.
  * @property {string|null} spansPerWeek The Clayton Clipper's velocity, as the Leash Log writes it ("2.83"): how far it got
  *   in the last week, in spans.
+ * @property {string} cardText The progress card's text (`card-text:`), or "".
+ * @property {string|null} cardTextUntil The last day the card shows it, BC time, as "2026-11-26" (`card-text-until:`).
+ * @property {string|null} cardTextFrom The slug of the update it came from, whose comments the card opens
+ *   (`card-text-from:`), or null for a position's own words.
  * @property {Note|null} latest The newest status update (not a post).
  * @property {string} note The newest status update's text, or "".
  * @property {Photo|null} photo The newest status update's photo.
@@ -325,6 +329,10 @@ function parse(src) {
     // the velocity the Leash Log writes on every push (a copy of gantry-cycles.yaml's, whose earlier values the chart is drawn
     // from), as written, or null (`spans_per_week`, on Nov. 7, 2026, still read)
     spansPerWeek: out["spans-per-week"] ?? out.spans_per_week ?? null,
+    // the progress card's text, the last day it shows and the update it came from, as the Leash Log writes them
+    cardText: out["card-text"] ?? "",
+    cardTextUntil: out["card-text-until"] ?? null,
+    cardTextFrom: out["card-text-from"] ?? null,
     // the newest status update (not a post), or null
     latest,
     note: latest ? latest.summary : "",

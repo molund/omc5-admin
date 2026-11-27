@@ -2,7 +2,7 @@
 // them on top of its copy of the files, and the push applies the same list, with this same code (tools/apply-changes.mjs
 // and services/github.js), to whatever is on main by then, so anything committed in the meantime is kept.
 //
-//   { id, kind: "move",          time, span, complete, noteToSelf?, stage }
+//   { id, kind: "move",          time, span, complete, noteToSelf?, stage, cardText?, cardTextUntil? }
 //   { id, kind: "update",        time, span, complete, title, blocks, comments?, retitle? }
 //       retitle: [{ key, title, slug }] is only on older waiting changes: the Leash Log no longer asks to retitle another update
 //   { id, kind: "followup",      noteKey, time, blocks, gantry: { span, complete } | null }
@@ -26,12 +26,16 @@
 // featured leaves it on its page of updates only. An update isn't featured unless it has `featured: true`, a blog post is
 // unless it has `featured: false`; the line is written only where it differs from that. Only the Trackside page sets it.
 //
+// The progress card's text is status.yaml's `card-text:` (setCardText): an update or addendum that moves the card's time
+// stamp writes its summary there, until the end of its day, from its update; a position writes its own words (cardText,
+// until cardTextUntil, a BC date), or none, which takes the card text away. Blog posts, edits and deletes leave it.
+//
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
 // always first.
 
 import { cleanText } from "./cleanText.js";
 import { parseStatus, headerOf } from "./statusFile.js";
-import { compareKeys, clock, shortDate, longDate } from "./time.js";
+import { compareKeys, clock, shortDate, longDate, dayOf } from "./time.js";
 import { slugsOf } from "./titles.js";
 import { stageOf } from "./stages.js";
 
@@ -53,6 +57,9 @@ export class Conflict extends Error {}
 
 /** One line of text as a double-quoted YAML scalar (the file's style), on one line. */
 const q = (s) => JSON.stringify(cleanText(s).replace(/\s+/g, " ").trim());
+
+/** The summary that will be written. */
+const summaryOf = (blocks) => cleanBlocks(blocks)[0]?.text ?? "";
 
 /** The blocks that will be written: no empty paragraphs, no photo without a file. */
 export function cleanBlocks(blocks) {
@@ -126,6 +133,52 @@ function setHeader(doc, values) {
     const line = `${name}: ${v}`;
     if (doc.lines[h.line] !== line) doc.replace(h.line, 1, [line]);
   }
+}
+
+// the progress card's text, as the site reads it (src/ProgressCard.svelte in molund/omc5)
+const CARD_TEXT_COMMENT = [
+  "# the progress card's text, written by the Leash Log (the summary of the update or addendum just posted, or a position's",
+  "# own words): shown through the end of card-text-until (BC time); card-text-from is the slug of the update whose comments",
+  "# the card opens (none: the Trackside button)",
+];
+const CARD_TEXT_NAMES = ["card-text", "card-text-until", "card-text-from"];
+
+/**
+ * Writes the progress card's text into status.yaml's header, with its comment, in place of the one there, or after
+ * `hung:`. No text takes the lines away. Nothing changes when they're already as they would be written.
+ * @param {Doc} doc
+ * @param {{ text: string, until: string, from?: string|null }} card `until`: the last day it shows, "2026-11-04";
+ *   `from`: the slug of the update it came from.
+ */
+function setCardText(doc, { text, until, from }) {
+  const clean = cleanText(text ?? "").trim();
+  const block = clean
+    ? [
+        ...CARD_TEXT_COMMENT,
+        `card-text: ${q(clean)}`,
+        `card-text-until: ${until}`,
+        ...(from ? [`card-text-from: ${from}`] : []),
+      ]
+    : [];
+  const { header } = doc.parsed;
+  const found = CARD_TEXT_NAMES.map((n) => header[n]?.line).filter((l) => l !== undefined);
+  if (!found.length) {
+    if (!block.length) return;
+    const after = header.hung ?? header.complete;
+    if (!after) throw new Conflict(`status.yaml has no "hung:" line.`);
+    doc.replace(after.line + 1, 0, block);
+    return;
+  }
+  const first = Math.min(...found);
+  // its comment just above it goes with it
+  const top = CARD_TEXT_COMMENT.every((l, i) => doc.lines[first - CARD_TEXT_COMMENT.length + i] === l)
+    ? first - CARD_TEXT_COMMENT.length
+    : first;
+  const now = [...doc.lines.slice(top, first), ...[...found].sort((x, y) => x - y).map((l) => doc.lines[l])];
+  if (now.join("\n") === block.join("\n")) return;
+  // the others go, from the bottom up, and the text goes where the first one was
+  for (const l of [...found].sort((x, y) => y - x)) if (l !== first) doc.replace(l, 1, []);
+  doc.replace(top, first - top + 1, block);
 }
 
 // gantry-cycles.yaml's velocity block: spans per week, and the series the progress card's chart is drawn from (a copy of the
@@ -398,6 +451,7 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
   switch (change.kind) {
     case "move":
       setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
+      setCardText(doc, { text: change.cardText, until: change.cardTextUntil ?? dayOf(change.time) });
       break;
     case "update": {
       // one older than the card (a position turned into an update, or a back-dated one) leaves the card as it is
@@ -411,6 +465,13 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
         doc.replace(note.start, 1, lines);
       }
       insertNote(doc, change.time, noteLines(change.time, change.title, change.blocks, false, change.comments));
+      // the card's text is its summary, unless it's older than the card
+      if (compareKeys(change.time, head.updated) >= 0)
+        setCardText(doc, {
+          text: summaryOf(change.blocks),
+          until: dayOf(change.time),
+          from: slugsOf(doc.parsed.notes).get(change.time),
+        });
       break;
     }
     case "blog":
@@ -428,6 +489,13 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
       const lines = followUpLines(change.time, change.blocks);
       if (note.fuLine >= 0) doc.replace(note.fuEnd + 1, 0, lines);
       else doc.replace(note.end + 1, 0, ["    follow-up:", ...lines]);
+      // the card's text is its summary, unless it's older than the card
+      if (compareKeys(change.time, head.updated) >= 0)
+        setCardText(doc, {
+          text: summaryOf(change.blocks),
+          until: dayOf(change.time),
+          from: slugsOf(doc.parsed.notes).get(change.noteKey),
+        });
       break;
     }
     case "followup-edit": {
@@ -515,7 +583,10 @@ export function commitMessage(change, before) {
       const implied = change.span !== head.span ? "arrived at span" : change.complete && !head.complete ? "hung" : null;
       const stage = stageOf(change);
       const logged = stage && stage !== implied ? ` and log ${stage}` : "";
-      const memo = logged + (change.noteToSelf?.trim() ? " and add a note to self" : "");
+      const memo =
+        logged +
+        (change.noteToSelf?.trim() ? " and add a note to self" : "") +
+        (change.cardText?.trim() ? " with card text" : "");
       if (change.span !== head.span) return `Move the Clayton Clipper to span ${change.span}${memo}`;
       if (change.complete && !head.complete) return `Mark span ${change.span} as hung${memo}`;
       if (!change.complete && head.complete) return `Mark span ${change.span} as not hung${memo}`;

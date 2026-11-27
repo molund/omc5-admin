@@ -90,7 +90,7 @@ test("move changes only the three header lines", async () => {
   });
   assert.equal(hunks.length, 3);
   assert.equal(text.split("\n").length, BASE.split("\n").length);
-  const s = await site(text);
+  let s = await site(text);
   assert.equal(s.span, 38);
   assert.equal(s.complete, false);
   assert.equal(+s.updated, +new Date("2026-11-04T11:15-07:00"));
@@ -98,14 +98,75 @@ test("move changes only the three header lines", async () => {
   const card = cardFor(text, undefined, "2026-11-04T11:15-07:00");
   assert.equal(card.text, "");
   assert.equal(card.button, "trackside");
-  // a move on the update's own day leaves its text on the card until midnight
-  const sameDay = applyChange(BASE, { kind: "move", time: "2026-11-03T21:00-07:00", span: 38, complete: false }).text;
-  assert.equal(cardFor(sameDay, undefined, "2026-11-03T23:45-07:00").button, "comments");
-  assert.equal(cardFor(sameDay, undefined, "2026-11-04T00:00-07:00").button, "trackside");
+  // a move with card text: on the card until the end of its last day, with the Trackside button, and the site reads it
+  const said = applyChange(text, {
+    kind: "move",
+    time: "2026-11-04T21:00-07:00",
+    span: 38,
+    complete: false,
+    cardText: "  Still waiting.  ",
+    cardTextUntil: "2026-11-05",
+  }).text;
+  const lines = said.split("\n");
+  assert.equal(lines[lines.findIndex((l) => /^(hung|complete): /.test(l)) + 4], 'card-text: "Still waiting."');
+  assert.deepEqual(cardFor(said, undefined, "2026-11-05T23:45-07:00"), {
+    ...cardFor(text, undefined, "2026-11-05T23:45-07:00"),
+    updated: "2026-11-04T21:00-07:00",
+    cardText: "Still waiting.",
+    cardTextUntil: "2026-11-05",
+    text: "Still waiting.",
+  });
+  assert.equal(cardFor(said, undefined, "2026-11-06T00:00-07:00").text, "");
+  s = await site(said);
+  assert.deepEqual([s.cardText, s.cardTextUntil, s.cardTextFrom], ["Still waiting.", "2026-11-05", null]);
+  assert.equal(
+    commitMessage({ kind: "move", span: 38, complete: false, time: T, cardText: "Still waiting." }, BASE),
+    "Move the Clayton Clipper to span 38 with card text",
+  );
+  // a later move without any takes it away, and the file is as it was
+  const quiet = applyChange(said, { kind: "move", time: "2026-11-04T11:15-07:00", span: 38, complete: false }).text;
+  assert.equal(quiet, text);
   assert.equal(
     commitMessage({ kind: "move", span: 38, complete: false, time: T }, BASE),
     "Move the Clayton Clipper to span 38",
   );
+});
+
+test("an update or addendum writes its summary as the card text, until the end of its day, from its update", async () => {
+  const update = { kind: "update", time: T, span: 38, complete: false, title: dateTitle(T), blocks };
+  const withNote = applyChange(BASE, update).text;
+  let s = await site(withNote);
+  assert.deepEqual(
+    [s.cardText, s.cardTextUntil, s.cardTextFrom],
+    [blocks[0].text, "2026-11-04", "construction-update-for-wednesday-nov-4-2026"],
+  );
+  // after the velocity's place, just under hung:, with its comment
+  const lines = withNote.split("\n");
+  assert.match(lines[lines.findIndex((l) => /^(hung|complete): /.test(l)) + 1], /^# the progress card's text/);
+  const fu = {
+    kind: "followup",
+    noteKey: T,
+    time: "2026-11-05T07:00-07:00",
+    blocks: [{ type: "summary", text: "Five segments are hung." }],
+    gantry: null,
+  };
+  const withFu = applyChange(withNote, fu).text;
+  s = await site(withFu);
+  assert.deepEqual(
+    [s.cardText, s.cardTextUntil, s.cardTextFrom],
+    ["Five segments are hung.", "2026-11-05", "construction-update-for-wednesday-nov-4-2026"],
+  );
+  assert.equal(withFu.match(/^card-text: /gm).length, 1);
+  // a blog post, an edit and a delete leave it
+  const blog = { kind: "blog", date: "2026-11-05", title: "A post", blocks: blocks.slice(0, 1) };
+  const card = (text) => headerOf(parseStatus(text));
+  const pick = ({ cardText, cardTextUntil, cardTextFrom }) => ({ cardText, cardTextUntil, cardTextFrom });
+  assert.deepEqual(pick(card(applyChange(withFu, blog).text)), pick(card(withFu)));
+  const deleted = applyChange(withNote, { kind: "note-delete", noteKey: T }).text;
+  assert.deepEqual(pick(card(deleted)), pick(card(withNote)));
+  // its update gone, the card has the Trackside button
+  assert.equal(cardFor(deleted, undefined, T).button, "trackside");
+  assert.equal(cardFor(withNote, undefined, T).button, "comments");
 });
 
 test("an update or addendum older than the card leaves the card as it is", () => {
@@ -377,7 +438,7 @@ test("deleting what the card shows moves `updated` back, and leaves the span and
 
   // to the newest note left
   let head = headerOf(parseStatus(applyChange(text, { kind: "note-delete", noteKey: T2 }).text));
-  assert.deepEqual(head, { updated: T1, span: 40, complete: true });
+  assert.deepEqual([head.updated, head.span, head.complete], [T1, 40, true]);
 
   // to a follow-up, when that's newer
   const withFu = applyChange(text, {
@@ -442,11 +503,19 @@ test("deleting a follow-up: one of several, the last one, and the one the card s
   });
   const before = headerOf(parseStatus(BASE));
   const undone = applyChange(added.text, { kind: "followup-delete", noteKey: one.key, fuKey: fuTime });
-  // the fixture's `updated` is older than its newest entry, so it goes back to that entry, not to the old value
+  // the fixture's `updated` is older than its newest entry, so it goes back to that entry, not to the old value; the card
+  // text the addendum wrote stays (a delete leaves it)
   const newest = "2026-11-03T20:30-07:00";
-  assert.deepEqual(headerOf(parseStatus(undone.text)), { ...before, updated: newest });
+  const head = headerOf(parseStatus(undone.text));
+  assert.deepEqual(head, {
+    ...before,
+    updated: newest,
+    cardText: "x",
+    cardTextUntil: "2026-11-20",
+    cardTextFrom: head.cardTextFrom,
+  });
   assert.equal(
-    undone.text,
+    applyChange(undone.text, { kind: "move", time: newest, span: before.span, complete: before.complete }).text,
     BASE.replace(`updated: ${before.updated}`, `updated: ${newest}`),
     "the rest goes back exactly",
   );

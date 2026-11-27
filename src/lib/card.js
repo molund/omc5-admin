@@ -1,10 +1,11 @@
-// What the map's progress card shows for a version of status.yaml: the newest status update's latest word (its newest
-// follow-up, else the update itself) shows until midnight BC time at the end of the day of its time stamp, by the
-// visitor's clock (a later position check-in doesn't hide it). After that the card has no text, and a Trackside button in
-// place of Comments.
+// What the map's progress card shows for a version of status.yaml: its `card-text:` shows until midnight BC time at the
+// end of its `card-text-until:` day, by the visitor's clock, with the Comments button of the update it came from
+// (`card-text-from:`; a position's own words have the Trackside button). After that the card has no text, and a Trackside
+// button in place of Comments.
 
-import { parseStatus, headerOf, newestFirst, followUpsNewestFirst } from "./statusFile.js";
+import { parseStatus, headerOf } from "./statusFile.js";
 import { parseKey, dayOf } from "./time.js";
+import { slugsOf } from "./titles.js";
 import { parseDesk } from "./deskFile.js";
 
 /** The card's figures that aren't in status.yaml: the site works them out from its map (src/MapView/gantryProgress.js in
@@ -68,7 +69,7 @@ export function chartFor(points, width = 48, height = 16) {
 /**
  * @param {string} text status.yaml
  * @param {string} [deskText] gantry-cycles.yaml, for the velocity chart
- * @param {Date|string} [now] When the card is seen (a Date or a key): the latest word shows only on its own BC day.
+ * @param {Date|string} [now] When the card is seen (a Date or a key): the card text shows only up to its last day.
  * @returns {{ updated: string, span: number|null, complete: boolean, text: string, button: "comments"|"trackside",
  *   ahead: number, total: number, percent: number, pace: string|null, chart: object|null }}
  *   `pace`: the spans per week, as written (status.yaml's copy); `chart`: chartFor's, from gantry-cycles.yaml's earlier values.
@@ -76,18 +77,17 @@ export function chartFor(points, width = 48, height = 16) {
 export function cardFor(text, deskText, now = new Date()) {
   const parsed = parseStatus(text);
   const head = headerOf(parsed);
-  const latest = newestFirst(parsed.notes).find((n) => n.fields.summary && !n.fields.post);
-  const fu = latest && followUpsNewestFirst(latest).find((f) => f.fields.summary);
-  const word = fu ?? latest;
-  const current = !!word && dayOf(word.key) === dayOf(now);
+  const current = !!head.cardText && !!head.cardTextUntil && head.cardTextUntil >= dayOf(now);
+  // the update it came from, if it's still there
+  const from = current && head.cardTextFrom && [...slugsOf(parsed.notes).values()].includes(head.cardTextFrom);
   // (named with underscores on Nov. 7, 2026, as the site still reads too)
   const h = parsed.header;
   const pace = (h["spans-per-week"] ?? h.spans_per_week)?.value ?? null;
   return {
     ...head,
     ...figuresFor(head.span),
-    text: current ? word.fields.summary : "",
-    button: current ? "comments" : "trackside",
+    text: current ? head.cardText : "",
+    button: from ? "comments" : "trackside",
     pace,
     chart: pace ? chartFor(velocityPoints(deskText)) : null,
   };

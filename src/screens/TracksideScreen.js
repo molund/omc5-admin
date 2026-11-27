@@ -3,7 +3,7 @@
 // (/trackside/'s scroll shows it once it's older than the newest 10, which are always shown; an update only with
 // `featured: true`, a blog post unless it has `featured: false`). Change any
 // of them, then send them all together as one change (`comments` in lib/changes.js). The filters show the posts by their
-// saved comments setting, or just the ones changed here, and Featured only narrows any of them to the saved featured ones; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
+// saved comments setting, or just the ones changed here, and Featured only (not on the Featured tab) narrows any of them to the saved featured ones; the eye opens a preview (the photo, summary and addendums) that steps through the list. Off can't be picked for a
 // post with comments: they'd vanish from Trackside while still on the server, so they're deleted there first.
 import { useEffect, useMemo, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
@@ -386,7 +386,8 @@ export function TracksideScreen({ onReview }) {
             </View>
           ))}
         </View>
-        <Checkbox value={featuredOnly} onChange={setFeaturedOnly} label="Featured only" />
+        {/* the Featured tab shows only the featured ones already */}
+        {kind !== "featured" && <Checkbox value={featuredOnly} onChange={setFeaturedOnly} label="Featured only" />}
       </View>
       {countError && (
         <Notice tone="problem">{`Couldn't get the comment counts: ${countError} Off stays greyed out.`}</Notice>

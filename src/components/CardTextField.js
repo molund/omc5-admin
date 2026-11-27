@@ -38,7 +38,7 @@ export function CardTextField({ value, until, floor, onChange, onUntil }) {
         onChangeText={onChange}
         placeholder="A few words for the map's progress card, not on Trackside"
         label="Card text"
-        noAi
+        writes="a short line for the map's progress card"
       />
       {!!value.trim() && (
         <Row>

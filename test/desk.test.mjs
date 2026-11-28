@@ -1253,3 +1253,16 @@ test("an arrival on a double girder span counts as far as hangers down for the v
   assert.equal(v.window.span, 43);
   assert.equal(v.window.to, 43 + hangersDown);
 });
+
+test("the double girder spans are left out of each stage's share of the cycle", () => {
+  // runOfCycles' spans moved down 2, so the gantry finishes span 41 and arrives at 42, then crawls across 43 to 47 (double
+  // girder) an hour apart
+  const before = runOfCycles().map((e) => ({ ...e, span: e.span - 2 }));
+  let t = parseKey(before.at(-1).key);
+  const crawl = [];
+  for (const span of [43, 44, 45, 46, 47]) {
+    t = afterShiftHours(t, 1);
+    crawl.push({ key: toKey(t), span, stage: "arrived at span" });
+  }
+  assert.deepEqual(stageShares([...before, ...crawl]), stageShares(before));
+});

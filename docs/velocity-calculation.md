@@ -15,8 +15,7 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
     way an estimated step is.
   - On a double girder span (31, 43 to 47 and 52 to 54, `DOUBLE_GIRDER` in `doubleGirder.js`) the gantry has no segments to
     build and only its arrival is logged. For the distance, that arrival counts as far as "hangers down" (`distanceAt`): span
-    44's arrival, with hangers down 80% through the cycle, is 44.80. The shares, the estimated steps and the steps table
-    still treat it as an arrival.
+    44's arrival, with hangers down 80% through the cycle, is 44.80. The estimated steps and the steps table still show it as an arrival, and the stage shares leave it out (see Which data counts).
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `gantry-cycles.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 
@@ -241,6 +240,9 @@ These short pauses are held near a set length in shift hours (`KNOWN_HOURS`). Th
   tagged steps.
 - **The newest span and the three before it** for the shares. Older spans drop out as the gantry moves on. A step tagged
   with too high a span number moves this window.
+- **No double girder spans** for the shares (31, 43 to 47 and 52 to 54): the gantry arrives at one with nothing left to
+  build, the same as hangers down, and only crawls across. Their steps are left out, and so is any gap that runs across one,
+  and the window above skips them (on span 48 it's 48, 42, 41 and 40).
 - **The earliest time stamp** for each step on each span. A tag means "this had happened by then".
 - Steps logged out of order (later in the cycle but earlier in time) are ignored for the shares, and don't take the
   gantry's progress backwards when the start of the velocity's week is read off.

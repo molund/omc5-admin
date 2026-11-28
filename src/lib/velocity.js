@@ -242,12 +242,19 @@ export const loggedTimes = (entries) =>
  * velocity covers, says what the segments it crosses add up to in shift hours, and the lengths are the non-negative least
  * squares fit of those gaps. A segment with a known length is pulled firmly to it, the rest lightly to the average, which fills
  * in what was never logged.
+ *
+ * The double girder spans are left out altogether: the gantry only crawls across them, so their steps, and any gap that runs
+ * across one, say nothing about how long a stage takes. The spans the velocity covers are the newest span and the three before
+ * it that aren't double girder.
  */
 export const stageShares = scoped(function stageShares(entries) {
-  const steps = allSteps(entries);
+  const steps = allSteps(entries).filter((t) => !isDoubleGirder(t.span));
   const top = Math.max(0, ...steps.map((t) => t.span));
+  // the newest span and the WINDOW before it, double girder spans skipped
+  const spans = [];
+  for (let span = top; span > 0 && spans.length <= WINDOW; span--) if (!isDoubleGirder(span)) spans.push(span);
   const since = parseKey(SHARES_SINCE);
-  const used = steps.filter((t) => t.at >= since && t.span >= top - WINDOW);
+  const used = steps.filter((t) => t.at >= since && spans.includes(t.span));
   const n = STAGES.length;
   const gaps = [];
   for (let i = 0; i + 1 < used.length; i++) {
@@ -255,6 +262,8 @@ export const stageShares = scoped(function stageShares(entries) {
     const crossed = (b.span - a.span) * n + b.index - a.index;
     // reported out of order: it says nothing about the length
     if (crossed <= 0) continue;
+    // across a double girder span: the crawl over it isn't part of any stage
+    if (Array.from({ length: b.span - a.span }, (_, k) => a.span + 1 + k).some(isDoubleGirder)) continue;
     const counts = Array(n).fill(0);
     for (let c = 0; c < crossed; c++) counts[(a.index + c) % n]++;
     gaps.push({ counts, hours: shiftHours(a.at, b.at) });

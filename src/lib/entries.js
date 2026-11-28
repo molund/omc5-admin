@@ -131,6 +131,8 @@ export function reopenAs(change, head) {
           memo: memo ?? "",
           stage,
           ...recorded,
+          // its text, with Write with AI one switch away
+          mode: "write",
         },
       };
     case "followup":
@@ -151,7 +153,7 @@ export function reopenAs(change, head) {
     case "blog":
       return {
         screen: "blog",
-        seed: { date: change.date, title: change.title, blocks: change.blocks, memo: memo ?? "" },
+        seed: { date: change.date, title: change.title, blocks: change.blocks, memo: memo ?? "", mode: "write" },
       };
     case "followup-edit":
       return {

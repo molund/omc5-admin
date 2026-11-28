@@ -783,6 +783,9 @@ test("a waiting change reopens as the draft that makes it again", () => {
     head,
   );
   assert.equal(update.seed.titleSet, true);
+  // a waiting update or blog post opens on its text, not on empty notes for Write with AI
+  assert.equal(update.seed.mode, "write");
+  assert.equal(reopenAs({ kind: "blog", date: "2030-01-01", title: "T", blocks }, head).seed.mode, "write");
   // a follow-up that didn't move the gantry starts from where the gantry is
   const fu = reopenAs({ kind: "followup", noteKey: "n", time: T, blocks, gantry: null, stage: "hung" }, head);
   assert.deepEqual([fu.seed.span, fu.seed.complete, fu.seed.editing], [37, true, null]);

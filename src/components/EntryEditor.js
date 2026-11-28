@@ -12,7 +12,7 @@ import { addendumProblems, positionName, recentUpdates } from "../lib/entries.js
 import { headerOf } from "../lib/statusFile.js";
 import { compareKeys, dayOf, stamp } from "../lib/time.js";
 import { TurnIntoLinks } from "./TurnIntoLinks.js";
-import { slugsOf } from "../lib/titles.js";
+import { dateTitle, slugsOf } from "../lib/titles.js";
 import { addendumAbove, BlockEditor, blockProblems, blockTexts, blocksOf, emptyBlocks } from "./BlockEditor.js";
 import { CardPreview } from "./CardPreview.js";
 import { NoteToSelf } from "./NoteToSelf.js";
@@ -21,6 +21,7 @@ import { StyleHints } from "./StyleHints.js";
 import { TimeStampField } from "./TimeStampField.js";
 import { TitleField, titleProblems } from "./TitleField.js";
 import { CommentsSwitch } from "./CommentsSwitch.js";
+import { emptyWalk, FilledNotice, unusedPhotos, WalkNotes, WalkSwitch } from "./WalkNotes.js";
 import { Body, Button, Confirm, Label, Notice, Panel, Row } from "./ui.js";
 
 const TYPE = { update: "Update", blog: "Blog post", position: "Position", followup: "Addendum" };
@@ -85,6 +86,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
   const { tw } = useTw();
   const desk = useDesk();
   const [asking, setAsking] = useState(false); // Delete was pressed, and wants its confirmation
+  const [filled, setFilled] = useState(null); // the AI reply's problems, after filling in
   const { note, fu, record, gone } = findTarget(desk, target);
 
   const header = (
@@ -190,6 +192,17 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           { ...shared, noteKey: under.key, editing: null, memo: memo || undefined },
     );
   };
+  // an update or blog post can be written again with AI (WalkNotes.js): notes pasted in fill in its title and text. It opens on
+  // its text (Write it myself); the notes are this edit's own, and start empty
+  const writable = target.type === "update" || isPost;
+  const mode = d.mode ?? "write";
+  const walk = d.walk ?? emptyWalk();
+  const fill = ({ title: t, keepTitle, blocks, problems: issues }) => {
+    desk.dropPhotos(unusedPhotos(d.blocks, blocks, walk.blocks));
+    const title = keepTitle && !isPost ? dateTitle(note.key) : t;
+    update({ blocks, ...(title && { title }), mode: "write" });
+    setFilled(title || !isPost ? issues : ["The reply has no TITLE line, so the title is as it was.", ...issues]);
+  };
   const warning = deleteWarning(target, note, note && slugsOf(desk.parsed.notes).get(note.key), fu);
   const deleteChange =
     target.type === "followup"
@@ -222,7 +235,28 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       {target.type === "position" && record && !note && onSwitch && (
         <TurnIntoLinks under={under} onUpdate={() => turnInto("update")} onAddendum={() => turnInto("followup")} />
       )}
-      {(target.type === "update" || isPost) && (
+      {writable && (
+        <WalkSwitch
+          value={mode}
+          onChange={(m) => {
+            setFilled(null);
+            update({ mode: m });
+          }}
+        />
+      )}
+      {writable && mode === "walk" && (
+        <WalkNotes
+          kind={isPost ? "blog" : "update"}
+          value={walk}
+          onChange={(w) => update({ walk: w })}
+          day={dayOf(target.key)}
+          standardTitle={isPost ? undefined : dateTitle(note.key)}
+          hasText
+          onFill={fill}
+        />
+      )}
+      {writable && mode !== "walk" && filled && <FilledNotice problems={filled} />}
+      {writable && mode !== "walk" && (
         <TitleField
           kind={isPost ? "blog" : "update"}
           stamp={note.key}
@@ -232,7 +266,7 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
           address={slugsOf(desk.parsed.notes).get(note.key)}
         />
       )}
-      {target.type !== "position" && (
+      {target.type !== "position" && mode !== "walk" && (
         <BlockEditor
           blocks={d.blocks}
           onChange={(blocks) => update({ blocks })}
@@ -252,7 +286,9 @@ export function EntryEditor({ target, draft: d, update, onClose, onReview, noDel
       )}
       {/* a blog post has no step, so its notes aren't in a step box */}
       {isPost && <NoteToSelf value={memo} onChange={(m) => update({ memo: m })} />}
-      {target.type !== "position" && <StyleHints texts={[...(d.title ? [d.title] : []), ...blockTexts(d.blocks)]} />}
+      {target.type !== "position" && mode !== "walk" && (
+        <StyleHints texts={[...(d.title ? [d.title] : []), ...blockTexts(d.blocks)]} />
+      )}
       {target.type !== "position" && !preview.error && <CardPreview card={cardFor(preview.text, preview.deskText)} />}
       {preview.error && <Notice tone="problem">{preview.error}</Notice>}
       {problems.map((p) => (

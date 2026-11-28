@@ -107,6 +107,7 @@ function SitePhoto({ file, caption }) {
  * @param {string[]} [props.above] For a follow-up, its update and other addendums (addendumAbove), for the AI prompts
  * @param {boolean} [props.walk] Walk notes (WalkNotes.js): the summary is the notes, a plain box with line breaks, and the rest
  *   only photos and their captions, with no AI prompts of their own
+ * @param {object} [props.notesRight] Walk notes: buttons on the notes box's top line, before its icons
  */
 export const BlockEditor = (props) => (
   <RichScope>
@@ -114,7 +115,7 @@ export const BlockEditor = (props) => (
   </RichScope>
 );
 
-function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk }) {
+function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk, notesRight }) {
   const { tw } = useTw();
   const desk = useDesk();
   const [busy, setBusy] = useState(false);
@@ -244,6 +245,7 @@ function Blocks({ blocks, onChange, day, nameHint, followUp, title, above, walk 
               key="summary"
               multiline
               heading={walk ? "Your notes" : "Summary"}
+              right={walk ? notesRight : undefined}
               value={b.text}
               onChangeText={(text) => set(i, { text })}
               placeholder={walk ? "Everything you saw on the walk, and anything the AI should do" : "What happened?"}

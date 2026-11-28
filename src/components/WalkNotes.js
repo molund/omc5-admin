@@ -73,6 +73,7 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   const [problems, setProblems] = useState([]); // why the reply couldn't fill in
   const [confirming, setConfirming] = useState(false); // on the phone, the model to write with once it's confirmed
   const [writing, setWriting] = useState(null); // the model being asked
+  const [clearing, setClearing] = useState(false); // Clear was pressed on the notes, and wants its confirmation
   const stop = useRef(null); // the AbortController of the request running, for Stop
   // leaving the screen stops a request still running
   useEffect(() => () => stop.current?.abort(), []);
@@ -164,7 +165,23 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
         onChange={(b) => onChange({ ...value, blocks: b })}
         day={day}
         nameHint={notes}
+        notesRight={
+          // empties the notes for a new version pasted in (from Copilot, say); the photos stay
+          <Button kind="link" small title="Clear" disabled={!notes} onPress={() => setClearing(true)} />
+        }
       />
+      {clearing && (
+        <Confirm
+          action="Clear"
+          onCancel={() => setClearing(false)}
+          onConfirm={() => {
+            setClearing(false);
+            onChange({ ...value, blocks: [{ ...blocks[0], text: "" }, ...blocks.slice(1)] });
+          }}
+        >
+          Clear your notes? The photos and their captions stay.
+        </Confirm>
+      )}
       {!canKeepToken && (
         <>
           <Button

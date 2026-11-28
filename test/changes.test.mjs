@@ -196,6 +196,32 @@ test("the card text can be edited on its own, keeping the update it came from, o
   assert.equal(commitMessage({ kind: "card-text", text: "" }, edited), "Clear the progress card's text");
 });
 
+test("a position that keeps the card's text keeps the update it came from; its own words don't", () => {
+  const withNote = applyChange(BASE, {
+    kind: "update",
+    time: T,
+    span: 38,
+    complete: false,
+    title: dateTitle(T),
+    blocks,
+  }).text;
+  const move = (cardText) => ({
+    kind: "move",
+    time: "2026-11-04T15:00-07:00",
+    span: 38,
+    complete: true,
+    cardText,
+    cardTextUntil: "2026-11-04",
+  });
+  const kept = headerOf(parseStatus(applyChange(withNote, move(blocks[0].text)).text));
+  assert.deepEqual(
+    [kept.cardText, kept.cardTextFrom],
+    [blocks[0].text, "construction-update-for-wednesday-nov-4-2026"],
+  );
+  const own = headerOf(parseStatus(applyChange(withNote, move("All the segments are hung.")).text));
+  assert.deepEqual([own.cardText, own.cardTextFrom], ["All the segments are hung.", null]);
+});
+
 test("an update or addendum older than the card leaves the card as it is", () => {
   const old = "2026-11-01T09:00-07:00";
   const before = headerOf(parseStatus(BASE));

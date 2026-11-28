@@ -29,7 +29,8 @@
 //
 // The progress card's text is status.yaml's `card-text:` (setCardText): an update or addendum that moves the card's time
 // stamp writes its summary there, until the end of its day, from its update; a position writes its own words (cardText,
-// until cardTextUntil, a BC date), or none, which takes the card text away. Blog posts, edits and deletes leave it; a
+// until cardTextUntil, a BC date), or none, which takes the card text away. A position starts with the card's text while it
+// still shows, and one that keeps it unchanged keeps the update it came from. Blog posts, edits and deletes leave it; a
 // card-text change edits it on its own, keeping the update it came from.
 //
 // blocks: [{ type: "summary", text }, { type: "text", text }, { type: "photo", file, caption, photoId }, …], the summary
@@ -453,7 +454,12 @@ export function applyChange(text, change, { deskKeys = [] } = {}) {
   switch (change.kind) {
     case "move":
       setHeader(doc, { updated: change.time, span: change.span, complete: change.complete });
-      setCardText(doc, { text: change.cardText, until: change.cardTextUntil ?? dayOf(change.time) });
+      // the card's text kept as it was (the position starts with it while it shows) keeps the update it came from
+      setCardText(doc, {
+        text: change.cardText,
+        until: change.cardTextUntil ?? dayOf(change.time),
+        from: cleanText(change.cardText ?? "").trim() === head.cardText ? head.cardTextFrom : null,
+      });
       break;
     case "update": {
       // one older than the card (a position turned into an update, or a back-dated one) leaves the card as it is

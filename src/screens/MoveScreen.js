@@ -1,5 +1,5 @@
 // Position: the gantry's span, Hung and a time stamp, and optionally a few words for the card that aren't an update (Card
-// text), so the card shows a Trackside button. The steps of the
+// text, filled in with the card's own while it still shows), so the card shows a Trackside button. The steps of the
 // cycle seen and a note to self go in gantry-cycles.yaml; a move logs "arrived at span" and marking a span hung logs "hung" by itself, so
 // the velocity has them even when there's no update about them.
 import { View } from "react-native";
@@ -31,9 +31,17 @@ export function MoveScreen({ onReview, onSwitch, draftKey = "move", seed }) {
   const { tw } = useTw();
   const desk = useDesk();
   const head = headerOf(desk.parsed);
+  // a new position starts with the card's text while it still shows (until the end of its last day), so it isn't lost
+  const showing = !!head.cardText && !!head.cardTextUntil && head.cardTextUntil >= dayOf(nowKey());
   const [d, update, reset] = useDraft(
     draftKey,
-    () => seed ?? { time: nowKey(), span: head.span, complete: head.complete },
+    () =>
+      seed ?? {
+        time: nowKey(),
+        span: head.span,
+        complete: head.complete,
+        ...(showing && { cardText: head.cardText, cardTextUntil: head.cardTextUntil }),
+      },
   );
   const memo = d.memo ?? "";
   const floor = stageFloor(d.complete, postedStage(desk.deskEntries, d.span));

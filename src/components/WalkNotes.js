@@ -74,6 +74,7 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
   const [confirming, setConfirming] = useState(false); // on the phone, the model to write with once it's confirmed
   const [writing, setWriting] = useState(null); // the model being asked
   const [clearing, setClearing] = useState(false); // Clear was pressed on the notes, and wants its confirmation
+  const [notesCopied, setNotesCopied] = useState(null); // true for a moment after the notes are copied; false when refused
   const stop = useRef(null); // the AbortController of the request running, for Stop
   // leaving the screen stops a request still running
   useEffect(() => () => stop.current?.abort(), []);
@@ -166,8 +167,22 @@ export function WalkNotes({ kind, value, onChange, day, standardTitle, hasText, 
         day={day}
         nameHint={notes}
         notesRight={
-          // empties the notes for a new version pasted in (from Copilot, say); the photos stay
-          <Button kind="link" small title="Clear" disabled={!notes} onPress={() => setClearing(true)} />
+          <View style={tw`flex-row gap-3`}>
+            {/* the notes as they are, to take elsewhere (to Copilot, say) without selecting them first */}
+            <Button
+              kind="link"
+              small
+              title={notesCopied ? "Copied" : notesCopied === false ? "Couldn't copy" : "Copy"}
+              disabled={!notes}
+              onPress={async () => {
+                const ok = await copyText(notes);
+                setNotesCopied(ok);
+                if (ok) setTimeout(() => setNotesCopied(null), 1500);
+              }}
+            />
+            {/* empties the notes for a new version pasted in (from Copilot, say); the photos stay */}
+            <Button kind="link" small title="Clear" disabled={!notes} onPress={() => setClearing(true)} />
+          </View>
         }
       />
       {clearing && (

@@ -13,6 +13,10 @@ are constants at the top of `velocity.js`; if the job changes, that's where to c
     38.83.
   - The start, a week earlier, is read off between the steps logged either side of that moment, on the shift clock, the
     way an estimated step is.
+  - On a double girder span (31, 43 to 47 and 52 to 54, `DOUBLE_GIRDER` in `doubleGirder.js`) the gantry has no segments to
+    build and only its arrival is logged. For the distance, that arrival counts as far as "hangers down" (`distanceAt`): span
+    44's arrival, with hangers down 80% through the cycle, is 44.80. The shares, the estimated steps and the steps table
+    still treat it as an arrival.
 - **Each stage's share of the cycle**: how the cycle splits between the steps logged in `gantry-cycles.yaml`.
 - **Estimated stages**: a stage or arrival that wasn't logged, read off from the steps that were.
 

@@ -10,6 +10,7 @@
 // either is overtime: that part of the shutdown starts at the step instead.
 import { parseKey, toKey } from "./time.js";
 import { STAGES } from "./stages.js";
+import { isDoubleGirder } from "./doubleGirder.js";
 import { HOLIDAY_CAP_HOURS, rangesOf, typeInfo } from "./shutdowns.js";
 import { nightRangesOf } from "./nightsOff.js";
 
@@ -535,6 +536,15 @@ export function trendOf(shown, header, key) {
 }
 
 /**
+ * How far along the gantry was at a step, in spans, for the velocity's distance: its span plus how far through the cycle the
+ * step comes. A double girder span has no segments to build, and its arrival (the only step logged on one) counts as far as
+ * "hangers down": the gantry only crawls across, so it's all but done with that span once it's on it.
+ */
+const GIRDER_STEP = STAGES.indexOf("hangers down");
+const distanceAt = (t, shares) =>
+  t.span + shares[isDoubleGirder(t.span) && t.index === 0 ? GIRDER_STEP : t.index].position;
+
+/**
  * How far along the gantry was at a moment, in spans (a span number plus how far through that span's cycle), read off
  * between the logged steps either side of it on the shift clock, as an estimated step is. Null with no step on one side.
  * Steps logged out of order don't take it backwards.
@@ -544,7 +554,7 @@ function progressAt(steps, shares, when) {
   let furthest = -Infinity;
   const points = [];
   for (const t of steps) {
-    furthest = Math.max(furthest, t.span + shares[t.index].position);
+    furthest = Math.max(furthest, distanceAt(t, shares));
     points.push({ position: furthest, hours: shiftHours(origin, t.at), at: t.at });
   }
   const before = points.filter((p) => p.at <= when).at(-1);
@@ -596,7 +606,7 @@ export const velocity = scoped(function velocity(entries, now = new Date()) {
   };
   const { at: start, extended } = last ? reachBack(WEEK_HOURS) : { at: null, extended: 0 };
   const from = last && progressAt(steps, shares, start);
-  const to = last && last.span + shares[last.index].position;
+  const to = last && distanceAt(last, shares);
   if (from == null || !(to > from))
     return current ? { spansPerWeek: null, stage, window: null, shares, current } : null;
   // the distance itself: how far the gantry got between the window's ends, with nothing scaled, so the steps in it add up to it

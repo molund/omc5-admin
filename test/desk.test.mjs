@@ -1131,26 +1131,27 @@ test("a follow-up goes under today's or yesterday's update: not older ones, blog
 });
 
 test("the velocity over a week: a steady pace comes back, the window moves with each step, and a week of data is needed", () => {
-  // spans 40 to 43 in full, then span 44 up to glued, at LENGTHS' shift hours: a span every CYCLE shift hours, and any
-  // week holds 108 (a day shift on six days, Saturday's 8 hours long, and a night shift on five), so 108 / CYCLE spans a week
-  const entries = runOfCycles();
+  // spans 36 to 39 in full, then span 40 up to glued, at LENGTHS' shift hours: a span every CYCLE shift hours, and any
+  // week holds 108 (a day shift on six days, Saturday's 8 hours long, and a night shift on five), so 108 / CYCLE spans a week.
+  // runOfCycles' spans moved down 4, clear of the double girder spans 43 and 44, which the velocity counts differently
+  const entries = runOfCycles().map((e) => ({ ...e, span: e.span - 4 }));
   let t = parseKey(entries.at(-1).key);
   const names = Object.keys(LENGTHS);
   for (const stage of names.slice(0, 4)) {
     t = afterShiftHours(t, LENGTHS[stage]);
-    entries.push({ key: toKey(t), span: 44, stage: names[names.indexOf(stage) + 1] });
+    entries.push({ key: toKey(t), span: 40, stage: names[names.indexOf(stage) + 1] });
   }
-  const atArrival = velocity(entries.filter((e) => !(e.span === 44 && e.stage !== "arrived at span")));
+  const atArrival = velocity(entries.filter((e) => !(e.span === 40 && e.stage !== "arrived at span")));
   const v = velocity(entries);
   for (const x of [atArrival, v]) assert.ok(Math.abs(x.spansPerWeek - 108 / CYCLE) < 0.05, `${x.spansPerWeek}`);
-  // the week ends at the latest step: span 44's glued, logged after its arrival
+  // the week ends at the latest step: span 40's glued, logged after its arrival
   assert.equal(atArrival.stage, "arrived at span");
   assert.equal(v.stage, "glued");
   assert.equal(v.window.end, entries.at(-1).key);
   assert.ok(parseKey(v.window.end) > parseKey(atArrival.window.end));
   assert.equal(workingHours(parseKey(v.window.start), parseKey(v.window.end)), 126);
   // less than a week of steps: nothing to read the start off
-  const short = entries.filter((e) => e.span >= 43);
+  const short = entries.filter((e) => e.span >= 39);
   assert.equal(velocity(short).spansPerWeek, null);
 });
 
@@ -1236,4 +1237,19 @@ test("a step keeps only its first report, and a repeat of it only when it is the
       "2026-11-21T08:30-07:00",
     ],
   );
+});
+
+test("an arrival on a double girder span counts as far as hangers down for the velocity", () => {
+  // the fixture's spans moved up to 42 (none of them double girder), then the gantry arrives at span 43, a double girder
+  const shifted = parseDesk(DESK).map((e) => ({ ...e, span: e.span && e.span + 4 }));
+  const entries = parseDesk(
+    formatDesk([
+      ...shifted,
+      { key: "2026-11-06T10:00-07:00", span: 43, stage: "arrived at span", progress: null, noteToSelf: "" },
+    ]),
+  );
+  const v = velocity(entries, at("2026-11-06T12:00-07:00"));
+  const hangersDown = v.shares.find((s) => s.stage === "hangers down").position;
+  assert.equal(v.window.span, 43);
+  assert.equal(v.window.to, 43 + hangersDown);
 });
